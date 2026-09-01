@@ -195,9 +195,9 @@
 
 <div class="nav">
   <button data-tab="browse" class="active">Browse catalog</button>
+  <button data-tab="scan">Scan a disc</button>
   <span id="adminNavGroup" class="admin-nav-group" style="display:none;">
     <span class="nav-label">Admin panel</span>
-    <button data-tab="scan">Scan a disc</button>
     <button data-tab="rentals">All rentals</button>
     <button data-tab="labels">Print labels</button>
     <button data-tab="admin">Manage inventory</button>
@@ -297,6 +297,13 @@
               <input type="file" accept="image/*" multiple id="bulkPosterInput" />
             </label>
             <span id="bulkPosterStatus" style="font-size:11px;color:var(--muted);margin-left:8px;"></span>
+          </div>
+
+          <div class="bulk-box">
+            <div class="display" style="font-size:15px;margin-bottom:6px;">Auto-fill posters &amp; descriptions</div>
+            <div class="scan-msg" style="margin-top:0;">Looks up every title that's missing a poster or description on OMDb and fills them in automatically — genre, rating, IMDb id, poster art, and a plot summary, all in one pass. Needs an OMDb API key set on the server (free, see README.md) and the Pi to have internet access at the moment you use it — everything else in this app keeps working without either.</div>
+            <button class="primary" id="autofillBtn">🔎 Auto-fill missing titles</button>
+            <span id="autofillStatus" style="font-size:11px;color:var(--muted);margin-left:8px;"></span>
           </div>
         </div>
       </div>
@@ -549,6 +556,9 @@
       ? `background-image:linear-gradient(90deg, rgba(20,20,20,0.95) 0%, rgba(20,20,20,0.55) 45%, rgba(20,20,20,0.15) 75%), linear-gradient(180deg, rgba(20,20,20,0) 55%, #141414 100%), url('${m.poster}');`
       : `background-image:linear-gradient(120deg, ${color}, #141414 80%);`;
     const out = m.stock<=0;
+    const blurb = m.description
+      ? (m.description.length > 200 ? m.description.slice(0, 197) + "…" : m.description)
+      : "";
     const actions = mode==="tv"
       ? `<button class="hero-btn primary" data-hero-action>📺 Send to Kiosk</button>`
       : `<button class="hero-btn primary" data-hero-action ${out?'disabled':''}>▶ ${out?'Unavailable':'Rent Now'}</button>
@@ -558,6 +568,7 @@
         <div class="hero-eyebrow">${m.genre} · ${m.year}</div>
         <div class="hero-title">${m.title}</div>
         <div class="hero-meta">${m.rating} &nbsp;·&nbsp; ${out?'Out of stock':m.stock+' disc'+(m.stock===1?'':'s')+' available'}</div>
+        ${blurb ? `<div style="font-size:14px;color:#D8D4CC;line-height:1.5;margin-bottom:16px;max-width:520px;">${blurb}</div>` : ''}
         <div class="hero-actions">${actions}</div>
       </div>
     </div>`;
@@ -649,6 +660,7 @@
           <label class="file-label">📷 ${m.poster?'Replace photo':'Add photo'}
             <input type="file" accept="image/*" capture="environment" class="posterInput" data-poster="${m.id}" />
           </label>
+          <button class="secondary" data-lookup="${m.id}" style="padding:5px 9px;font-size:11px;">🔎 Look up on OMDb</button>
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
@@ -663,6 +675,7 @@
       adjustStock(id, parseInt(delta,10));
     });
     el.querySelectorAll("[data-remove]").forEach(b => b.onclick = () => removeTitle(b.dataset.remove));
+    el.querySelectorAll("[data-lookup]").forEach(b => b.onclick = () => lookupTitle(b.dataset.lookup));
     el.querySelectorAll(".imdbInput").forEach(inp => {
       inp.onchange = () => setImdbId(inp.dataset.imdb, inp.value);
     });
@@ -795,6 +808,7 @@
           <span>Rating: ${m.rating}</span>
           <span>${out ? 'Out of stock' : m.stock+' disc'+(m.stock===1?'':'s')+' on hand'}</span>
         </div>
+        ${m.description ? `<div style="font-size:13px;color:#D8D4CC;line-height:1.5;margin-bottom:16px;">${m.description}</div>` : ''}
         <div style="margin-bottom:16px;">${imdbLinkHtml(m)}</div>
         ${actionHtml}
       </div>
@@ -1118,6 +1132,45 @@
     catch(e){ toast("Couldn't save IMDb id"); }
   }
 
+  // ---------- OMDb auto-import (posters + descriptions) ----------
+  async function lookupTitle(id){
+    const m = catalog.find(x=>x.id===id);
+    if(!m) return;
+    toast(`Looking up "${m.title}"...`);
+    try{
+      const result = await api.get("/api/lookup?title="+encodeURIComponent(m.title)+"&year="+encodeURIComponent(m.year||""));
+      const patch = {};
+      if(result.poster) patch.poster = result.poster;
+      if(result.description) patch.description = result.description;
+      if(result.imdbId) patch.imdbId = result.imdbId;
+      if(Object.keys(patch).length === 0){ toast("Found it, but no new details to add"); return; }
+      await api.send("PATCH", "/api/titles/"+id, patch);
+      await refetch("titles");
+      toast(`Updated "${m.title}" from OMDb`);
+    }catch(e){
+      toast(e.message.indexOf("404")!==-1 ? `"${m.title}" wasn't found on OMDb` : "Couldn't reach OMDb — check the server has an API key and internet access");
+    }
+  }
+
+  async function autofillCatalog(){
+    const btn = $("#autofillBtn");
+    const status = $("#autofillStatus");
+    if(btn) btn.disabled = true;
+    if(status) status.textContent = "Looking up missing titles — this can take a while...";
+    try{
+      const result = await api.send("POST", "/api/autofill");
+      if(status) status.textContent = "";
+      if(btn) btn.disabled = false;
+      if(result.error){ toast(result.error); return; }
+      toast(`Checked ${result.checked} title(s) — updated ${result.updated}, ${result.notFound} not found${result.failed?`, ${result.failed} failed`:''}`);
+      await refetch("titles");
+    }catch(e){
+      if(status) status.textContent = "";
+      if(btn) btn.disabled = false;
+      toast("Couldn't reach the server for auto-fill");
+    }
+  }
+
   // ---------- scanning ----------
   function handleScannedCode(code){
     code = (code||"").trim();
@@ -1317,6 +1370,8 @@
       e.target.value = "";
       status.textContent = "";
     };
+
+    $("#autofillBtn").onclick = autofillCatalog;
 
     $("#addUserBtn").onclick = async () => {
       await addUser($("#newUserName").value, $("#newUserPin").value, $("#newUserIsAdmin").checked);

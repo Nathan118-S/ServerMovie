@@ -195,6 +195,41 @@ sudo systemctl restart sandy-server   # only if you set up autostart —
 Your data is untouched either way — `data/db.json` isn't part of the repo,
 so pulling code updates never overwrites your catalog, rentals, or users.
 
+## Auto-importing posters &amp; descriptions
+
+Everything else in this app works fully offline — this is the one
+deliberate exception. It uses [OMDb](https://www.omdbapi.com/), a free
+movie database API, to fill in poster art, a plot description, genre,
+rating, and IMDb id for titles you already have in your catalog.
+
+1. Get a free API key at
+   [omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx) (1,000
+   lookups/day on the free tier — plenty for a home collection).
+2. Set it as an environment variable named `OMDB_API_KEY` wherever the
+   server runs:
+   - Manually: `OMDB_API_KEY=yourkeyhere npm start`
+   - Via systemd (recommended for the autostart setup): edit
+     `/etc/systemd/system/sandy-server.service` and add a line under
+     `[Service]`:
+     ```
+     Environment=OMDB_API_KEY=yourkeyhere
+     ```
+     Then `sudo systemctl daemon-reload && sudo systemctl restart sandy-server`.
+3. In the app, under **Manage inventory**:
+   - Each title has a **🔎 Look up on OMDb** button to fill in just that one.
+   - The **Auto-fill missing titles** button in its own box does every
+     title that's missing a poster or description in one pass.
+
+This needs the Pi to have internet access at the moment you use it —
+nothing else in the app does. Matching is by title (and year, if set), so
+it works best with real, correctly-spelled titles; anything OMDb can't
+find is just skipped and reported, not treated as an error.
+
+A note on the source: this fetches publicly available metadata for titles
+you already own, for your own personal cataloging — the same idea as how
+Plex or Jellyfin pull cover art for a home media library, not for
+redistributing anything.
+
 ## Home Assistant integration
 
 `homeassistant.yaml` adds four sensors (discs checked out, overdue count,
@@ -233,6 +268,28 @@ For a private repo:
    saved credentials automatically. What you lose is only the ability to
    bootstrap a **brand-new** Pi with a single `curl` command; you'll clone
    manually with the token first, then run `install.sh` from inside.
+
+### One-line install with a private repo
+
+This works, but read the caveat below before using it. Fill in your own
+token — never paste a real token into a chat with anyone, me included:
+
+```bash
+GITHUB_TOKEN=<your_token_here>; curl -fsSL -H "Authorization: token $GITHUB_TOKEN" https://raw.githubusercontent.com/Nathan118-S/SandyServerMovie/main/install.sh -o install.sh && bash install.sh
+```
+
+`install.sh` picks up `$GITHUB_TOKEN` from the environment and uses it to
+clone the private repo — nothing in the script itself contains the token.
+
+**Caveat:** the token ends up saved in plain text in two places on the Pi
+afterward: your shell history (`history | grep GITHUB_TOKEN` to check —
+`history -d <line>` to remove it) and `.git/config` inside the cloned
+folder, since git embeds it in the saved remote URL for future `git pull`s
+to work without asking again. That's a reasonable trade-off on a Pi only
+you have access to, especially with a fine-grained, read-only, expiring
+token like the one from step 2 above — but it's why this isn't the default
+recommendation, and why a token scoped to just this one repo matters if
+you go this route.
 
 ## What changed from the hosted version
 
