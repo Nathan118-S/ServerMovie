@@ -176,6 +176,33 @@ async function lookupTmdb(title, year, type){
   };
 }
 
+// Episode lists come from TMDb only (OMDb doesn't expose per-episode data
+// in a simple way). This returns the real episode list for a season —
+// what disc each episode actually landed on is publisher-specific and
+// isn't tracked anywhere, so callers split this evenly across discs as an
+// estimate, not a fact.
+async function lookupTmdbSeasonEpisodes(title, season){
+  const key = getTmdbKey();
+  if(!key) return null;
+  let searchData;
+  try{
+    searchData = await httpsGetJson(`https://api.themoviedb.org/3/search/tv?api_key=${encodeURIComponent(key)}&query=${encodeURIComponent(title)}`);
+  }catch(e){ return null; }
+  const best = searchData && searchData.results && searchData.results[0];
+  if(!best) return null;
+  let seasonData;
+  try{
+    seasonData = await httpsGetJson(`https://api.themoviedb.org/3/tv/${best.id}/season/${season || 1}?api_key=${encodeURIComponent(key)}`);
+  }catch(e){ return null; }
+  if(!seasonData || !Array.isArray(seasonData.episodes) || seasonData.episodes.length === 0) return null;
+  return seasonData.episodes.map(e => ({
+    number: e.episode_number,
+    name: e.name || `Episode ${e.episode_number}`,
+    overview: e.overview || ""
+  }));
+}
+
+
 async function lookupMetadata(title, year, type){
   const [omdb, tmdb] = await Promise.all([
     lookupOmdb(title, year, type),
@@ -356,6 +383,22 @@ app.get("/api/lookup", async (req, res) => {
   }catch(e){
     res.status(e.code === "NOT_FOUND" ? 404 : 500).json({ error: e.message, code: e.code || "ERROR" });
   }
+});
+
+// Real episode list for a season — how those episodes are actually split
+// across physical discs is publisher-specific and not tracked anywhere,
+// so the caller (client) splits this evenly as an estimate.
+app.get("/api/series-episodes", async (req, res) => {
+  const { title, season } = req.query;
+  if(!title) return res.status(400).json({ error: "title is required" });
+  if(!getTmdbKey()){
+    return res.status(500).json({ error: "Episode data needs a TMDb API key (OMDb doesn't provide it) — paste one under Manage inventory.", code: "NO_API_KEY" });
+  }
+  const episodes = await lookupTmdbSeasonEpisodes(title, season);
+  if(!episodes){
+    return res.status(404).json({ error: `Couldn't find episode data for "${title}"${season ? ' season '+season : ''}.`, code: "NOT_FOUND" });
+  }
+  res.json({ episodes });
 });
 
 // Fills in poster/logo/description/imdbId for every title missing them.

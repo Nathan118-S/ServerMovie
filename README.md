@@ -272,6 +272,15 @@ created in that batch), and it plays automatically when someone opens that
 title's checkout card in Browse — with a small "tap to stop" control if
 they'd rather it not.
 
+When you add a series this way, it also fetches that season's real
+episode list from TMDb (needs a TMDb key — see above) and splits it
+evenly across however many discs you're creating, folding the estimated
+range and episode names into each disc's description. This is a genuine
+estimate, not a fact — no database anywhere tracks which specific
+episodes a particular publisher put on which disc of a specific release,
+so double-check it against your actual box set and edit the description
+if it's off.
+
 ## Home Assistant integration
 
 `homeassistant.yaml` adds four sensors (discs checked out, overdue count,

@@ -109,6 +109,14 @@
 
   .new-form{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
 
+  .subnav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px;border-bottom:1px solid var(--line);padding-bottom:14px;}
+  .subnav-btn{font-family:'Oswald';font-size:12px;letter-spacing:0.4px;padding:8px 14px;background:rgba(255,255,255,0.04);border:1px solid var(--line);color:var(--muted);border-radius:20px;cursor:pointer;transition:background 0.18s ease,color 0.18s ease,border-color 0.18s ease,transform 0.1s ease;}
+  .subnav-btn:hover{color:var(--white);background:rgba(255,255,255,0.09);}
+  .subnav-btn.active{background:linear-gradient(135deg,var(--red),var(--red-dark));color:#fff;border-color:transparent;box-shadow:0 4px 14px var(--glow);}
+  .subnav-btn:active{transform:scale(0.96);}
+  .subpanel{display:none;}
+  .subpanel.active{display:block;animation:fadeInUp 0.3s ease both;}
+
   .label-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
   .label-list .row label{display:flex;align-items:center;gap:10px;font-size:14px;}
 
@@ -200,6 +208,7 @@
 <div class="nav">
   <button data-tab="browse" class="active">Browse catalog</button>
   <button data-tab="scan">Scan a disc</button>
+  <button data-tab="myrentals" id="myRentalsNavBtn" style="display:none;">My Rentals</button>
   <span id="adminNavGroup" class="admin-nav-group" style="display:none;">
     <span class="nav-label">Admin panel</span>
     <button data-tab="rentals">All rentals</button>
@@ -248,6 +257,13 @@
     </div>
   </div>
 
+  <div class="panel" data-panel="myrentals">
+    <div class="panel-inner">
+      <div id="myRentalsLoginArea"></div>
+      <div id="myRentalsList"></div>
+    </div>
+  </div>
+
   <div class="panel" data-panel="labels">
     <div class="panel-inner">
       <div class="display" style="font-size:16px;margin-bottom:8px;">Print labels for your catalog</div>
@@ -263,8 +279,21 @@
 
   <div class="panel" data-panel="admin">
     <div class="panel-inner">
-      <div style="display:flex;gap:28px;flex-wrap:wrap;">
-        <div style="flex:1 1 280px;max-width:340px;">
+      <div class="subnav" id="adminSubnav">
+        <button class="subnav-btn active" data-subtab="inventory">📋 Inventory</button>
+        <button class="subnav-btn" data-subtab="addtitle">➕ Add Title</button>
+        <button class="subnav-btn" data-subtab="addseries">📺 Add Series</button>
+        <button class="subnav-btn" data-subtab="bulk">📦 Bulk Import</button>
+        <button class="subnav-btn" data-subtab="autofill">🔎 Auto-Fill</button>
+      </div>
+
+      <div class="subpanel active" data-subpanel="inventory">
+        <div class="display" style="font-size:16px;margin-bottom:10px;">Current inventory</div>
+        <div id="adminList"></div>
+      </div>
+
+      <div class="subpanel" data-subpanel="addtitle">
+        <div style="max-width:400px;">
           <div class="display" style="font-size:16px;margin-bottom:10px;">Add a title</div>
           <div class="new-form">
             <input id="newTitleInput" placeholder="Title" />
@@ -289,43 +318,45 @@
             <button class="primary" id="addTitleBtn">Add to catalog</button>
           </div>
         </div>
-        <div style="flex:2 1 400px;">
-          <div class="display" style="font-size:16px;margin-bottom:10px;">Current inventory</div>
-          <div id="adminList"></div>
+      </div>
 
-          <div class="bulk-box">
-            <div class="display" style="font-size:15px;margin-bottom:6px;">Add a TV series (multiple discs)</div>
-            <div class="scan-msg" style="margin-top:0;">Creates several disc entries at once, all sharing the same series name/season/genre/rating — each still gets its own barcode and can be checked out independently, same as any other title.</div>
-            <div class="new-form">
-              <input id="seriesNameInput" placeholder="Series name, e.g. Breaking Bad" />
-              <div style="display:flex;gap:8px;">
-                <input id="seriesSeasonInput" type="number" min="1" placeholder="Season #" value="1" style="flex:1;" />
-                <input id="seriesYearInput" placeholder="Year" style="flex:1;" />
-              </div>
-              <select id="seriesGenreInput"></select>
-              <select id="seriesRatingInput">
-                <option>G</option><option>PG</option><option selected>PG-13</option><option>R</option>
-              </select>
-              <div style="display:flex;gap:8px;">
-                <input id="seriesDiscCountInput" type="number" min="1" placeholder="Number of discs" value="3" style="flex:1;" />
-                <input id="seriesStockInput" type="number" min="0" placeholder="Stock per disc" value="1" style="flex:1;" />
-              </div>
-              <label class="file-label">🎵 Attach theme song clip (optional, your own audio file)
-                <input type="file" accept="audio/*" id="seriesThemeInput" />
-              </label>
-              <span id="seriesThemeStatus" style="font-size:11px;color:var(--muted);"></span>
-              <button class="primary" id="addSeriesBtn">Add series discs</button>
+      <div class="subpanel" data-subpanel="addseries">
+        <div class="bulk-box" style="margin-top:0;max-width:440px;">
+          <div class="display" style="font-size:15px;margin-bottom:6px;">Add a TV series (multiple discs)</div>
+          <div class="scan-msg" style="margin-top:0;">Creates several disc entries at once, all sharing the same series name/season/genre/rating — each still gets its own barcode and can be checked out independently, same as any other title.</div>
+          <div class="new-form">
+            <input id="seriesNameInput" placeholder="Series name, e.g. Breaking Bad" />
+            <div style="display:flex;gap:8px;">
+              <input id="seriesSeasonInput" type="number" min="1" placeholder="Season #" value="1" style="flex:1;" />
+              <input id="seriesYearInput" placeholder="Year" style="flex:1;" />
             </div>
+            <select id="seriesGenreInput"></select>
+            <select id="seriesRatingInput">
+              <option>G</option><option>PG</option><option selected>PG-13</option><option>R</option>
+            </select>
+            <div style="display:flex;gap:8px;">
+              <input id="seriesDiscCountInput" type="number" min="1" placeholder="Number of discs" value="3" style="flex:1;" />
+              <input id="seriesStockInput" type="number" min="0" placeholder="Stock per disc" value="1" style="flex:1;" />
+            </div>
+            <label class="file-label">🎵 Attach theme song clip (optional, your own audio file)
+              <input type="file" accept="audio/*" id="seriesThemeInput" />
+            </label>
+            <span id="seriesThemeStatus" style="font-size:11px;color:var(--muted);"></span>
+            <button class="primary" id="addSeriesBtn">Add series discs</button>
           </div>
+        </div>
+      </div>
 
-          <div class="bulk-box">
+      <div class="subpanel" data-subpanel="bulk">
+        <div style="display:flex;gap:20px;flex-wrap:wrap;">
+          <div class="bulk-box" style="margin-top:0;flex:1;min-width:300px;max-width:480px;">
             <div class="display" style="font-size:15px;margin-bottom:6px;">Bulk import titles</div>
             <div class="scan-msg" style="margin-top:0;">One title per line: <code>Title | Year | Genre | Rating | imdbId</code> — only Title is required. Ask Claude in chat to look up the details for a list of movies you own and it'll hand you a block in this format to paste here.</div>
             <textarea id="bulkText" placeholder="Night Circuit | 2019 | Sci-Fi | PG-13 | tt1234567&#10;Second Wind | 2021 | Drama | R"></textarea>
             <div style="margin-top:8px;"><button class="primary" id="bulkImportBtn">Import lines</button></div>
           </div>
 
-          <div class="bulk-box">
+          <div class="bulk-box" style="margin-top:0;flex:1;min-width:300px;max-width:480px;">
             <div class="display" style="font-size:15px;margin-bottom:6px;">Bulk import posters &amp; banners</div>
             <div class="scan-msg" style="margin-top:0;">Select several image files at once, named to match your titles (e.g. <code>Night Circuit.jpg</code> matches "Night Circuit") — each gets matched and attached automatically, used for both the poster card and the hero banner. This can't reach the web, so use images you already have the rights to use.</div>
             <label class="file-label">📁 Choose poster images
@@ -333,29 +364,31 @@
             </label>
             <span id="bulkPosterStatus" style="font-size:11px;color:var(--muted);margin-left:8px;"></span>
           </div>
+        </div>
+      </div>
 
-          <div class="bulk-box">
-            <div class="display" style="font-size:15px;margin-bottom:6px;">Auto-fill posters, logos &amp; descriptions</div>
-            <div class="scan-msg" style="margin-top:0;">Looks up every title that's missing a poster, logo, or description — checking OMDb and TMDb and merging whatever each finds — and fills them in automatically: genre, rating, IMDb id, poster art, a transparent title-logo image, and a plot summary. TV series are searched as series (not movies), so their year and type actually match. Needs the Pi to have internet access at the moment you use it — everything else in this app keeps working without it.</div>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
-              <input type="password" id="omdbKeyInput" placeholder="Paste your OMDb API key" style="min-width:220px;flex:1;" />
-              <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;">
-                <input type="checkbox" id="omdbKeyShow" style="width:auto;" /> Show
-              </label>
-              <button class="secondary" id="saveOmdbKeyBtn" style="padding:9px 14px;font-size:12px;">Save key</button>
-            </div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Don't have one yet? <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener" style="color:var(--muted);">Get a free OMDb key</a> (1,000 lookups/day).</div>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
-              <input type="password" id="tmdbKeyInput" placeholder="Paste your TMDb API key" style="min-width:220px;flex:1;" />
-              <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;">
-                <input type="checkbox" id="tmdbKeyShow" style="width:auto;" /> Show
-              </label>
-              <button class="secondary" id="saveTmdbKeyBtn" style="padding:9px 14px;font-size:12px;">Save key</button>
-            </div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Don't have one yet? <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener" style="color:var(--muted);">Get a free TMDb key</a> — this is also the only source of the title-logo image, and is much better than OMDb for TV series.</div>
-            <button class="primary" id="autofillBtn">🔎 Auto-fill missing titles</button>
-            <span id="autofillStatus" style="font-size:11px;color:var(--muted);margin-left:8px;"></span>
+      <div class="subpanel" data-subpanel="autofill">
+        <div class="bulk-box" style="margin-top:0;max-width:520px;">
+          <div class="display" style="font-size:15px;margin-bottom:6px;">Auto-fill posters, logos &amp; descriptions</div>
+          <div class="scan-msg" style="margin-top:0;">Looks up every title that's missing a poster, logo, or description — checking OMDb and TMDb and merging whatever each finds — and fills them in automatically: genre, rating, IMDb id, poster art, a transparent title-logo image, and a plot summary. TV series are searched as series (not movies), so their year and type actually match. Needs the Pi to have internet access at the moment you use it — everything else in this app keeps working without it.</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+            <input type="password" id="omdbKeyInput" placeholder="Paste your OMDb API key" style="min-width:220px;flex:1;" />
+            <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;">
+              <input type="checkbox" id="omdbKeyShow" style="width:auto;" /> Show
+            </label>
+            <button class="secondary" id="saveOmdbKeyBtn" style="padding:9px 14px;font-size:12px;">Save key</button>
           </div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Don't have one yet? <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener" style="color:var(--muted);">Get a free OMDb key</a> (1,000 lookups/day).</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+            <input type="password" id="tmdbKeyInput" placeholder="Paste your TMDb API key" style="min-width:220px;flex:1;" />
+            <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;">
+              <input type="checkbox" id="tmdbKeyShow" style="width:auto;" /> Show
+            </label>
+            <button class="secondary" id="saveTmdbKeyBtn" style="padding:9px 14px;font-size:12px;">Save key</button>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Don't have one yet? <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener" style="color:var(--muted);">Get a free TMDb key</a> — this is also the only source of the title-logo image, and is much better than OMDb for TV series.</div>
+          <button class="primary" id="autofillBtn">🔎 Auto-fill missing titles</button>
+          <span id="autofillStatus" style="font-size:11px;color:var(--muted);margin-left:8px;"></span>
         </div>
       </div>
     </div>
@@ -502,6 +535,7 @@
   let users = [];      // [{id, name, pin}]
   let loggedInUser = null; // {id, name} — session-only, not persisted
   let modalMovieId = null; // movie opened from Browse, or null
+  let modalSeriesName = null; // series opened from Browse (disc-picker view), or null
   let tvSendMovieId = null; // movie open in the TV "send to kiosk" box, or null
   let tvSelection = null; // {movieId, title, genre, year, poster, sentAt} — last thing sent from the TV page
   let query = "";
@@ -577,6 +611,7 @@
   function render(){
     renderBrowse();
     renderRentals();
+    renderMyRentalsPanel();
     renderAdminList();
     renderLabelList();
     renderUsersList();
@@ -601,6 +636,12 @@
     if(!isAdmin){
       const activeAdminTab = $$(".nav button.active").some(b => group.contains(b));
       if(activeAdminTab) setTab("browse");
+    }
+
+    const myRentalsBtn = $("#myRentalsNavBtn");
+    if(myRentalsBtn){
+      myRentalsBtn.style.display = loggedInUser ? "inline-block" : "none";
+      if(!loggedInUser && myRentalsBtn.classList.contains("active")) setTab("browse");
     }
   }
 
@@ -627,6 +668,38 @@
     </div>`;
   }
 
+  // One tile per whole series (not one per disc) — clicking it opens a
+  // disc-picker instead of jumping straight into a single disc's checkout.
+  function seriesGroupTileHtml(seriesName, discs){
+    const rep = discs.find(d=>d.poster) || discs[0];
+    const color = GENRE_COLORS[rep.genre] || "#333";
+    const bg = rep.poster
+      ? `background-image:linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,0.85) 100%), url('${rep.poster}');`
+      : `background-image:linear-gradient(160deg, ${color}, #141414 85%);`;
+    const totalStock = discs.reduce((s,d) => s+(d.stock||0), 0);
+    return `<div class="poster-card" data-openseries="${encodeURIComponent(seriesName)}" style="${bg}">
+      <span class="poster-dot" style="background:${totalStock>0?'#46D369':'#737373'};" title="${totalStock>0?'In stock':'Out of stock'}"></span>
+      <span style="position:absolute;top:8px;left:8px;font-family:'Inter';font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,0.55);padding:2px 7px;border-radius:6px;">${discs.length} disc${discs.length===1?'':'s'}</span>
+      <span class="poster-title">${seriesName}</span>
+    </div>`;
+  }
+
+  // Mixes standalone movies with one consolidated tile per series, built
+  // from whichever subset of the catalog is currently in view (all of it,
+  // or a search's matches) — series grouping always uses the full disc set.
+  function buildMixedGridHtml(list){
+    const movies = list.filter(m => !m.seriesName);
+    const seriesNames = Array.from(new Set(list.filter(m => m.seriesName).map(m => m.seriesName)));
+    let html = "";
+    seriesNames.forEach(name => {
+      const discs = catalog.filter(m => m.seriesName === name)
+        .sort((a,b) => (a.season||0)-(b.season||0) || (a.discNumber||0)-(b.discNumber||0));
+      html += seriesGroupTileHtml(name, discs);
+    });
+    html += movies.map(posterTileHtml).join("");
+    return html;
+  }
+
   function rowHtml(label, items, delayIndex){
     const delay = typeof delayIndex==="number" ? `style="animation-delay:${(delayIndex*0.08).toFixed(2)}s;"` : "";
     return `<div class="row-block" ${delay}>
@@ -638,7 +711,7 @@
   function gridHtml(label, items){
     return `<div class="row-block">
       ${label ? `<div class="row-title">${label}</div>` : ""}
-      <div class="poster-grid">${items.map(posterTileHtml).join("")}</div>
+      <div class="poster-grid">${buildMixedGridHtml(items)}</div>
     </div>`;
   }
 
@@ -669,6 +742,12 @@
   function wireBrowseCards(container, onOpen){
     container.querySelectorAll("[data-openmovie]").forEach(card => {
       card.onclick = () => onOpen(card.dataset.openmovie);
+    });
+  }
+
+  function wireSeriesCards(container){
+    container.querySelectorAll("[data-openseries]").forEach(card => {
+      card.onclick = () => openSeriesModal(card.dataset.openseries);
     });
   }
 
@@ -703,6 +782,7 @@
         ? gridHtml(`Results for "${query}"`, matches)
         : `<div style="color:var(--muted);font-size:14px;padding:24px 40px;">No titles match "${query}".</div>`;
       wireBrowseCards(rowsEl, openMovieModal);
+      wireSeriesCards(rowsEl);
       return;
     }
 
@@ -719,17 +799,9 @@
     const actionBtn = heroEl.querySelector("[data-hero-action]");
     if(actionBtn && !actionBtn.disabled) actionBtn.onclick = () => openMovieModal(featured.id);
 
-    const movies = catalog.filter(m => !m.seriesName);
-    const seriesNames = Array.from(new Set(catalog.filter(m => m.seriesName).map(m => m.seriesName)));
-    let out = "";
-    seriesNames.forEach((name, i) => {
-      const discs = catalog.filter(m => m.seriesName === name)
-        .sort((a,b) => (a.season||0)-(b.season||0) || (a.discNumber||0)-(b.discNumber||0));
-      out += rowHtml(name + " (series)", discs, i);
-    });
-    out += gridHtml(seriesNames.length ? "Movies" : "", movies);
-    rowsEl.innerHTML = out;
+    rowsEl.innerHTML = gridHtml("", catalog);
     wireBrowseCards(rowsEl, openMovieModal);
+    wireSeriesCards(rowsEl);
   }
 
   function renderRentals(){
@@ -756,6 +828,31 @@
       </div>`;
     }).join("");
     el.querySelectorAll("[data-return]").forEach(b => b.onclick = () => returnRental(b.dataset.return));
+  }
+
+  function renderMyRentalsPanel(){
+    const el = $("#myRentalsList");
+    if(!el) return;
+    if(!loggedInUser){
+      el.innerHTML = `<div style="color:var(--muted);font-size:14px;margin-top:14px;">Log in above to see what you've got checked out.</div>`;
+      return;
+    }
+    const list = rentals.filter(r => r.renterName === loggedInUser.name);
+    if(list.length===0){ el.innerHTML = `<div style="color:var(--muted);font-size:14px;margin-top:14px;">Nothing checked out right now.</div>`; return; }
+    el.innerHTML = `<div style="margin-top:14px;">` + list.map(r => {
+      const daysLeft = Math.ceil((r.dueOn - Date.now()) / 86400000);
+      const overdue = daysLeft < 0;
+      return `<div class="row">
+        <div>
+          <div class="display" style="font-size:16px;">${r.title}</div>
+          <div style="font-size:12px;color:${overdue?'#E87C03':'var(--muted2)'};margin-top:2px;">
+            ${overdue ? `${Math.abs(daysLeft)} day(s) overdue — $${(Math.abs(daysLeft)*LATE_FEE_PER_DAY).toFixed(2)} fee accruing` : `Due in ${daysLeft} day(s)`}
+          </div>
+        </div>
+        <button class="teal" data-myreturn="${r.id}">Return disc</button>
+      </div>`;
+    }).join("") + `</div>`;
+    el.querySelectorAll("[data-myreturn]").forEach(b => b.onclick = () => returnRental(b.dataset.myreturn));
   }
 
   function renderAdminList(){
@@ -821,26 +918,31 @@
   }
 
   function renderLoginArea(){
-    const el = $("#loginArea");
+    renderLoginWidget("#loginArea");
+    renderLoginWidget("#myRentalsLoginArea");
+  }
+
+  function renderLoginWidget(selector){
+    const el = $(selector);
     if(!el) return;
     if(loggedInUser){
       const count = rentals.filter(r => r.renterName===loggedInUser.name).length;
       el.innerHTML = `<div class="login-box">
         <span class="who">Checking out as ${loggedInUser.name} <span style="font-family:'Inter';font-weight:400;font-size:12px;color:var(--muted);">(${count}/${maxCheckouts} discs out)</span></span>
-        <button class="secondary" id="logoutBtn">Not you? Log out</button>
+        <button class="secondary" data-logout>Not you? Log out</button>
       </div>`;
-      $("#logoutBtn").onclick = pinLogout;
+      el.querySelector("[data-logout]").onclick = pinLogout;
     } else {
       el.innerHTML = `<div style="margin-bottom:14px;">
         <div style="font-size:13px;color:var(--muted);margin-bottom:6px;">Enter your 4-digit PIN to check out a disc</div>
         <div style="display:flex;gap:8px;align-items:center;">
-          <input id="pinInput" class="pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" />
-          <button class="primary" id="pinLoginBtn">Log in</button>
+          <input class="pinInputField pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" />
+          <button class="primary" data-pinlogin>Log in</button>
         </div>
-        <div id="pinMsg" style="font-size:12px;color:#E87C03;margin-top:6px;"></div>
+        <div class="pinMsgField" style="font-size:12px;color:#E87C03;margin-top:6px;"></div>
       </div>`;
-      const pinInput = $("#pinInput");
-      $("#pinLoginBtn").onclick = () => pinLogin(pinInput.value);
+      const pinInput = el.querySelector(".pinInputField");
+      el.querySelector("[data-pinlogin]").onclick = () => pinLogin(pinInput.value);
       pinInput.addEventListener("keydown", e => { if(e.key==="Enter") pinLogin(pinInput.value); });
       pinInput.addEventListener("input", () => { if(pinInput.value.length===4) pinLogin(pinInput.value); });
     }
@@ -892,13 +994,21 @@
   }
 
   function openMovieModal(id){
+    modalSeriesName = null;
     modalMovieId = id;
     renderModal();
     playThemeSongFor(catalog.find(x => x.id === id));
   }
 
+  function openSeriesModal(seriesName){
+    modalMovieId = null;
+    modalSeriesName = decodeURIComponent(seriesName);
+    renderModal();
+  }
+
   function closeModal(){
     modalMovieId = null;
+    modalSeriesName = null;
     stopThemeSong();
     $("#movieModal").style.display = "none";
     $("#movieModal").innerHTML = "";
@@ -907,6 +1017,7 @@
   function renderModal(){
     const overlay = $("#movieModal");
     if(!overlay) return;
+    if(modalSeriesName){ renderSeriesModal(overlay); return; }
     if(!modalMovieId){ overlay.style.display = "none"; return; }
     const m = catalog.find(x => x.id === modalMovieId);
     if(!m){ closeModal(); return; }
@@ -971,7 +1082,83 @@
     }
   }
 
-  // ---------- TV page (separate view, not in the nav — open with ?tv in the URL) ----------
+  function renderSeriesModal(overlay){
+    const discs = catalog.filter(m => m.seriesName === modalSeriesName)
+      .sort((a,b) => (a.season||0)-(b.season||0) || (a.discNumber||0)-(b.discNumber||0));
+    if(discs.length === 0){ closeModal(); return; }
+    const rep = discs.find(d=>d.poster) || discs.find(d=>d.logo) || discs[0];
+    const color = GENRE_COLORS[rep.genre] || "#333";
+    const headerBg = rep.poster
+      ? `background-image:linear-gradient(180deg, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.85) 100%), url('${rep.poster}');`
+      : `background-image:linear-gradient(160deg, ${color}, #141414 85%);`;
+    const totalStock = discs.reduce((s,d) => s+(d.stock||0), 0);
+    const descDisc = discs.find(d => d.description);
+
+    let loginHtml;
+    if(loggedInUser){
+      loginHtml = `<div class="login-box">
+        <span class="who">Checking out as ${loggedInUser.name}</span>
+        <button class="secondary" id="modalLogoutBtn">Not you?</button>
+      </div>`;
+    } else {
+      loginHtml = `<div style="font-size:13px;color:var(--muted);margin-bottom:6px;">Enter your 4-digit PIN to check out a disc</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+        <input id="modalPinInput" class="pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" />
+        <button class="primary" id="modalPinLoginBtn">Log in</button>
+      </div>
+      <div id="modalPinMsg" style="font-size:12px;color:#E87C03;margin-bottom:10px;"></div>`;
+    }
+
+    const discRows = discs.map(d => {
+      const dOut = d.stock<=0;
+      return `<div class="row" style="padding:10px 12px;">
+        <div>
+          <div style="font-size:14px;">${seriesTag(d) || d.title}</div>
+          <div style="font-size:11px;color:${dOut?'#E87C03':'var(--muted)'};margin-top:2px;">${dOut?'Out of stock':d.stock+' in stock'}</div>
+        </div>
+        <button class="teal" data-rentdisc="${d.id}" ${(dOut||!loggedInUser)?'disabled':''}>${dOut?'Unavailable':'Rent'}</button>
+      </div>`;
+    }).join("");
+
+    overlay.innerHTML = `<div class="modal-card">
+      <div class="modal-header" style="${headerBg}">
+        <button class="modal-close" id="modalCloseBtn">×</button>
+        <div class="eyebrow">${discs.length} disc${discs.length===1?'':'s'} · ${totalStock} in stock</div>
+        ${rep.logo ? `<img src="${rep.logo}" alt="${modalSeriesName}" class="title-logo" />` : `<div class="t">${modalSeriesName}</div>`}
+      </div>
+      <div class="modal-body">
+        ${descDisc ? `<div style="font-size:13px;color:#D8D4CC;line-height:1.5;margin-bottom:16px;">${descDisc.description}</div>` : ''}
+        ${imdbLinkHtml(rep) ? `<div style="margin-bottom:16px;">${imdbLinkHtml(rep)}</div>` : ''}
+        ${loginHtml}
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">${discRows}</div>
+      </div>
+    </div>`;
+    overlay.style.display = "flex";
+
+    $("#modalCloseBtn").onclick = closeModal;
+    overlay.onclick = (e) => { if(e.target===overlay) closeModal(); };
+
+    if(loggedInUser){
+      $("#modalLogoutBtn").onclick = () => { pinLogout(); };
+    } else {
+      const pinInput = $("#modalPinInput");
+      $("#modalPinLoginBtn").onclick = () => pinLogin(pinInput.value);
+      pinInput.addEventListener("keydown", e => { if(e.key==="Enter") pinLogin(pinInput.value); });
+      pinInput.addEventListener("input", () => { if(pinInput.value.length===4) pinLogin(pinInput.value); });
+    }
+
+    overlay.querySelectorAll("[data-rentdisc]").forEach(b => {
+      b.onclick = async () => {
+        if(!loggedInUser){ toast("Log in with your PIN first"); return; }
+        const disc = catalog.find(x => x.id === b.dataset.rentdisc);
+        if(!disc) return;
+        await rentByMovie(disc, loggedInUser.name);
+        renderModal(); // stay open — picking another disc from the same series is a normal thing to want
+      };
+    });
+  }
+
+
   function isTvMode(){
     try{
       if(location.hash && location.hash.toLowerCase().indexOf("tv")!==-1) return true;
@@ -1101,7 +1288,10 @@
 
   function pinLogin(pin){
     pin = (pin||"").trim();
-    const setMsg = (text) => { ["#pinMsg","#modalPinMsg"].forEach(sel => { const m=$(sel); if(m) m.textContent=text; }); };
+    const setMsg = (text) => {
+      const m2 = $("#modalPinMsg"); if(m2) m2.textContent = text;
+      $$(".pinMsgField").forEach(m => m.textContent = text);
+    };
     if(pin.length!==4){ setMsg("Enter all 4 digits."); return; }
     const u = users.find(x => x.pin === pin);
     if(!u){ setMsg("PIN not recognized. Ask an admin to add you under Manage users."); return; }
@@ -1252,20 +1442,58 @@
   // Creates several discs at once for a TV series, all sharing the same
   // series name/season/genre/rating/theme clip but each with its own
   // barcode and stock.
+  // Splits a season's real episode list evenly across N discs — an
+  // estimate, since no database tracks the actual publisher-specific
+  // episode-to-disc breakdown.
+  function distributeEpisodes(episodes, discCount){
+    const groups = [];
+    const total = episodes.length;
+    const base = Math.floor(total / discCount);
+    let extra = total % discCount;
+    let idx = 0;
+    for(let d = 0; d < discCount; d++){
+      let count = base + (extra > 0 ? 1 : 0);
+      if(extra > 0) extra--;
+      groups.push(episodes.slice(idx, idx + count));
+      idx += count;
+    }
+    return groups;
+  }
+
   async function addSeriesDiscs({seriesName, season, year, genre, rating, discCount, stockPerDisc, themeSong}){
     seriesName = (seriesName||"").trim();
     if(!seriesName){ toast("Enter a series name"); return; }
     const count = parseInt(discCount, 10);
     if(!Number.isInteger(count) || count < 1){ toast("Enter a valid number of discs"); return; }
+
+    let episodeGroups = null;
+    try{
+      const epResult = await api.get("/api/series-episodes?title="+encodeURIComponent(seriesName)+"&season="+encodeURIComponent(season||1));
+      if(epResult.episodes && epResult.episodes.length) episodeGroups = distributeEpisodes(epResult.episodes, count);
+    }catch(e){ /* no episode data available (no TMDb key, or not found) — discs still get created fine without it */ }
+
     let added = 0;
     for(let d = 1; d <= count; d++){
+      const group = episodeGroups ? episodeGroups[d-1] : null;
+      let description;
+      if(group && group.length){
+        const nums = group.map(e=>e.number);
+        const range = nums.length>1 ? `${nums[0]}–${nums[nums.length-1]}` : `${nums[0]}`;
+        description = `Episodes ${range} (estimated split): ` + group.map(e=>e.name).join(", ");
+      }
       const id = await addTitle({
         title: seriesName, genre, year, rating, stock: stockPerDisc,
-        seriesName, season, discNumber: d, themeSong, skipToast: true
+        seriesName, season, discNumber: d, themeSong, description, skipToast: true
       });
+      if(id && group && group.length){
+        try{ await api.send("PATCH", "/api/titles/"+id, { episodes: group }); }catch(e){}
+      }
       if(id) added++;
     }
-    toast(`Added ${added} disc${added===1?'':'s'} for "${seriesName}"`);
+    await refetch("titles");
+    toast(episodeGroups
+      ? `Added ${added} disc${added===1?'':'s'} for "${seriesName}" with estimated episode ranges`
+      : `Added ${added} disc${added===1?'':'s'} for "${seriesName}"`);
   }
 
   async function setThemeSong(id, dataUrl){
@@ -1537,6 +1765,11 @@
     if(tab !== "scan" && scanning) stopScanner();
   }
 
+  function setAdminSubtab(tab){
+    $$("#adminSubnav .subnav-btn").forEach(b => b.classList.toggle("active", b.dataset.subtab===tab));
+    $$('.panel[data-panel="admin"] .subpanel').forEach(p => p.classList.toggle("active", p.dataset.subpanel===tab));
+  }
+
   // ---------- wire up ----------
   document.addEventListener("DOMContentLoaded", async () => {
     if(isTvMode()){
@@ -1555,6 +1788,7 @@
     await initApi();
 
     $$(".nav button[data-tab]").forEach(b => b.onclick = () => setTab(b.dataset.tab));
+    $$("#adminSubnav .subnav-btn").forEach(b => b.onclick = () => setAdminSubtab(b.dataset.subtab));
     $("#logoHome").onclick = () => setTab("browse");
     $("#openTvBtn").onclick = () => {
       const url = location.href.split("#")[0] + "#tv";
