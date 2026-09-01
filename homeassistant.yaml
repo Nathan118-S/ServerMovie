@@ -1,0 +1,83 @@
+# Sandy Server — Home Assistant integration
+#
+# What this gives you:
+#   - sensor.sandy_server_discs_checked_out  — how many discs are out
+#   - sensor.sandy_server_overdue_discs      — how many are overdue
+#   - sensor.sandy_server_rentals_summary    — "Alice: Night Circuit (due in 2d) | ..."
+#   - sensor.sandy_server_tv_selection       — last title sent from the TV page
+#   - a notification when something's sent from the TV page
+#   - a notification when a disc becomes overdue
+#
+# Before using this:
+#   1. Replace 192.168.1.50 below with your Pi's actual IP address
+#      (run `hostname -I` on the Pi to find it).
+#   2. Replace notify.mobile_app_your_phone with your real notify service —
+#      find it under Developer Tools > Actions, search "notify", or under
+#      Settings > People > (your profile) if you're using the HA app.
+#   3. Add this file's contents into Home Assistant. Easiest way:
+#      Settings > Devices & Services > Helpers... actually simplest is:
+#      put this whole file at config/packages/sandy_server.yaml, and in
+#      configuration.yaml make sure you have:
+#        homeassistant:
+#          packages: !include_dir_named packages
+#      (Create the packages folder if it doesn't exist.) Then Settings >
+#      System > Restart, or Developer Tools > YAML > Restart.
+#      If you don't use packages, just copy the `rest:` block into your
+#      existing `rest:` section and the `automation:` items into your
+#      existing `automation:` list instead.
+
+rest:
+  - resource: "http://192.168.1.50:3000/api/ha-summary"
+    scan_interval: 20
+    sensor:
+      - name: "Sandy Server Discs Checked Out"
+        unique_id: sandy_server_checked_out
+        value_template: "{{ value_json.checked_out }}"
+        unit_of_measurement: "discs"
+        state_class: measurement
+
+      - name: "Sandy Server Overdue Discs"
+        unique_id: sandy_server_overdue
+        value_template: "{{ value_json.overdue }}"
+        unit_of_measurement: "discs"
+        state_class: measurement
+
+      - name: "Sandy Server Rentals Summary"
+        unique_id: sandy_server_rentals_summary
+        value_template: "{{ value_json.renters_summary }}"
+
+      - name: "Sandy Server TV Selection"
+        unique_id: sandy_server_tv_selection
+        value_template: "{{ value_json.tv_selection }}"
+
+automation:
+  - alias: "Sandy Server — notify when something's sent from the TV"
+    id: sandy_server_tv_selection_notify
+    trigger:
+      - platform: state
+        entity_id: sensor.sandy_server_tv_selection
+    condition:
+      # only fire on a real change to a real title, not every 20s poll
+      - condition: template
+        value_template: >-
+          {{ trigger.to_state.state not in ['none', 'unknown', 'unavailable']
+             and trigger.to_state.state != trigger.from_state.state }}
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "📺 Sent to kiosk"
+          message: "{{ trigger.to_state.state }} was sent from the TV page."
+
+  - alias: "Sandy Server — notify when a disc becomes overdue"
+    id: sandy_server_overdue_notify
+    trigger:
+      # only fires on the crossing from 0 (or unknown) up past 0 —
+      # not on every poll while it stays overdue
+      - platform: numeric_state
+        entity_id: sensor.sandy_server_overdue_discs
+        above: 0
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "⏰ Overdue disc(s) at Sandy Server"
+          message: "{{ states('sensor.sandy_server_rentals_summary') }}"
