@@ -195,32 +195,41 @@ sudo systemctl restart sandy-server   # only if you set up autostart —
 Your data is untouched either way — `data/db.json` isn't part of the repo,
 so pulling code updates never overwrites your catalog, rentals, or users.
 
-## Auto-importing posters &amp; descriptions
+## Auto-importing posters, logos &amp; descriptions
 
 Everything else in this app works fully offline — this is the one
-deliberate exception. It uses [OMDb](https://www.omdbapi.com/), a free
-movie database API, to fill in poster art, a plot description, genre,
-rating, and IMDb id for titles you already have in your catalog.
+deliberate exception. It checks two free sources and merges whatever each
+finds: [OMDb](https://www.omdbapi.com/) for poster art, plot, genre,
+rating, and IMDb id; and [TMDb](https://www.themoviedb.org/) for the same
+plus a transparent title-logo image (the "font/style" title treatment you
+see in the modal and hero) — TMDb is also noticeably better at finding TV
+series, since OMDb indexes shows by an air-date *range* rather than a
+single year.
 
-1. Get a free API key at
+1. Get a free OMDb key at
    [omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx) (1,000
-   lookups/day on the free tier — plenty for a home collection).
-2. In the app, under **Manage inventory**, paste it into the "Auto-fill
-   posters & descriptions" box and click **Save key**. That's it — it's
-   stored alongside the rest of your settings and takes effect
+   lookups/day), and a free TMDb key at
+   [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api)
+   (just needs a free account). Either one alone works fine — having both
+   just means better odds of finding art/details and always getting a logo.
+2. In the app, under **Manage inventory**, paste them into the "Auto-fill
+   posters, logos & descriptions" box and click **Save key** for each.
+   That's it — stored alongside the rest of your settings, takes effect
    immediately, no SSH, no restarting the server.
 3. From there:
-   - Each title has a **🔎 Look up on OMDb** button to fill in just that one.
-   - **Auto-fill missing titles** in that same box does every title that's
-     missing a poster or description in one pass.
+   - Each title has a **🔎 Look up on OMDb** button (checks both sources)
+     to fill in just that one.
+   - **Auto-fill missing titles** in that same box does every title
+     that's missing art or a description in one pass — series discs are
+     searched once per series and the result reused across every disc,
+     not repeated per disc.
 
-(If you'd rather not have the key stored in `data/db.json`, setting the
-`OMDB_API_KEY` environment variable the old way — see below — still works
-too; the app checks the saved key first and falls back to the environment
-variable if nothing's been pasted in.)
+(If you'd rather not have the keys stored in `data/db.json`, the old
+environment-variable method still works for OMDb — see below — and the
+app checks the saved key first, falling back to the environment variable.)
 
 <details>
-<summary>Setting it via environment variable instead</summary>
+<summary>Setting the OMDb key via environment variable instead</summary>
 
 - Manually: `OMDB_API_KEY=yourkeyhere npm start`
 - Via systemd: edit `/etc/systemd/system/sandy-server.service`, add under
@@ -233,14 +242,35 @@ variable if nothing's been pasted in.)
 </details>
 
 This needs the Pi to have internet access at the moment you use it —
-nothing else in the app does. Matching is by title (and year, if set), so
-it works best with real, correctly-spelled titles; anything OMDb can't
+nothing else in the app does. Matching is by title (and year, for movies
+only — series are matched by name and type, without a year, since OMDb's
+year ranges rarely match a single season). Anything neither source can
 find is just skipped and reported, not treated as an error.
 
 A note on the source: this fetches publicly available metadata for titles
 you already own, for your own personal cataloging — the same idea as how
 Plex or Jellyfin pull cover art for a home media library, not for
 redistributing anything.
+
+## TV series with multiple discs
+
+Under **Manage inventory → Add a TV series (multiple discs)**, give a
+series name, season, genre, rating, and how many discs, and it creates
+that many separate catalog entries in one go — each with its own barcode
+and stock, each independently scannable/rentable, just tagged with a
+shared series name so Browse groups them into one row together instead of
+scattering them into the general grid.
+
+Each disc can also have a **theme song clip** attached — a short audio
+file *you* provide (same idea as the poster photos: your own file, not
+fetched from anywhere). I didn't build automatic fetching of real theme
+songs from the internet on purpose — that's copyrighted music, and
+scraping and auto-embedding it is a different, much less defensible thing
+than a personal poster thumbnail. Attach one from Manage inventory (per
+title) or right in the "Add a TV series" form (applies to all discs
+created in that batch), and it plays automatically when someone opens that
+title's checkout card in Browse — with a small "tap to stop" control if
+they'd rather it not.
 
 ## Home Assistant integration
 

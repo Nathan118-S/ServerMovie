@@ -80,40 +80,121 @@ function mapRating(omdbRated){
   return "PG-13";
 }
 
-// Looks up one title on OMDb and returns Sandy Server-shaped fields.
+// Looks up one title and returns Sandy Server-shaped fields. Tries OMDb
+// and TMDb (whichever have keys configured) and merges results — TMDb is
+// also the only source of the transparent "title treatment" logo image.
 // Does not touch the catalog itself — callers decide what to do with it.
 function getOmdbKey(){
   return (db.settings && db.settings.omdbApiKey) || OMDB_API_KEY || "";
 }
+function getTmdbKey(){
+  return (db.settings && db.settings.tmdbApiKey) || process.env.TMDB_API_KEY || "";
+}
 
-async function lookupOmdb(title, year){
+async function lookupOmdb(title, year, type){
   const key = getOmdbKey();
-  if(!key){
-    const err = new Error("No OMDb API key configured — paste one under Manage inventory, or set OMDB_API_KEY. See README.md.");
-    err.code = "NO_API_KEY";
-    throw err;
-  }
+  if(!key) return null;
   let url = `https://www.omdbapi.com/?apikey=${encodeURIComponent(key)}&t=${encodeURIComponent(title)}`;
-  if(year) url += `&y=${encodeURIComponent(year)}`;
-  const data = await httpsGetJson(url);
-  if(data.Response === "False"){
-    const err = new Error(data.Error || "Not found on OMDb");
-    err.code = "NOT_FOUND";
-    throw err;
-  }
+  if(type) url += `&type=${encodeURIComponent(type)}`;
+  // series are indexed by OMDb under a year *range* (e.g. "2008–2013"), so
+  // passing a single season's year almost always fails to match — only
+  // send year for movies, where it disambiguates remakes/re-releases.
+  if(year && type !== "series") url += `&y=${encodeURIComponent(year)}`;
+  let data;
+  try{ data = await httpsGetJson(url); }catch(e){ return null; }
+  if(!data || data.Response === "False") return null;
   let poster = "";
   if(data.Poster && data.Poster !== "N/A"){
     try{ poster = await httpsGetImageAsDataUri(data.Poster); }
     catch(e){ /* poster fetch failing shouldn't block the rest of the metadata */ }
   }
+  const yearMatch = (data.Year || "").toString().match(/\d{4}/);
   return {
     title: data.Title || title,
-    year: parseInt(data.Year, 10) || year || new Date().getFullYear(),
+    year: (yearMatch && parseInt(yearMatch[0], 10)) || year || new Date().getFullYear(),
     genre: mapGenre(data.Genre),
     rating: mapRating(data.Rated),
     description: data.Plot && data.Plot !== "N/A" ? data.Plot : "",
     imdbId: data.imdbID || "",
-    poster
+    poster,
+    logo: ""
+  };
+}
+
+// TMDb: a free second source (needs its own free API key from
+// themoviedb.org), and the source of logo art since OMDb doesn't have any.
+async function lookupTmdb(title, year, type){
+  const key = getTmdbKey();
+  if(!key) return null;
+  const kind = type === "series" ? "tv" : "movie";
+  let searchData;
+  try{
+    searchData = await httpsGetJson(`https://api.themoviedb.org/3/search/${kind}?api_key=${encodeURIComponent(key)}&query=${encodeURIComponent(title)}`);
+  }catch(e){ return null; }
+  const best = searchData && searchData.results && searchData.results[0];
+  if(!best) return null;
+
+  let detail;
+  try{
+    detail = await httpsGetJson(`https://api.themoviedb.org/3/${kind}/${best.id}?api_key=${encodeURIComponent(key)}&append_to_response=images&include_image_language=en,null`);
+  }catch(e){ return null; }
+
+  let poster = "";
+  if(detail.poster_path){
+    try{ poster = await httpsGetImageAsDataUri("https://image.tmdb.org/t/p/w500" + detail.poster_path); }catch(e){}
+  }
+  let logo = "";
+  const logos = (detail.images && detail.images.logos) || [];
+  const bestLogo = logos.find(l => l.iso_639_1 === "en") || logos[0];
+  if(bestLogo){
+    try{ logo = await httpsGetImageAsDataUri("https://image.tmdb.org/t/p/w500" + bestLogo.file_path); }catch(e){}
+  }
+
+  let imdbId = "";
+  if(kind === "tv"){
+    try{
+      const ext = await httpsGetJson(`https://api.themoviedb.org/3/tv/${best.id}/external_ids?api_key=${encodeURIComponent(key)}`);
+      imdbId = ext.imdb_id || "";
+    }catch(e){}
+  } else {
+    imdbId = detail.imdb_id || "";
+  }
+
+  const releaseDate = detail.release_date || detail.first_air_date || "";
+  const releaseYear = releaseDate ? parseInt(releaseDate.slice(0,4), 10) : (year || new Date().getFullYear());
+  const genreNames = (detail.genres || []).map(g => g.name).join(",");
+
+  return {
+    title: detail.title || detail.name || title,
+    year: releaseYear,
+    genre: mapGenre(genreNames),
+    rating: "PG-13", // TMDb doesn't expose a simple MPAA/TV rating on this endpoint
+    description: detail.overview || "",
+    imdbId,
+    poster,
+    logo
+  };
+}
+
+async function lookupMetadata(title, year, type){
+  const [omdb, tmdb] = await Promise.all([
+    lookupOmdb(title, year, type),
+    lookupTmdb(title, year, type)
+  ]);
+  if(!omdb && !tmdb){
+    const err = new Error(`"${title}" wasn't found on OMDb or TMDb (or no key is configured for either) — see README.md.`);
+    err.code = "NOT_FOUND";
+    throw err;
+  }
+  return {
+    title: (omdb && omdb.title) || (tmdb && tmdb.title) || title,
+    year: (omdb && omdb.year) || (tmdb && tmdb.year) || year,
+    genre: (omdb && omdb.genre) || (tmdb && tmdb.genre) || "Drama",
+    rating: (omdb && omdb.rating) || (tmdb && tmdb.rating) || "PG-13",
+    description: (omdb && omdb.description) || (tmdb && tmdb.description) || "",
+    imdbId: (omdb && omdb.imdbId) || (tmdb && tmdb.imdbId) || "",
+    poster: (omdb && omdb.poster) || (tmdb && tmdb.poster) || "",
+    logo: (tmdb && tmdb.logo) || ""
   };
 }
 
@@ -124,7 +205,7 @@ function loadDb(){
       titles: SEED_TITLES,
       rentals: [],
       users: [{ id: newId("u"), name: "Admin", pin: "0000", isAdmin: true }],
-      settings: { maxCheckouts: 3, omdbApiKey: "" },
+      settings: { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "" },
       tvSelection: null
     };
     fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -137,8 +218,9 @@ function loadDb(){
   parsed.titles = parsed.titles || [];
   parsed.rentals = parsed.rentals || [];
   parsed.users = parsed.users || [];
-  parsed.settings = parsed.settings || { maxCheckouts: 3, omdbApiKey: "" };
+  parsed.settings = parsed.settings || { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "" };
   if(parsed.settings.omdbApiKey === undefined) parsed.settings.omdbApiKey = "";
+  if(parsed.settings.tmdbApiKey === undefined) parsed.settings.tmdbApiKey = "";
   if(parsed.tvSelection === undefined) parsed.tvSelection = null;
   return parsed;
 }
@@ -159,7 +241,7 @@ function broadcast(resource){
 
 // ---------- app ----------
 const app = express();
-app.use(express.json({ limit: "8mb" })); // poster photos are small data URLs, but give room
+app.use(express.json({ limit: "20mb" })); // poster/logo images and short theme-song clips are all small data URLs, but give room
 app.use(express.static(path.join(__dirname, "public")));
 
 // vendor libraries, served locally so nothing needs internet at runtime.
@@ -264,35 +346,46 @@ app.get("/api/events", (req, res) => {
   });
 });
 
-// ---------- OMDb lookup endpoints ----------
+// ---------- metadata lookup endpoints (OMDb + TMDb) ----------
 app.get("/api/lookup", async (req, res) => {
-  const { title, year } = req.query;
+  const { title, year, type } = req.query;
   if(!title) return res.status(400).json({ error: "title is required" });
   try{
-    const result = await lookupOmdb(title, year);
+    const result = await lookupMetadata(title, year, type);
     res.json(result);
   }catch(e){
     res.status(e.code === "NOT_FOUND" ? 404 : 500).json({ error: e.message, code: e.code || "ERROR" });
   }
 });
 
-// Fills in poster/description/imdbId for every title missing them.
-// Runs the lookups one at a time (not in parallel) to stay well under
-// OMDb's free-tier rate limits.
+// Fills in poster/logo/description/imdbId for every title missing them.
+// Discs that share a series name are looked up once and the result reused
+// across all of them, instead of repeating the same search per disc.
 app.post("/api/autofill", async (req, res) => {
-  if(!getOmdbKey()){
-    return res.status(500).json({ error: "No OMDb API key configured — paste one under Manage inventory, or set OMDB_API_KEY.", code: "NO_API_KEY" });
+  if(!getOmdbKey() && !getTmdbKey()){
+    return res.status(500).json({ error: "No OMDb or TMDb API key configured — paste one under Manage inventory.", code: "NO_API_KEY" });
   }
-  const targets = db.titles.filter(t => !t.poster || !t.description);
+  const targets = db.titles.filter(t => !t.poster || !t.description || (t.seriesName && !t.logo));
   let updated = 0, notFound = 0, failed = 0;
+  const cache = new Map();
   for(const t of targets){
+    const type = t.seriesName ? "series" : undefined;
+    const cacheKey = (type || "movie") + "::" + t.title.toLowerCase();
     try{
-      const result = await lookupOmdb(t.title, t.year);
+      let result;
+      if(cache.has(cacheKey)){
+        result = cache.get(cacheKey);
+      } else {
+        result = await lookupMetadata(t.title, t.year, type);
+        cache.set(cacheKey, result);
+      }
       if(!t.poster && result.poster) t.poster = result.poster;
       if(!t.description && result.description) t.description = result.description;
       if(!t.imdbId && result.imdbId) t.imdbId = result.imdbId;
+      if(!t.logo && result.logo) t.logo = result.logo;
       updated++;
     }catch(e){
+      cache.set(cacheKey, null);
       if(e.code === "NOT_FOUND") notFound++; else failed++;
     }
   }
