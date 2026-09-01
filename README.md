@@ -205,20 +205,32 @@ rating, and IMDb id for titles you already have in your catalog.
 1. Get a free API key at
    [omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx) (1,000
    lookups/day on the free tier — plenty for a home collection).
-2. Set it as an environment variable named `OMDB_API_KEY` wherever the
-   server runs:
-   - Manually: `OMDB_API_KEY=yourkeyhere npm start`
-   - Via systemd (recommended for the autostart setup): edit
-     `/etc/systemd/system/sandy-server.service` and add a line under
-     `[Service]`:
-     ```
-     Environment=OMDB_API_KEY=yourkeyhere
-     ```
-     Then `sudo systemctl daemon-reload && sudo systemctl restart sandy-server`.
-3. In the app, under **Manage inventory**:
+2. In the app, under **Manage inventory**, paste it into the "Auto-fill
+   posters & descriptions" box and click **Save key**. That's it — it's
+   stored alongside the rest of your settings and takes effect
+   immediately, no SSH, no restarting the server.
+3. From there:
    - Each title has a **🔎 Look up on OMDb** button to fill in just that one.
-   - The **Auto-fill missing titles** button in its own box does every
-     title that's missing a poster or description in one pass.
+   - **Auto-fill missing titles** in that same box does every title that's
+     missing a poster or description in one pass.
+
+(If you'd rather not have the key stored in `data/db.json`, setting the
+`OMDB_API_KEY` environment variable the old way — see below — still works
+too; the app checks the saved key first and falls back to the environment
+variable if nothing's been pasted in.)
+
+<details>
+<summary>Setting it via environment variable instead</summary>
+
+- Manually: `OMDB_API_KEY=yourkeyhere npm start`
+- Via systemd: edit `/etc/systemd/system/sandy-server.service`, add under
+  `[Service]`:
+  ```
+  Environment=OMDB_API_KEY=yourkeyhere
+  ```
+  Then `sudo systemctl daemon-reload && sudo systemctl restart sandy-server`.
+
+</details>
 
 This needs the Pi to have internet access at the moment you use it —
 nothing else in the app does. Matching is by title (and year, if set), so
@@ -297,9 +309,10 @@ you go this route.
   `server.js`, reached over a small REST API + Server-Sent Events for live
   updates between devices on your network (e.g. the TV page pushing to the
   kiosk banner in real time).
-- QR code generation for printed labels now happens on the server (via the
-  `qrcode` package) instead of a browser library, so nothing there needs
-  internet either.
+- Printed labels are now circular hub-style rings (like a real rental
+  disc's printed center label) with a Code128 barcode instead of a QR
+  code, generated server-side with `bwip-js` — cut around the outer dashed
+  line, punch the inner dashed circle for the spindle hole.
 - The camera/barcode scanner library (`html5-qrcode`) is served locally
   from `node_modules` instead of a CDN.
 - Google Fonts was dropped — the app now uses your system's fonts. It looks

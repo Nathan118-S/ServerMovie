@@ -10,6 +10,7 @@ const crypto = require("crypto");
 const https = require("https");
 const express = require("express");
 const QRCode = require("qrcode");
+const bwipjs = require("bwip-js");
 
 const PORT = process.env.PORT || 3000;
 const OMDB_API_KEY = process.env.OMDB_API_KEY || "";
@@ -81,13 +82,18 @@ function mapRating(omdbRated){
 
 // Looks up one title on OMDb and returns Sandy Server-shaped fields.
 // Does not touch the catalog itself — callers decide what to do with it.
+function getOmdbKey(){
+  return (db.settings && db.settings.omdbApiKey) || OMDB_API_KEY || "";
+}
+
 async function lookupOmdb(title, year){
-  if(!OMDB_API_KEY){
-    const err = new Error("No OMDb API key configured (set OMDB_API_KEY) — see README.md.");
+  const key = getOmdbKey();
+  if(!key){
+    const err = new Error("No OMDb API key configured — paste one under Manage inventory, or set OMDB_API_KEY. See README.md.");
     err.code = "NO_API_KEY";
     throw err;
   }
-  let url = `https://www.omdbapi.com/?apikey=${encodeURIComponent(OMDB_API_KEY)}&t=${encodeURIComponent(title)}`;
+  let url = `https://www.omdbapi.com/?apikey=${encodeURIComponent(key)}&t=${encodeURIComponent(title)}`;
   if(year) url += `&y=${encodeURIComponent(year)}`;
   const data = await httpsGetJson(url);
   if(data.Response === "False"){
@@ -118,7 +124,7 @@ function loadDb(){
       titles: SEED_TITLES,
       rentals: [],
       users: [{ id: newId("u"), name: "Admin", pin: "0000", isAdmin: true }],
-      settings: { maxCheckouts: 3 },
+      settings: { maxCheckouts: 3, omdbApiKey: "" },
       tvSelection: null
     };
     fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -131,7 +137,8 @@ function loadDb(){
   parsed.titles = parsed.titles || [];
   parsed.rentals = parsed.rentals || [];
   parsed.users = parsed.users || [];
-  parsed.settings = parsed.settings || { maxCheckouts: 3 };
+  parsed.settings = parsed.settings || { maxCheckouts: 3, omdbApiKey: "" };
+  if(parsed.settings.omdbApiKey === undefined) parsed.settings.omdbApiKey = "";
   if(parsed.tvSelection === undefined) parsed.tvSelection = null;
   return parsed;
 }
@@ -217,6 +224,32 @@ app.get("/api/qrcode", async (req, res) => {
   }catch(e){ res.status(500).json({ error: "Couldn't generate QR code" }); }
 });
 
+// Code128 1D barcode, used for the printable disc-hub labels — matches
+// what a real barcode scanner (or our own camera scanner) expects.
+function generateBarcodePng(text){
+  return new Promise((resolve, reject) => {
+    bwipjs.toBuffer({
+      bcid: "code128",
+      text: text,
+      scale: 3,
+      height: 10,
+      includetext: false,
+      backgroundcolor: "FFFFFF"
+    }, (err, png) => {
+      if(err) reject(err); else resolve(png);
+    });
+  });
+}
+
+app.get("/api/barcode", async (req, res) => {
+  const text = req.query.text || "";
+  if(!text) return res.status(400).json({ error: "text is required" });
+  try{
+    const png = await generateBarcodePng(text);
+    res.json({ dataUrl: "data:image/png;base64," + png.toString("base64") });
+  }catch(e){ res.status(500).json({ error: "Couldn't generate barcode" }); }
+});
+
 app.get("/api/events", (req, res) => {
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
@@ -247,8 +280,8 @@ app.get("/api/lookup", async (req, res) => {
 // Runs the lookups one at a time (not in parallel) to stay well under
 // OMDb's free-tier rate limits.
 app.post("/api/autofill", async (req, res) => {
-  if(!OMDB_API_KEY){
-    return res.status(500).json({ error: "No OMDb API key configured (set OMDB_API_KEY) — see README.md.", code: "NO_API_KEY" });
+  if(!getOmdbKey()){
+    return res.status(500).json({ error: "No OMDb API key configured — paste one under Manage inventory, or set OMDB_API_KEY.", code: "NO_API_KEY" });
   }
   const targets = db.titles.filter(t => !t.poster || !t.description);
   let updated = 0, notFound = 0, failed = 0;

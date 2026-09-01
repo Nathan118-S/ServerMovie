@@ -112,11 +112,12 @@
   .label-list .row label{display:flex;align-items:center;gap:10px;font-size:14px;}
 
   #label-sheet{display:none;}
-  .label-card{width:2.6in;height:1.6in;border:1px dashed #999;display:flex;align-items:center;gap:10px;padding:8px;background:#fff;color:#111;}
-  .label-card .info{font-family:'Inter';}
-  .label-card .info .t{font-family:'Oswald';font-size:13px;line-height:1.15;}
-  .label-card .info .c{font-size:9px;color:#555;margin-top:4px;}
-  .label-sheet-grid{display:grid;grid-template-columns:repeat(3,2.6in);gap:0.15in;}
+  .label-circle{position:relative;width:1.8in;height:1.8in;border-radius:50%;border:1px dashed #999;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:0.1in 0.12in;box-sizing:border-box;background:#fff;color:#111;overflow:hidden;}
+  .label-circle .barcode{max-width:1.5in;max-height:0.4in;object-fit:contain;}
+  .label-circle .hole{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:0.62in;height:0.62in;border-radius:50%;background:#fff;border:1px dashed #bbb;z-index:2;}
+  .label-circle .info-text{font-family:'Inter';font-size:8px;line-height:1.25;text-align:center;max-width:1.55in;}
+  .label-circle .info-text .t{font-family:'Oswald';font-size:9px;display:block;}
+  .label-sheet-grid{display:grid;grid-template-columns:repeat(4,1.8in);gap:0.2in;justify-items:center;}
 
   @media print{
     body *{visibility:hidden;}
@@ -247,7 +248,7 @@
   <div class="panel" data-panel="labels">
     <div class="panel-inner">
       <div class="display" style="font-size:16px;margin-bottom:8px;">Print labels for your catalog</div>
-      <div class="scan-msg">Pick titles below, then print. Each label has a QR code tied to that title — cut it out and stick it on the disc case. Scanning that label works exactly like scanning the original barcode.</div>
+      <div class="scan-msg">Pick titles below, then print. Each label is a small circular ring sized to fit around a disc's center hole, just like the printed hub labels on a real rental disc — cut around the outer dashed circle, punch out the inner dashed circle for the spindle hole, and stick it on. Scanning the barcode works exactly like scanning the disc's original barcode.</div>
       <div class="label-controls">
         <button class="secondary" id="selectAllLabels">Select all</button>
         <button class="secondary" id="selectNoneLabels">Select none</button>
@@ -301,7 +302,15 @@
 
           <div class="bulk-box">
             <div class="display" style="font-size:15px;margin-bottom:6px;">Auto-fill posters &amp; descriptions</div>
-            <div class="scan-msg" style="margin-top:0;">Looks up every title that's missing a poster or description on OMDb and fills them in automatically — genre, rating, IMDb id, poster art, and a plot summary, all in one pass. Needs an OMDb API key set on the server (free, see README.md) and the Pi to have internet access at the moment you use it — everything else in this app keeps working without either.</div>
+            <div class="scan-msg" style="margin-top:0;">Looks up every title that's missing a poster or description on OMDb and fills them in automatically — genre, rating, IMDb id, poster art, and a plot summary, all in one pass. Needs the Pi to have internet access at the moment you use it — everything else in this app keeps working without it.</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+              <input type="password" id="omdbKeyInput" placeholder="Paste your OMDb API key" style="min-width:220px;flex:1;" />
+              <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;">
+                <input type="checkbox" id="omdbKeyShow" style="width:auto;" /> Show
+              </label>
+              <button class="secondary" id="saveOmdbKeyBtn" style="padding:9px 14px;font-size:12px;">Save key</button>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Don't have one yet? <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener" style="color:var(--muted);">Get a free key</a> (1,000 lookups/day) and paste it above.</div>
             <button class="primary" id="autofillBtn">🔎 Auto-fill missing titles</button>
             <span id="autofillStatus" style="font-size:11px;color:var(--muted);margin-left:8px;"></span>
           </div>
@@ -447,6 +456,7 @@
   let pendingScanPoster = "";
   let renterFilter = "All";
   let maxCheckouts = 3;
+  let omdbApiKey = "";
 
   const $ = sel => document.querySelector(sel);
   const $$ = sel => Array.from(document.querySelectorAll(sel));
@@ -466,7 +476,7 @@
       if(resource==="titles") catalog = data;
       else if(resource==="rentals") rentals = data;
       else if(resource==="users") users = data;
-      else if(resource==="settings") maxCheckouts = data.maxCheckouts || 3;
+      else if(resource==="settings"){ maxCheckouts = data.maxCheckouts || 3; omdbApiKey = data.omdbApiKey || ""; }
       else if(resource==="tv-selection") tvSelection = data && data.movieId ? data : null;
       render();
     }catch(e){ toast("Couldn't reach the local server"); }
@@ -479,6 +489,7 @@
       rentals = state.rentals || [];
       users = state.users || [];
       maxCheckouts = (state.settings && state.settings.maxCheckouts) || 3;
+      omdbApiKey = (state.settings && state.settings.omdbApiKey) || "";
       tvSelection = state.tvSelection && state.tvSelection.movieId ? state.tvSelection : null;
       apiReady = true;
       render();
@@ -516,6 +527,8 @@
     if(isTvMode()) renderTv();
     const mcInput = $("#maxCheckoutInput");
     if(mcInput && document.activeElement !== mcInput) mcInput.value = maxCheckouts;
+    const okInput = $("#omdbKeyInput");
+    if(okInput && document.activeElement !== okInput) okInput.value = omdbApiKey;
   }
 
   function renderNavVisibility(){
@@ -971,6 +984,13 @@
     toast(`Limit set to ${n} disc${n===1?'':'s'} per person`);
   }
 
+  async function setOmdbApiKey(key){
+    key = (key||"").trim();
+    try{ await api.send("PUT", "/api/settings", { omdbApiKey: key }); omdbApiKey = key; render(); }
+    catch(e){ toast("Couldn't save the API key"); return; }
+    toast(key ? "OMDb API key saved" : "OMDb API key cleared");
+  }
+
   async function addUser(name, pin, isAdmin){
     name = (name||"").trim();
     pin = (pin||"").trim();
@@ -1181,6 +1201,14 @@
     const box = $("#scanResult");
     if(match){
       const out = match.stock<=0;
+      const activeRentals = rentals.filter(r => r.movieId === match.id);
+      const returnHtml = activeRentals.length > 0 ? `<div style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px;">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">This title is currently checked out${activeRentals.length>1?` (${activeRentals.length} copies)`:''}:</div>
+        ${activeRentals.map(r => `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;">
+          <span style="font-size:13px;">Rented by ${r.renterName}</span>
+          <button class="teal" data-return-scan="${r.id}" style="padding:7px 12px;font-size:12px;flex-shrink:0;">Mark as returned</button>
+        </div>`).join("")}
+      </div>` : "";
       box.innerHTML = `<div class="match-card">
         <div class="t">${match.title}</div>
         <div class="g">${match.genre} · ${match.year} · ${match.rating} · ${match.stock} in stock</div>
@@ -1188,11 +1216,16 @@
         <div style="margin-top:12px;display:flex;gap:8px;">
           ${!out ? `<button class="primary" id="scanRentBtn">Rent this disc</button>` : `<span style="font-size:12px;color:#E87C03;">Out of stock</span>`}
         </div>
+        ${returnHtml}
       </div>`;
       if(!out){ $("#scanRentBtn").onclick = () => {
         if(!loggedInUser){ toast("Log in with your PIN first"); return; }
         rentByMovie(match, loggedInUser.name);
       }; }
+      box.querySelectorAll("[data-return-scan]").forEach(b => b.onclick = async () => {
+        await returnRental(b.dataset.returnScan);
+        box.innerHTML = "";
+      });
     } else {
       box.innerHTML = `<div class="match-card">
         <div class="t">Unrecognized code</div>
@@ -1280,23 +1313,29 @@
     grid.innerHTML = "";
     const cards = items.map(m => {
       const card = document.createElement("div");
-      card.className = "label-card";
-      const qrHolder = document.createElement("img");
-      qrHolder.className = "qr";
-      qrHolder.width = 84; qrHolder.height = 84;
-      card.appendChild(qrHolder);
+      card.className = "label-circle";
+
+      const barcodeImg = document.createElement("img");
+      barcodeImg.className = "barcode";
+      card.appendChild(barcodeImg);
+
+      const hole = document.createElement("div");
+      hole.className = "hole";
+      card.appendChild(hole);
+
       const info = document.createElement("div");
-      info.className = "info";
-      info.innerHTML = `<div class="t">${m.title}</div><div class="c">${m.genre} · ${m.year}<br/>${m.code}</div>`;
+      info.className = "info-text";
+      info.innerHTML = `<span class="t">${m.title}</span>${m.code}`;
       card.appendChild(info);
+
       grid.appendChild(card);
-      return { m, qrHolder };
+      return { m, barcodeImg };
     });
-    await Promise.all(cards.map(async ({m, qrHolder}) => {
+    await Promise.all(cards.map(async ({m, barcodeImg}) => {
       try{
-        const data = await api.get("/api/qrcode?text=" + encodeURIComponent("SANDYSERVER:"+m.code));
-        qrHolder.src = data.dataUrl;
-      }catch(e){ qrHolder.replaceWith(document.createTextNode(m.code)); }
+        const data = await api.get("/api/barcode?text=" + encodeURIComponent(m.code));
+        barcodeImg.src = data.dataUrl;
+      }catch(e){ barcodeImg.replaceWith(document.createTextNode(m.code)); }
     }));
     setTimeout(() => window.print(), 200);
   }
@@ -1372,6 +1411,8 @@
     };
 
     $("#autofillBtn").onclick = autofillCatalog;
+    $("#saveOmdbKeyBtn").onclick = () => setOmdbApiKey($("#omdbKeyInput").value);
+    $("#omdbKeyShow").onchange = (e) => { $("#omdbKeyInput").type = e.target.checked ? "text" : "password"; };
 
     $("#addUserBtn").onclick = async () => {
       await addUser($("#newUserName").value, $("#newUserPin").value, $("#newUserIsAdmin").checked);
