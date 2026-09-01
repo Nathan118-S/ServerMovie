@@ -10,14 +10,14 @@
      stacks below render fine on their own. */
 
   :root{
-    --bg:#141414; --panel:#181818; --panel2:#232323; --line:#2a2a2a;
-    --red:#1E88FF; --red-dark:#0F6FDB;
-    --white:#FFFFFF; --muted:#B3B3B3; --muted2:#737373;
-    --green:#46D369;
+    --bg:#0A0C10; --panel:#12161D; --panel2:#1A2029; --line:rgba(255,255,255,0.08);
+    --red:#3E7BFA; --red-dark:#2D5FD9; --glow:rgba(62,123,250,0.35);
+    --white:#F5F7FA; --muted:#9AA3B2; --muted2:#656D7A;
+    --green:#34D399; --glass:rgba(18,22,29,0.72);
   }
   *{box-sizing:border-box;}
   html,body{margin:0;background:var(--bg);}
-  body{font-family:'Inter',system-ui,sans-serif;color:var(--white);}
+  body{font-family:'Inter',system-ui,sans-serif;color:var(--white);background:radial-gradient(ellipse 1200px 800px at 50% -10%, #151b26 0%, var(--bg) 55%) fixed;}
   .display{font-family:'Oswald','Arial Narrow',sans-serif;}
   ::-webkit-scrollbar{height:8px;width:8px;}
   ::-webkit-scrollbar-thumb{background:#333;border-radius:4px;}
@@ -26,42 +26,42 @@
   @keyframes fadeIn{ from{opacity:0;} to{opacity:1;} }
   @keyframes modalIn{ from{opacity:0;transform:scale(0.94) translateY(8px);} to{opacity:1;transform:scale(1) translateY(0);} }
 
-  .topbar{position:sticky;top:0;z-index:40;background:rgba(20,20,20,0.92);backdrop-filter:blur(6px);padding:14px 40px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;border-bottom:1px solid var(--line);}
-  .logo{font-family:'Oswald';font-weight:700;font-size:24px;letter-spacing:0.5px;color:var(--red);cursor:pointer;flex-shrink:0;transition:opacity 0.15s ease;}
+  .topbar{position:sticky;top:0;z-index:40;background:var(--glass);backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);padding:14px 40px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;border-bottom:1px solid var(--line);}
+  .logo{font-family:'Oswald';font-weight:700;font-size:24px;letter-spacing:0.5px;background:linear-gradient(135deg,#fff,var(--red) 140%);-webkit-background-clip:text;background-clip:text;color:transparent;cursor:pointer;flex-shrink:0;transition:opacity 0.15s ease;}
   .logo:hover{opacity:0.8;}
-  .search-wrap{flex:1;min-width:180px;max-width:340px;display:flex;align-items:center;background:rgba(255,255,255,0.06);border:1px solid var(--line);border-radius:24px;padding:6px 14px;gap:8px;transition:border-color 0.15s ease,background 0.15s ease;}
-  .search-wrap:focus-within{border-color:var(--muted);background:rgba(255,255,255,0.1);}
+  .search-wrap{flex:1;min-width:180px;max-width:340px;display:flex;align-items:center;background:rgba(255,255,255,0.05);border:1px solid var(--line);border-radius:24px;padding:6px 14px;gap:8px;transition:border-color 0.18s ease,background 0.18s ease,box-shadow 0.18s ease;}
+  .search-wrap:focus-within{border-color:var(--red);background:rgba(255,255,255,0.07);box-shadow:0 0 0 4px var(--glow);}
   .search-wrap input{background:transparent;border:none;color:var(--white);font-size:13px;flex:1;padding:2px;}
   .search-wrap input:focus{outline:none;}
   .search-wrap .icon{font-size:13px;color:var(--muted);}
 
-  .nav{padding:10px 40px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:var(--bg);border-bottom:1px solid var(--line);}
-  .nav button{font-family:'Oswald';font-size:13px;letter-spacing:0.5px;padding:8px 16px;background:transparent;color:var(--muted);border:none;border-radius:18px;cursor:pointer;transition:background 0.15s ease,color 0.15s ease,transform 0.1s ease;}
+  .nav{padding:10px 40px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:rgba(10,12,16,0.6);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);}
+  .nav button{font-family:'Oswald';font-size:13px;letter-spacing:0.5px;padding:8px 16px;background:transparent;color:var(--muted);border:none;border-radius:18px;cursor:pointer;transition:background 0.18s ease,color 0.18s ease,transform 0.1s ease;}
   .nav button:hover{color:var(--white);background:rgba(255,255,255,0.06);}
-  .nav button.active{background:var(--red);color:#fff;}
+  .nav button.active{background:linear-gradient(135deg,var(--red),var(--red-dark));color:#fff;box-shadow:0 4px 16px var(--glow);}
   .nav button:active{transform:scale(0.96);}
   .nav-label{font-family:'Oswald';font-size:11px;letter-spacing:1px;color:var(--muted2);align-self:center;margin:0 2px 0 10px;text-transform:uppercase;}
   .admin-nav-group{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
 
-  .toast{position:fixed;bottom:26px;left:50%;background:var(--panel2);color:#fff;padding:12px 22px;font-size:13px;border-radius:10px;border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,0.5);z-index:60;opacity:0;pointer-events:none;transform:translate(-50%,12px);transition:opacity 0.25s ease,transform 0.25s ease;}
+  .toast{position:fixed;bottom:26px;left:50%;background:var(--glass);backdrop-filter:blur(16px);color:#fff;padding:12px 22px;font-size:13px;border-radius:12px;border:1px solid var(--line);box-shadow:0 20px 50px rgba(0,0,0,0.5);z-index:60;opacity:0;pointer-events:none;transform:translate(-50%,12px);transition:opacity 0.25s ease,transform 0.25s ease;}
   .toast.show{opacity:1;transform:translate(-50%,0);}
-  .banner{background:#3a2f5c;color:#fff;padding:10px 40px;font-size:13px;animation:fadeIn 0.3s ease;}
+  .banner{background:linear-gradient(135deg,#3a2f5c,#2a2247);color:#fff;padding:10px 40px;font-size:13px;animation:fadeIn 0.3s ease;}
 
   .content{padding:0 0 40px;max-width:1600px;margin:0 auto;}
   .panel{display:none;}
   .panel.active{display:block;animation:fadeInUp 0.35s ease both;}
   .panel-inner{padding:24px 40px;}
 
-  input,select{background:var(--panel2);border:1px solid var(--line);color:var(--white);border-radius:8px;padding:9px 12px;font-size:13px;font-family:'Inter';transition:border-color 0.15s ease;}
-  input:focus,select:focus{outline:none;border-color:var(--muted);}
-  button.primary{background:var(--red);color:#fff;border:none;border-radius:8px;padding:11px 16px;font-family:'Oswald';font-size:14px;letter-spacing:0.5px;cursor:pointer;transition:background 0.15s ease,transform 0.1s ease;}
-  button.primary:hover{background:var(--red-dark);}
+  input,select{background:rgba(255,255,255,0.04);border:1px solid var(--line);color:var(--white);border-radius:10px;padding:9px 12px;font-size:13px;font-family:'Inter';transition:border-color 0.18s ease,box-shadow 0.18s ease;}
+  input:focus,select:focus{outline:none;border-color:var(--red);box-shadow:0 0 0 4px var(--glow);}
+  button.primary{background:linear-gradient(135deg,var(--red),var(--red-dark));color:#fff;border:none;border-radius:10px;padding:11px 16px;font-family:'Oswald';font-size:14px;letter-spacing:0.5px;cursor:pointer;box-shadow:0 4px 14px var(--glow);transition:box-shadow 0.18s ease,transform 0.1s ease,filter 0.18s ease;}
+  button.primary:hover{filter:brightness(1.08);box-shadow:0 6px 20px var(--glow);}
   button.primary:active{transform:scale(0.97);}
-  button.primary:disabled{background:#4a2426;color:#8a6a6a;cursor:not-allowed;transform:none;}
-  button.secondary{background:rgba(255,255,255,0.08);border:1px solid var(--line);color:var(--white);border-radius:8px;padding:11px 16px;cursor:pointer;font-size:13px;transition:background 0.15s ease,transform 0.1s ease;}
-  button.secondary:hover{background:rgba(255,255,255,0.15);}
+  button.primary:disabled{background:#2a2f38;color:#5a6270;cursor:not-allowed;transform:none;box-shadow:none;filter:none;}
+  button.secondary{background:rgba(255,255,255,0.06);border:1px solid var(--line);color:var(--white);border-radius:10px;padding:11px 16px;cursor:pointer;font-size:13px;transition:background 0.18s ease,transform 0.1s ease,border-color 0.18s ease;}
+  button.secondary:hover{background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.18);}
   button.secondary:active{transform:scale(0.97);}
-  button.teal{background:var(--green);color:#0a1f0f;border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;transition:transform 0.1s ease,filter 0.15s ease;}
+  button.teal{background:linear-gradient(135deg,var(--green),#22B588);color:#062017;border:none;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 4px 14px rgba(52,211,153,0.3);transition:transform 0.1s ease,filter 0.18s ease;}
   button.teal:hover{filter:brightness(1.08);}
   button.teal:active{transform:scale(0.97);}
 
@@ -69,16 +69,16 @@
   .hero{position:relative;min-height:64vh;display:flex;align-items:flex-end;padding:60px 40px;margin-bottom:8px;}
   .hero-content{max-width:560px;animation:fadeInUp 0.7s ease both;}
   .hero-eyebrow{font-family:'Oswald';font-size:12px;letter-spacing:1px;color:var(--muted);margin-bottom:8px;}
-  .hero-title{font-family:'Oswald';font-weight:700;font-size:44px;line-height:1.05;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,0.6);margin-bottom:10px;}
+  .hero-title{font-family:'Oswald';font-weight:700;font-size:44px;line-height:1.05;color:#fff;text-shadow:0 2px 20px rgba(0,0,0,0.5);margin-bottom:10px;}
   .hero-meta{font-size:14px;color:var(--muted);margin-bottom:20px;}
   .hero-actions{display:flex;gap:12px;}
-  .hero-btn{font-family:'Oswald';font-size:15px;letter-spacing:0.3px;padding:12px 22px;border-radius:8px;border:none;cursor:pointer;transition:background 0.15s ease,transform 0.1s ease;}
-  .hero-btn.primary{background:#fff;color:#141414;}
-  .hero-btn.primary:hover{background:#e2e2e2;}
+  .hero-btn{font-family:'Oswald';font-size:15px;letter-spacing:0.3px;padding:12px 22px;border-radius:10px;border:none;cursor:pointer;transition:background 0.18s ease,transform 0.1s ease,box-shadow 0.18s ease;}
+  .hero-btn.primary{background:#fff;color:#0A0C10;box-shadow:0 8px 24px rgba(255,255,255,0.15);}
+  .hero-btn.primary:hover{background:#e8ecf2;}
   .hero-btn.primary:active{transform:scale(0.97);}
-  .hero-btn.primary:disabled{background:#555;color:#999;cursor:not-allowed;transform:none;}
-  .hero-btn.secondary{background:rgba(109,109,110,0.5);color:#fff;}
-  .hero-btn.secondary:hover{background:rgba(109,109,110,0.75);}
+  .hero-btn.primary:disabled{background:#555;color:#999;cursor:not-allowed;transform:none;box-shadow:none;}
+  .hero-btn.secondary{background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);color:#fff;border:1px solid rgba(255,255,255,0.15);}
+  .hero-btn.secondary:hover{background:rgba(255,255,255,0.18);}
   .hero-btn.secondary:active{transform:scale(0.97);}
 
   /* ---- Rows ---- */
@@ -88,21 +88,22 @@
     -webkit-mask-image:linear-gradient(to right, transparent 0, black 40px, black calc(100% - 40px), transparent 100%);
     mask-image:linear-gradient(to right, transparent 0, black 40px, black calc(100% - 40px), transparent 100%);}
   .row-scroller::-webkit-scrollbar{display:none;}
-  .poster-card{position:relative;flex-shrink:0;width:150px;height:225px;border-radius:10px;cursor:pointer;display:flex;align-items:flex-end;padding:10px;background-size:cover;background-position:center;box-shadow:0 2px 8px rgba(0,0,0,0.4);transition:transform 0.25s cubic-bezier(.25,.8,.35,1),box-shadow 0.25s ease;}
-  .poster-card:hover{transform:scale(1.1) translateY(-4px);box-shadow:0 12px 28px rgba(0,0,0,0.65);z-index:2;}
+  .poster-grid{display:flex;flex-wrap:wrap;gap:16px;padding:6px 40px 20px;}
+  .poster-card{position:relative;flex-shrink:0;width:150px;height:225px;border-radius:12px;cursor:pointer;display:flex;align-items:flex-end;padding:10px;background-size:cover;background-position:center;box-shadow:0 4px 16px rgba(0,0,0,0.5);transition:transform 0.25s cubic-bezier(.25,.8,.35,1),box-shadow 0.25s ease;}
+  .poster-card:hover{transform:scale(1.08) translateY(-6px);box-shadow:0 16px 40px rgba(0,0,0,0.6),0 0 0 2px var(--red),0 0 24px var(--glow);z-index:2;}
   .poster-title{font-family:'Oswald';font-size:14px;line-height:1.15;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.7);}
   .poster-dot{position:absolute;top:8px;right:8px;width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 2px rgba(0,0,0,0.4);}
 
-  .row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:8px;transition:border-color 0.15s ease;}
-  .row:hover{border-color:#3a3a3a;}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:rgba(255,255,255,0.03);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:8px;transition:border-color 0.18s ease,background 0.18s ease;}
+  .row:hover{border-color:rgba(255,255,255,0.14);background:rgba(255,255,255,0.045);}
 
-  .scan-box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;max-width:480px;}
-  #reader{width:100%;max-width:400px;border-radius:10px;overflow:hidden;background:#000;}
+  .scan-box{background:rgba(255,255,255,0.03);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:480px;}
+  #reader{width:100%;max-width:400px;border-radius:12px;overflow:hidden;background:#000;}
   .scan-msg{font-size:13px;color:var(--muted);margin:10px 0;}
   .manual-entry{display:flex;gap:8px;margin-top:14px;}
   .manual-entry input{flex:1;}
 
-  .match-card{background:var(--panel2);color:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:16px;animation:fadeInUp 0.3s ease both;}
+  .match-card{background:rgba(255,255,255,0.04);backdrop-filter:blur(12px);color:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:16px;animation:fadeInUp 0.3s ease both;}
   .match-card .t{font-family:'Oswald';font-size:20px;}
   .match-card .g{font-size:12px;color:var(--muted);margin-top:2px;}
 
@@ -125,34 +126,34 @@
     #label-sheet{display:block!important;position:absolute;top:0;left:0;}
   }
 
-  .adjbtn{background:transparent;border:1px solid var(--line);color:var(--white);border-radius:8px;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;transition:background 0.15s ease,transform 0.1s ease;}
-  .adjbtn:hover{background:rgba(255,255,255,0.08);}
+  .adjbtn{background:rgba(255,255,255,0.04);border:1px solid var(--line);color:var(--white);border-radius:10px;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;transition:background 0.18s ease,transform 0.1s ease;}
+  .adjbtn:hover{background:rgba(255,255,255,0.1);}
   .adjbtn:active{transform:scale(0.9);}
 
-  .poster-thumb{width:44px;height:60px;object-fit:cover;border-radius:8px;background:#333;flex-shrink:0;}
-  .file-label{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:5px 9px;cursor:pointer;display:inline-block;transition:background 0.15s ease;}
+  .poster-thumb{width:44px;height:60px;object-fit:cover;border-radius:10px;background:#333;flex-shrink:0;}
+  .file-label{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:10px;padding:5px 9px;cursor:pointer;display:inline-block;transition:background 0.18s ease;}
   .file-label:hover{background:rgba(255,255,255,0.06);}
   .file-label input{display:none;}
-  .bulk-box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:24px;}
-  .bulk-box textarea{width:100%;min-height:110px;background:var(--bg);border:1px solid var(--line);color:var(--white);border-radius:8px;padding:10px;font-family:'Inter';font-size:12px;resize:vertical;}
+  .bulk-box{background:rgba(255,255,255,0.03);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:24px;}
+  .bulk-box textarea{width:100%;min-height:110px;background:rgba(0,0,0,0.3);border:1px solid var(--line);color:var(--white);border-radius:10px;padding:10px;font-family:'Inter';font-size:12px;resize:vertical;}
 
   .pin-input{font-family:'Oswald';font-size:22px;letter-spacing:10px;text-align:center;width:130px;padding:10px 0 10px 14px;}
-  .login-box{background:var(--panel2);color:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;animation:fadeIn 0.3s ease both;}
+  .login-box{background:rgba(255,255,255,0.05);backdrop-filter:blur(12px);color:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;animation:fadeIn 0.3s ease both;}
   .login-box .who{font-family:'Oswald';font-size:16px;}
 
-  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;animation:fadeIn 0.2s ease;}
-  .modal-card{background:var(--panel);color:#fff;border:1px solid var(--line);width:400px;max-width:100%;border-radius:14px;overflow:hidden;animation:modalIn 0.25s cubic-bezier(.25,.8,.35,1) both;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(5,6,9,0.75);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;animation:fadeIn 0.2s ease;}
+  .modal-card{background:var(--glass);backdrop-filter:blur(24px) saturate(1.4);color:#fff;border:1px solid rgba(255,255,255,0.1);width:400px;max-width:100%;border-radius:20px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,0.6);animation:modalIn 0.25s cubic-bezier(.25,.8,.35,1) both;}
   .modal-header{padding:26px 20px;position:relative;min-height:120px;display:flex;flex-direction:column;justify-content:flex-end;background-size:cover;background-position:center;}
   .modal-header .eyebrow{font-family:'Oswald';font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.8);}
   .modal-header .t{font-family:'Oswald';font-size:26px;font-weight:600;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.6);}
-  .modal-close{position:absolute;top:10px;right:12px;background:rgba(0,0,0,0.5);color:#fff;border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;transition:background 0.15s ease,transform 0.15s ease;}
-  .modal-close:hover{background:rgba(0,0,0,0.75);transform:rotate(90deg);}
+  .modal-close{position:absolute;top:10px;right:12px;background:rgba(0,0,0,0.4);backdrop-filter:blur(8px);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;transition:background 0.18s ease,transform 0.18s ease;}
+  .modal-close:hover{background:rgba(0,0,0,0.6);transform:rotate(90deg);}
   .modal-body{padding:20px;}
 
   /* ---- TV page ---- */
   #tvRoot{min-height:100vh;background:var(--bg);}
   .tv-header{padding:36px 56px 8px;}
-  .tv-logo{font-family:'Oswald';font-weight:700;font-size:34px;letter-spacing:1px;color:var(--red);}
+  .tv-logo{font-family:'Oswald';font-weight:700;font-size:34px;letter-spacing:1px;background:linear-gradient(135deg,#fff,var(--red) 140%);-webkit-background-clip:text;background-clip:text;color:transparent;}
   #tvRoot .hero{min-height:70vh;padding:70px 56px;}
   #tvRoot .hero-content{max-width:780px;}
   #tvRoot .hero-title{font-size:68px;}
@@ -172,10 +173,10 @@
   #tvSendBox .modal-header .eyebrow{font-size:14px;}
   #tvSendBox .modal-header .t{font-size:38px;}
   #tvSendBox .modal-body{padding:30px;}
-  .tv-send-btn{width:100%;font-family:'Oswald';font-size:20px;letter-spacing:0.5px;padding:18px 0;border-radius:8px;border:none;cursor:pointer;background:var(--red);color:#fff;transition:background 0.15s ease,transform 0.1s ease;}
-  .tv-send-btn:hover{background:var(--red-dark);}
+  .tv-send-btn{width:100%;font-family:'Oswald';font-size:20px;letter-spacing:0.5px;padding:18px 0;border-radius:10px;border:none;cursor:pointer;background:linear-gradient(135deg,var(--red),var(--red-dark));color:#fff;box-shadow:0 4px 20px var(--glow);transition:filter 0.18s ease,transform 0.1s ease;}
+  .tv-send-btn:hover{filter:brightness(1.08);}
   .tv-send-btn:active{transform:scale(0.98);}
-  .tv-send-btn.sent{background:var(--green);color:#0a1f0f;cursor:default;}
+  .tv-send-btn.sent{background:linear-gradient(135deg,var(--green),#22B588);color:#062017;cursor:default;box-shadow:0 4px 20px rgba(52,211,153,0.3);}
 
   .kiosk-tv-banner{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;animation:fadeInUp 0.3s ease both;}
   .kiosk-tv-banner .label{font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;font-family:'Oswald';}
@@ -273,6 +274,12 @@
             <input id="newStockInput" type="number" min="0" placeholder="Starting stock" value="1" />
             <input id="newCodeInput" placeholder="Existing barcode (optional — scan or type)" />
             <input id="newImdbInput" placeholder="IMDb id, e.g. tt1234567 (optional)" />
+            <div style="border-top:1px solid var(--line);margin:4px 0;padding-top:8px;font-size:11px;color:var(--muted);">TV series disc? (optional)</div>
+            <input id="newSeriesInput" placeholder="Series name, e.g. Breaking Bad" />
+            <div style="display:flex;gap:8px;">
+              <input id="newSeasonInput" type="number" min="1" placeholder="Season #" style="flex:1;" />
+              <input id="newDiscInput" type="number" min="1" placeholder="Disc #" style="flex:1;" />
+            </div>
             <label class="file-label">📷 Attach a photo of the case
               <input type="file" accept="image/*" capture="environment" id="newPosterInput" />
             </label>
@@ -283,6 +290,27 @@
         <div style="flex:2 1 400px;">
           <div class="display" style="font-size:16px;margin-bottom:10px;">Current inventory</div>
           <div id="adminList"></div>
+
+          <div class="bulk-box">
+            <div class="display" style="font-size:15px;margin-bottom:6px;">Add a TV series (multiple discs)</div>
+            <div class="scan-msg" style="margin-top:0;">Creates several disc entries at once, all sharing the same series name/season/genre/rating — each still gets its own barcode and can be checked out independently, same as any other title.</div>
+            <div class="new-form">
+              <input id="seriesNameInput" placeholder="Series name, e.g. Breaking Bad" />
+              <div style="display:flex;gap:8px;">
+                <input id="seriesSeasonInput" type="number" min="1" placeholder="Season #" value="1" style="flex:1;" />
+                <input id="seriesYearInput" placeholder="Year" style="flex:1;" />
+              </div>
+              <select id="seriesGenreInput"></select>
+              <select id="seriesRatingInput">
+                <option>G</option><option>PG</option><option selected>PG-13</option><option>R</option>
+              </select>
+              <div style="display:flex;gap:8px;">
+                <input id="seriesDiscCountInput" type="number" min="1" placeholder="Number of discs" value="3" style="flex:1;" />
+                <input id="seriesStockInput" type="number" min="0" placeholder="Stock per disc" value="1" style="flex:1;" />
+              </div>
+              <button class="primary" id="addSeriesBtn">Add series discs</button>
+            </div>
+          </div>
 
           <div class="bulk-box">
             <div class="display" style="font-size:15px;margin-bottom:6px;">Bulk import titles</div>
@@ -450,6 +478,8 @@
   let tvSendMovieId = null; // movie open in the TV "send to kiosk" box, or null
   let tvSelection = null; // {movieId, title, genre, year, poster, sentAt} — last thing sent from the TV page
   let query = "";
+  let featuredBrowseId = null;
+  let featuredTvId = null;
   let html5QrCode = null;
   let scanning = false;
   let pendingAdminPoster = "";
@@ -543,14 +573,24 @@
   }
 
   // ---------- Browse: hero + genre rows ----------
+  function seriesTag(m){
+    if(!m.seriesName) return "";
+    const parts = [];
+    if(m.season) parts.push("S"+m.season);
+    if(m.discNumber) parts.push("Disc "+m.discNumber);
+    return parts.length ? parts.join(" · ") : "";
+  }
+
   function posterTileHtml(m){
     const color = GENRE_COLORS[m.genre] || "#333";
     const out = m.stock<=0;
     const bg = m.poster
       ? `background-image:linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,0.85) 100%), url('${m.poster}');`
       : `background-image:linear-gradient(160deg, ${color}, #141414 85%);`;
+    const tag = seriesTag(m);
     return `<div class="poster-card" data-openmovie="${m.id}" style="${bg}">
       <span class="poster-dot" style="background:${out?'#737373':'#46D369'};" title="${out?'Out of stock':'In stock'}"></span>
+      ${tag ? `<span style="position:absolute;top:8px;left:8px;font-family:'Inter';font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,0.55);padding:2px 7px;border-radius:6px;">${tag}</span>` : ""}
       <span class="poster-title">${m.title}</span>
     </div>`;
   }
@@ -560,6 +600,13 @@
     return `<div class="row-block" ${delay}>
       <div class="row-title">${label}</div>
       <div class="row-scroller">${items.map(posterTileHtml).join("")}</div>
+    </div>`;
+  }
+
+  function gridHtml(label, items){
+    return `<div class="row-block">
+      ${label ? `<div class="row-title">${label}</div>` : ""}
+      <div class="poster-grid">${items.map(posterTileHtml).join("")}</div>
     </div>`;
   }
 
@@ -593,6 +640,24 @@
     });
   }
 
+  // Picks a random featured title once per page load (preferring ones with
+  // posters), then keeps reusing that same pick for the rest of the
+  // session — re-randomizing on every data refresh would make the hero
+  // jump around while someone's just browsing. currentId/setId let Browse
+  // and the TV page each remember their own independent pick.
+  function pickFeatured(currentId, setId){
+    if(currentId){
+      const existing = catalog.find(m => m.id === currentId);
+      if(existing) return existing;
+    }
+    if(catalog.length === 0) return null;
+    const withPoster = catalog.filter(m => m.poster);
+    const pool = withPoster.length > 0 ? withPoster : catalog;
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    setId(pick.id);
+    return pick;
+  }
+
   function renderBrowse(){
     const heroEl = $("#browseHero");
     const rowsEl = $("#browseRows");
@@ -603,7 +668,7 @@
       heroEl.innerHTML = "";
       const matches = catalog.filter(m => (m.title||"").toLowerCase().includes(q));
       rowsEl.innerHTML = matches.length
-        ? rowHtml(`Results for "${query}"`, matches)
+        ? gridHtml(`Results for "${query}"`, matches)
         : `<div style="color:var(--muted);font-size:14px;padding:24px 40px;">No titles match "${query}".</div>`;
       wireBrowseCards(rowsEl, openMovieModal);
       return;
@@ -615,22 +680,23 @@
       return;
     }
 
-    const featured = catalog.find(m=>m.poster) || catalog[0];
+    const featured = pickFeatured(featuredBrowseId, id => { featuredBrowseId = id; });
     heroEl.innerHTML = heroHtml(featured, "browse");
     const infoBtn = heroEl.querySelector("[data-hero-info]");
     if(infoBtn) infoBtn.onclick = () => openMovieModal(featured.id);
     const actionBtn = heroEl.querySelector("[data-hero-action]");
     if(actionBtn && !actionBtn.disabled) actionBtn.onclick = () => openMovieModal(featured.id);
 
-    let rowsOut = "";
-    let rowIndex = 0;
-    Object.keys(GENRE_COLORS).forEach(g => {
-      const items = catalog.filter(m => m.genre===g);
-      if(items.length===0) return;
-      rowsOut += rowHtml(g, items, rowIndex);
-      rowIndex++;
+    const movies = catalog.filter(m => !m.seriesName);
+    const seriesNames = Array.from(new Set(catalog.filter(m => m.seriesName).map(m => m.seriesName)));
+    let out = "";
+    seriesNames.forEach((name, i) => {
+      const discs = catalog.filter(m => m.seriesName === name)
+        .sort((a,b) => (a.season||0)-(b.season||0) || (a.discNumber||0)-(b.discNumber||0));
+      out += rowHtml(name + " (series)", discs, i);
     });
-    rowsEl.innerHTML = rowsOut;
+    out += gridHtml(seriesNames.length ? "Movies" : "", movies);
+    rowsEl.innerHTML = out;
     wireBrowseCards(rowsEl, openMovieModal);
   }
 
@@ -666,7 +732,7 @@
       <img class="poster-thumb" src="${m.poster || ''}" style="${m.poster?'':'visibility:hidden;'}" />
       <div style="flex:1;">
         <span style="font-size:14px;">${m.title}</span>
-        <span style="font-size:12px;color:var(--muted);margin-left:8px;">${m.genre} · ${m.year} · code: ${m.code}</span>
+        <span style="font-size:12px;color:var(--muted);margin-left:8px;">${m.genre} · ${m.year} · code: ${m.code}${seriesTag(m) ? ' · '+seriesTag(m) : ''}</span>
         <div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
           <input class="imdbInput" data-imdb="${m.id}" placeholder="tt1234567" value="${m.imdbId||''}" style="font-size:11px;padding:4px 8px;width:110px;" />
           ${imdbLinkHtml(m)}
@@ -813,7 +879,7 @@
     overlay.innerHTML = `<div class="modal-card">
       <div class="modal-header" style="${headerBg}">
         <button class="modal-close" id="modalCloseBtn">×</button>
-        <div class="eyebrow">${m.genre} · ${m.year}</div>
+        <div class="eyebrow">${m.genre} · ${m.year}${seriesTag(m) ? ' · '+seriesTag(m) : ''}</div>
         <div class="t">${m.title}</div>
       </div>
       <div class="modal-body">
@@ -861,7 +927,7 @@
       return;
     }
 
-    const featured = catalog.find(m=>m.poster) || catalog[0];
+    const featured = pickFeatured(featuredTvId, id => { featuredTvId = id; });
     heroEl.innerHTML = heroHtml(featured, "tv");
     const actionBtn = heroEl.querySelector("[data-hero-action]");
     if(actionBtn) actionBtn.onclick = () => openTvSendBox(featured.id);
@@ -956,6 +1022,20 @@
   }
 
   // ---------- users & PIN login ----------
+  const AUTO_LOGOUT_MS = 30000;
+  let autoLogoutTimer = null;
+
+  function resetAutoLogoutTimer(){
+    clearTimeout(autoLogoutTimer);
+    if(!loggedInUser) return;
+    autoLogoutTimer = setTimeout(() => {
+      if(!loggedInUser) return;
+      const name = loggedInUser.name;
+      pinLogout();
+      toast(`${name} logged out after 30 seconds of inactivity`);
+    }, AUTO_LOGOUT_MS);
+  }
+
   function pinLogin(pin){
     pin = (pin||"").trim();
     const setMsg = (text) => { ["#pinMsg","#modalPinMsg"].forEach(sel => { const m=$(sel); if(m) m.textContent=text; }); };
@@ -966,11 +1046,13 @@
     renderLoginArea();
     renderModal();
     renderNavVisibility();
+    resetAutoLogoutTimer();
     toast(u.isAdmin ? `Welcome, ${u.name} (admin)` : `Welcome, ${u.name}`);
   }
 
   function pinLogout(){
     loggedInUser = null;
+    clearTimeout(autoLogoutTimer);
     renderLoginArea();
     renderModal();
     renderNavVisibility();
@@ -1077,16 +1159,41 @@
     toast("Title removed from catalog");
   }
 
-  async function addTitle({title,genre,year,rating,stock,code,imdbId,poster}){
-    if(!title || !title.trim()) return;
-    const id = "t"+Date.now()+Math.floor(Math.random()*1000);
+  async function addTitle({title,genre,year,rating,stock,code,imdbId,poster,seriesName,season,discNumber,skipToast,description}){
+    if(!title || !title.trim()) return null;
+    const id = "t"+Date.now()+Math.floor(Math.random()*1000)+Math.floor(Math.random()*1000);
     const finalCode = (code && code.trim()) ? code.trim() : id;
     const data = { code: finalCode, title: title.trim(), genre, year: Number(year)||new Date().getFullYear(), rating, stock: Number(stock)||0, imdbId: (imdbId||"").trim() };
     if(poster) data.poster = poster;
+    if(description) data.description = description;
+    if(seriesName && seriesName.trim()){
+      data.seriesName = seriesName.trim();
+      if(season) data.season = Number(season);
+      if(discNumber) data.discNumber = Number(discNumber);
+    }
     try{ await api.send("PUT", "/api/titles/"+id, data); }
-    catch(e){ toast("Couldn't add title"); return; }
+    catch(e){ toast("Couldn't add title"); return null; }
     await refetch("titles");
-    toast(`Added "${title.trim()}" to catalog`);
+    if(!skipToast) toast(`Added "${title.trim()}" to catalog`);
+    return id;
+  }
+
+  // Creates several discs at once for a TV series, all sharing the same
+  // series name/season/genre/rating but each with its own barcode and stock.
+  async function addSeriesDiscs({seriesName, season, year, genre, rating, discCount, stockPerDisc}){
+    seriesName = (seriesName||"").trim();
+    if(!seriesName){ toast("Enter a series name"); return; }
+    const count = parseInt(discCount, 10);
+    if(!Number.isInteger(count) || count < 1){ toast("Enter a valid number of discs"); return; }
+    let added = 0;
+    for(let d = 1; d <= count; d++){
+      const id = await addTitle({
+        title: seriesName, genre, year, rating, stock: stockPerDisc,
+        seriesName, season, discNumber: d, skipToast: true
+      });
+      if(id) added++;
+    }
+    toast(`Added ${added} disc${added===1?'':'s'} for "${seriesName}"`);
   }
 
   async function setPoster(id, dataUrl){
@@ -1354,7 +1461,12 @@
       $("#tvRoot").style.display = "block";
     }
 
+    ["click","keydown","touchstart"].forEach(evt => {
+      document.addEventListener(evt, resetAutoLogoutTimer, { passive: true });
+    });
+
     $("#newGenreInput").innerHTML = Object.keys(GENRE_COLORS).map(g=>`<option>${g}</option>`).join("");
+    $("#seriesGenreInput").innerHTML = Object.keys(GENRE_COLORS).map(g=>`<option>${g}</option>`).join("");
 
     render();
     await initApi();
@@ -1384,10 +1496,26 @@
         stock: $("#newStockInput").value,
         code: $("#newCodeInput").value,
         imdbId: $("#newImdbInput").value,
-        poster: pendingAdminPoster
+        poster: pendingAdminPoster,
+        seriesName: $("#newSeriesInput").value,
+        season: $("#newSeasonInput").value,
+        discNumber: $("#newDiscInput").value
       });
       $("#newTitleInput").value=""; $("#newYearInput").value=""; $("#newStockInput").value="1"; $("#newCodeInput").value=""; $("#newImdbInput").value="";
       $("#newPosterInput").value=""; $("#newPosterStatus").textContent=""; pendingAdminPoster="";
+      $("#newSeriesInput").value=""; $("#newSeasonInput").value=""; $("#newDiscInput").value="";
+    };
+    $("#addSeriesBtn").onclick = async () => {
+      await addSeriesDiscs({
+        seriesName: $("#seriesNameInput").value,
+        season: $("#seriesSeasonInput").value,
+        year: $("#seriesYearInput").value,
+        genre: $("#seriesGenreInput").value,
+        rating: $("#seriesRatingInput").value,
+        discCount: $("#seriesDiscCountInput").value,
+        stockPerDisc: $("#seriesStockInput").value
+      });
+      $("#seriesNameInput").value=""; $("#seriesYearInput").value="";
     };
     $("#newPosterInput").onchange = async (e) => {
       if(!e.target.files || !e.target.files[0]) return;
