@@ -23,89 +23,99 @@
      font files under /public/fonts with a @font-face rule. */
 
   :root{
-    --bg:#0A0C10; --panel:#12161D; --panel2:#1A2029; --line:rgba(255,255,255,0.08);
-    --red:#3E7BFA; --red-dark:#2D5FD9; --glow:rgba(62,123,250,0.35);
-    --white:#F5F7FA; --muted:#9AA3B2; --muted2:#656D7A;
-    --green:#34D399; --glass:rgba(18,22,29,0.68);
-    --bg-radial:#151b26;
+    --bg:#000000; --panel:#1C1C1E; --panel2:#2C2C2E; --line:rgba(255,255,255,0.09);
+    --red:#0A84FF; --red-dark:#0970DE; --glow:rgba(10,132,255,0.3);
+    --white:#F5F5F7; --muted:#98989D; --muted2:#6E6E73;
+    --green:#30D158; --glass:rgba(28,28,30,0.72);
+    --bg-radial:#161618;
     --shadow:rgba(0,0,0,0.5);
-    --surf1:rgba(255,255,255,0.03); --surf2:rgba(255,255,255,0.045);
-    --surf3:rgba(255,255,255,0.07); --surf4:rgba(255,255,255,0.1);
-    --surf5:rgba(255,255,255,0.14); --surf-border2:rgba(255,255,255,0.16);
+    --surf1:rgba(255,255,255,0.04); --surf2:rgba(255,255,255,0.06);
+    --surf3:rgba(255,255,255,0.08); --surf4:rgba(255,255,255,0.11);
+    --surf5:rgba(255,255,255,0.15); --surf-border2:rgba(255,255,255,0.16);
     --text-on-glass:var(--white);
   }
   :root[data-theme="light"]{
-    --bg:#EEF1F6; --panel:#FFFFFF; --panel2:#F3F5F9; --line:rgba(15,23,42,0.09);
-    --red:#3E7BFA; --red-dark:#2D5FD9; --glow:rgba(62,123,250,0.22);
-    --white:#12161D; --muted:#5B6472; --muted2:#8A93A3;
-    --green:#0FA968; --glass:rgba(255,255,255,0.68);
+    --bg:#F2F2F7; --panel:#FFFFFF; --panel2:#FFFFFF; --line:rgba(60,60,67,0.13);
+    --red:#007AFF; --red-dark:#0062CC; --glow:rgba(0,122,255,0.2);
+    --white:#1C1C1E; --muted:#6E6E73; --muted2:#8E8E93;
+    --green:#34C759; --glass:rgba(255,255,255,0.72);
     --bg-radial:#ffffff;
-    --shadow:rgba(15,23,42,0.12);
-    --surf1:rgba(15,23,42,0.035); --surf2:rgba(15,23,42,0.05);
-    --surf3:rgba(15,23,42,0.06); --surf4:rgba(15,23,42,0.08);
-    --surf5:rgba(15,23,42,0.11); --surf-border2:rgba(15,23,42,0.16);
+    --shadow:rgba(0,0,0,0.1);
+    --surf1:rgba(60,60,67,0.04); --surf2:rgba(60,60,67,0.06);
+    --surf3:rgba(60,60,67,0.07); --surf4:rgba(60,60,67,0.09);
+    --surf5:rgba(60,60,67,0.12); --surf-border2:rgba(60,60,67,0.18);
     --text-on-glass:var(--white);
   }
   *{box-sizing:border-box;}
   html,body{margin:0;background:var(--bg);}
-  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:var(--white);background:radial-gradient(ellipse 1200px 800px at 50% -10%, var(--bg-radial) 0%, var(--bg) 55%) fixed;transition:background 0.25s ease,color 0.25s ease;}
-  .display{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:var(--white);background:radial-gradient(ellipse 1200px 800px at 50% -10%, var(--bg-radial) 0%, var(--bg) 55%) fixed;transition:background 0.25s ease,color 0.25s ease;-webkit-font-smoothing:antialiased;}
+  .display{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;letter-spacing:-0.01em;}
   ::-webkit-scrollbar{height:8px;width:8px;}
   ::-webkit-scrollbar-thumb{background:var(--muted2);border-radius:4px;opacity:0.5;}
 
   @keyframes fadeInUp{ from{opacity:0;transform:translateY(16px);} to{opacity:1;transform:translateY(0);} }
   @keyframes fadeIn{ from{opacity:0;} to{opacity:1;} }
   @keyframes modalIn{ from{opacity:0;transform:scale(0.94) translateY(8px);} to{opacity:1;transform:scale(1) translateY(0);} }
+  @keyframes modalOut{ from{opacity:1;transform:scale(1) translateY(0);} to{opacity:0;transform:scale(0.96) translateY(6px);} }
+  @keyframes shakeX{ 10%,90%{transform:translateX(-1px);} 20%,80%{transform:translateX(2px);} 30%,50%,70%{transform:translateX(-4px);} 40%,60%{transform:translateX(4px);} }
+  @keyframes breathe{ 0%,100%{opacity:1;} 50%{opacity:0.45;} }
+  @keyframes tabPop{ 0%{transform:scale(0.9);} 60%{transform:scale(1.05);} 100%{transform:scale(1);} }
+  @keyframes successPulse{ 0%{box-shadow:0 0 0 0 var(--glow);} 70%{box-shadow:0 0 0 14px rgba(0,0,0,0);} 100%{box-shadow:0 0 0 0 rgba(0,0,0,0);} }
 
-  .topbar{position:sticky;top:0;z-index:40;background:var(--glass);backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);padding:14px 40px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;border-bottom:1px solid var(--line);}
-  .logo{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-weight:700;font-size:24px;letter-spacing:0.5px;background:linear-gradient(135deg,#fff,var(--red) 140%);-webkit-background-clip:text;background-clip:text;color:transparent;cursor:pointer;flex-shrink:0;transition:opacity 0.15s ease;}
-  .logo:hover{opacity:0.8;}
-  .search-wrap{flex:1;min-width:180px;max-width:340px;display:flex;align-items:center;background:var(--surf2);border:1px solid var(--line);border-radius:24px;padding:6px 14px;gap:8px;transition:border-color 0.18s ease,background 0.18s ease,box-shadow 0.18s ease;}
-  .search-wrap:focus-within{border-color:var(--red);background:var(--surf3);box-shadow:0 0 0 4px var(--glow);}
-  .search-wrap input{background:transparent;border:none;color:var(--white);font-size:13px;flex:1;padding:2px;}
+  .topbar{position:sticky;top:0;z-index:40;background:var(--glass);backdrop-filter:blur(20px) saturate(1.8);-webkit-backdrop-filter:blur(20px) saturate(1.8);padding:14px 40px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;border-bottom:1px solid var(--line);}
+  .logo{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:700;font-size:21px;letter-spacing:-0.02em;color:var(--white);cursor:pointer;flex-shrink:0;transition:opacity 0.15s ease;}
+  .logo:hover{opacity:0.6;}
+  .search-wrap{flex:1;min-width:180px;max-width:340px;display:flex;align-items:center;background:var(--surf2);border:none;border-radius:10px;padding:7px 12px;gap:8px;transition:background 0.18s ease,box-shadow 0.18s ease;}
+  .search-wrap:focus-within{background:var(--surf3);box-shadow:0 0 0 4px var(--glow);}
+  .search-wrap input{background:transparent;border:none;color:var(--white);font-size:14px;flex:1;padding:2px;}
   .search-wrap input:focus{outline:none;}
-  .search-wrap .icon{font-size:13px;color:var(--muted);}
-  .theme-toggle{background:var(--surf2);border:1px solid var(--line);color:var(--white);width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.18s ease,transform 0.18s ease;}
+  .search-wrap .icon-svg{color:var(--muted);flex-shrink:0;}
+  .btn-icon{width:14px;height:14px;vertical-align:-2px;margin-right:5px;display:inline-block;flex-shrink:0;}
+  .theme-toggle{background:var(--surf2);border:none;color:var(--white);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.18s ease,transform 0.18s ease;}
   .theme-toggle:hover{background:var(--surf4);transform:rotate(15deg);}
+  .theme-toggle .icon-sun,.theme-toggle .icon-moon{display:none;}
+  :root:not([data-theme="light"]) .theme-toggle .icon-sun{display:block;}
+  :root[data-theme="light"] .theme-toggle .icon-moon{display:block;}
 
-  .nav{padding:10px 40px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:rgba(10,12,16,0.6);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);}
-  .nav button{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:13px;letter-spacing:0.5px;padding:8px 16px;background:transparent;color:var(--muted);border:none;border-radius:18px;cursor:pointer;transition:background 0.18s ease,color 0.18s ease,transform 0.1s ease;}
+  .nav{padding:8px 40px;display:flex;gap:2px;flex-wrap:wrap;align-items:center;background:var(--glass);backdrop-filter:blur(20px);border-bottom:1px solid var(--line);}
+  .nav button{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;font-weight:590;letter-spacing:-0.01em;padding:7px 14px;background:transparent;color:var(--muted);border:none;border-radius:8px;cursor:pointer;transition:background 0.15s ease,color 0.15s ease,transform 0.1s ease;}
   .nav button:hover{color:var(--white);background:var(--surf3);}
-  .nav button.active{background:linear-gradient(135deg,var(--red),var(--red-dark));color:#fff;box-shadow:0 4px 16px var(--glow);}
+  .nav button.active{background:var(--red);color:#fff;}
   .nav button:active{transform:scale(0.96);}
-  .nav-label{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:11px;letter-spacing:1px;color:var(--muted2);align-self:center;margin:0 2px 0 10px;text-transform:uppercase;}
-  .admin-nav-group{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+  .nav-label{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;font-weight:600;letter-spacing:0.02em;color:var(--muted2);align-self:center;margin:0 2px 0 10px;text-transform:uppercase;}
+  .admin-nav-group{display:flex;gap:2px;align-items:center;flex-wrap:wrap;}
 
-  .toast{position:fixed;bottom:26px;left:50%;background:var(--glass);backdrop-filter:blur(16px);color:var(--white);padding:12px 22px;font-size:13px;border-radius:12px;border:1px solid var(--line);box-shadow:0 20px 50px var(--shadow);z-index:60;opacity:0;pointer-events:none;transform:translate(-50%,12px);transition:opacity 0.25s ease,transform 0.25s ease;}
+  .toast{position:fixed;bottom:26px;left:50%;background:var(--glass);backdrop-filter:blur(20px) saturate(1.8);color:var(--white);padding:12px 22px;font-size:13px;border-radius:14px;border:1px solid var(--line);box-shadow:0 20px 50px var(--shadow);z-index:60;opacity:0;pointer-events:none;transform:translate(-50%,12px);transition:opacity 0.25s ease,transform 0.25s ease;}
+  .toast.show{animation:successPulse 0.8s ease;}
   .toast.show{opacity:1;transform:translate(-50%,0);}
-  .banner{background:linear-gradient(135deg,#3a2f5c,#2a2247);color:#fff;padding:10px 40px;font-size:13px;animation:fadeIn 0.3s ease;}
+  .banner{background:var(--panel2);color:var(--white);padding:10px 40px;font-size:13px;animation:fadeIn 0.3s ease;border-bottom:1px solid var(--line);}
 
   .content{padding:0 0 40px;max-width:1600px;margin:0 auto;}
   .panel{display:none;}
   .panel.active{display:block;animation:fadeInUp 0.35s ease both;}
   .panel-inner{padding:24px 40px;}
 
-  input,select{background:var(--surf2);border:1px solid var(--line);color:var(--white);border-radius:10px;padding:9px 12px;font-size:13px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;transition:border-color 0.18s ease,box-shadow 0.18s ease;}
-  input:focus,select:focus{outline:none;border-color:var(--red);box-shadow:0 0 0 4px var(--glow);}
-  button.primary{background:linear-gradient(135deg,var(--red),var(--red-dark));color:#fff;border:none;border-radius:10px;padding:11px 16px;font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:14px;letter-spacing:0.5px;cursor:pointer;box-shadow:0 4px 14px var(--glow);transition:box-shadow 0.18s ease,transform 0.1s ease,filter 0.18s ease;}
-  button.primary:hover{filter:brightness(1.08);box-shadow:0 6px 20px var(--glow);}
-  button.primary:active{transform:scale(0.97);}
-  button.primary:disabled{background:#2a2f38;color:#5a6270;cursor:not-allowed;transform:none;box-shadow:none;filter:none;}
-  button.secondary{background:var(--surf3);border:1px solid var(--line);color:var(--white);border-radius:10px;padding:11px 16px;cursor:pointer;font-size:13px;transition:background 0.18s ease,transform 0.1s ease,border-color 0.18s ease;}
-  button.secondary:hover{background:var(--surf5);border-color:var(--surf-border2);}
+  input,select{background:var(--surf2);border:none;color:var(--white);border-radius:10px;padding:10px 12px;font-size:14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;transition:box-shadow 0.18s ease;}
+  input:focus,select:focus{outline:none;box-shadow:0 0 0 4px var(--glow);}
+  button.primary{background:var(--red);color:#fff;border:none;border-radius:999px;padding:11px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:590;font-size:14px;letter-spacing:-0.01em;cursor:pointer;transition:filter 0.15s ease,transform 0.1s ease;}
+  button.primary:hover{filter:brightness(1.1);}
+  button.primary:active{transform:scale(0.97);filter:brightness(0.9);}
+  button.primary:disabled{background:var(--surf3);color:var(--muted2);cursor:not-allowed;transform:none;filter:none;}
+  button.secondary{background:var(--surf3);border:none;color:var(--white);border-radius:999px;padding:11px 18px;cursor:pointer;font-size:13px;font-weight:590;transition:background 0.15s ease,transform 0.1s ease;}
+  button.secondary:hover{background:var(--surf5);}
   button.secondary:active{transform:scale(0.97);}
-  button.teal{background:linear-gradient(135deg,var(--green),#22B588);color:#062017;border:none;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 4px 14px rgba(52,211,153,0.3);transition:transform 0.1s ease,filter 0.18s ease;}
+  button.teal{background:var(--green);color:#04240F;border:none;border-radius:999px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:transform 0.1s ease,filter 0.15s ease;}
   button.teal:hover{filter:brightness(1.08);}
   button.teal:active{transform:scale(0.97);}
 
   /* ---- Hero ---- */
   .hero{position:relative;min-height:64vh;display:flex;align-items:flex-end;padding:60px 40px;margin-bottom:8px;}
   .hero-content{max-width:560px;animation:fadeInUp 0.7s ease both;}
-  .hero-eyebrow{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:12px;letter-spacing:1px;color:var(--muted);margin-bottom:8px;}
-  .hero-title{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-weight:700;font-size:44px;line-height:1.05;color:#fff;text-shadow:0 2px 20px rgba(0,0,0,0.5);margin-bottom:10px;}
+  .hero-eyebrow{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:1px;color:var(--muted);margin-bottom:8px;}
+  .hero-title{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:700;font-size:44px;line-height:1.05;color:#fff;text-shadow:0 2px 20px rgba(0,0,0,0.5);margin-bottom:10px;}
   .hero-meta{font-size:14px;color:var(--muted);margin-bottom:20px;}
   .hero-actions{display:flex;gap:12px;}
-  .hero-btn{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:15px;letter-spacing:0.3px;padding:12px 22px;border-radius:10px;border:none;cursor:pointer;transition:background 0.18s ease,transform 0.1s ease,box-shadow 0.18s ease;}
+  .hero-btn{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;letter-spacing:0.3px;padding:13px 26px;border-radius:999px;border:none;cursor:pointer;transition:background 0.18s ease,transform 0.1s ease,box-shadow 0.18s ease;}
   .hero-btn.primary{background:#fff;color:#0A0C10;box-shadow:0 8px 24px rgba(255,255,255,0.15);}
   .hero-btn.primary:hover{background:#e8ecf2;}
   .hero-btn.primary:active{transform:scale(0.97);}
@@ -115,20 +125,35 @@
   .hero-btn.secondary:active{transform:scale(0.97);}
 
   /* ---- Rows ---- */
-  .row-block{margin-bottom:28px;animation:fadeInUp 0.5s ease both;}
-  .row-title{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:19px;font-weight:600;color:var(--white);padding:0 40px;margin-bottom:10px;}
+  .row-block{margin-bottom:28px;}
+  .row-block.reveal-pending{opacity:0;transform:translateY(24px);}
+  .row-block.revealed{opacity:1;transform:translateY(0);transition:opacity 0.5s ease,transform 0.5s ease;}
+  .row-title{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:19px;font-weight:600;color:var(--white);padding:0 40px;margin-bottom:10px;}
   .row-scroller{display:flex;gap:12px;overflow-x:auto;padding:6px 40px 14px;scrollbar-width:none;
     -webkit-mask-image:linear-gradient(to right, transparent 0, black 40px, black calc(100% - 40px), transparent 100%);
     mask-image:linear-gradient(to right, transparent 0, black 40px, black calc(100% - 40px), transparent 100%);}
   .row-scroller::-webkit-scrollbar{display:none;}
   .poster-grid{display:flex;flex-wrap:wrap;gap:16px;padding:6px 40px 20px;}
-  .poster-card{position:relative;flex-shrink:0;width:150px;height:225px;border-radius:12px;cursor:pointer;display:flex;align-items:flex-end;padding:10px;background-size:cover;background-position:center;box-shadow:0 4px 16px rgba(0,0,0,0.5);transition:transform 0.25s cubic-bezier(.25,.8,.35,1),box-shadow 0.25s ease;}
+  .poster-card{position:relative;flex-shrink:0;width:150px;height:225px;border-radius:14px;cursor:pointer;display:flex;align-items:flex-end;padding:10px;background-size:cover;background-position:center;box-shadow:0 4px 16px rgba(0,0,0,0.35);transition:transform 0.25s cubic-bezier(.25,.8,.35,1),box-shadow 0.25s ease;animation:fadeInUp 0.4s ease both;}
+  .row-scroller .poster-card:nth-child(1){animation-delay:0.02s;} .row-scroller .poster-card:nth-child(2){animation-delay:0.06s;}
+  .row-scroller .poster-card:nth-child(3){animation-delay:0.1s;} .row-scroller .poster-card:nth-child(4){animation-delay:0.14s;}
+  .row-scroller .poster-card:nth-child(5){animation-delay:0.18s;} .row-scroller .poster-card:nth-child(6){animation-delay:0.22s;}
+  .row-scroller .poster-card:nth-child(n+7){animation-delay:0.26s;}
+  .poster-grid .poster-card:nth-child(1){animation-delay:0.02s;} .poster-grid .poster-card:nth-child(2){animation-delay:0.05s;}
+  .poster-grid .poster-card:nth-child(3){animation-delay:0.08s;} .poster-grid .poster-card:nth-child(4){animation-delay:0.11s;}
+  .poster-grid .poster-card:nth-child(5){animation-delay:0.14s;} .poster-grid .poster-card:nth-child(n+6){animation-delay:0.17s;}
   .poster-card:hover{transform:scale(1.08) translateY(-6px);box-shadow:0 16px 40px rgba(0,0,0,0.6),0 0 0 2px var(--red),0 0 24px var(--glow);z-index:2;}
-  .poster-title{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:14px;line-height:1.15;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.7);}
+  .poster-title{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.15;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.7);}
   .poster-dot{position:absolute;top:8px;right:8px;width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 2px rgba(0,0,0,0.4);}
+  .poster-dot.in-stock{animation:breathe 2.4s ease-in-out infinite;}
 
   .row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surf1);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:8px;transition:border-color 0.18s ease,background 0.18s ease;}
   .row:hover{border-color:var(--surf-border2);background:var(--surf2);}
+
+  .list-group{background:var(--panel);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px var(--shadow);}
+  .list-group .row{background:transparent;border:none;border-bottom:1px solid var(--line);border-radius:0;margin-bottom:0;padding:13px 16px;}
+  .list-group .row:hover{background:var(--surf1);}
+  .list-group .row:last-child{border-bottom:none;}
 
   .scan-box{background:var(--surf1);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:480px;}
   #reader{width:100%;max-width:400px;border-radius:12px;overflow:hidden;background:#000;}
@@ -137,22 +162,22 @@
   .manual-entry input{flex:1;}
 
   .match-card{background:var(--surf2);backdrop-filter:blur(12px);color:var(--white);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:16px;animation:fadeInUp 0.3s ease both;}
-  .match-card .t{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:20px;}
+  .match-card .t{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:20px;}
   .match-card .g{font-size:12px;color:var(--muted);margin-top:2px;}
 
   .new-form{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
 
   .subnav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px;border-bottom:1px solid var(--line);padding-bottom:14px;}
-  .subnav-btn{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:12px;letter-spacing:0.4px;padding:8px 14px;background:var(--surf2);border:1px solid var(--line);color:var(--muted);border-radius:20px;cursor:pointer;transition:background 0.18s ease,color 0.18s ease,border-color 0.18s ease,transform 0.1s ease;}
+  .subnav-btn{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:0.4px;padding:8px 14px;background:var(--surf2);border:1px solid var(--line);color:var(--muted);border-radius:20px;cursor:pointer;transition:background 0.18s ease,color 0.18s ease,border-color 0.18s ease,transform 0.1s ease;}
   .subnav-btn:hover{color:var(--white);background:var(--surf4);}
-  .subnav-btn.active{background:linear-gradient(135deg,var(--red),var(--red-dark));color:#fff;border-color:transparent;box-shadow:0 4px 14px var(--glow);}
+  .subnav-btn.active{background:var(--red);color:#fff;border-color:transparent;}
   .subnav-btn:active{transform:scale(0.96);}
   .subpanel{display:none;}
   .subpanel.active{display:block;animation:fadeInUp 0.3s ease both;}
 
   .bay-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;}
   .bay-card{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;}
-  .bay-card .bay-num{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:13px;font-weight:600;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;}
+  .bay-card .bay-num{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;}
   .bay-card .bay-title{font-size:14px;color:var(--white);min-height:20px;}
   .bay-card .bay-empty{font-size:13px;color:var(--muted2);font-style:italic;}
   .bay-card select{width:100%;}
@@ -166,7 +191,7 @@
   .label-circle .barcode{max-width:1.5in;max-height:0.4in;object-fit:contain;}
   .label-circle .hole{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:0.62in;height:0.62in;border-radius:50%;background:#fff;border:1px dashed #bbb;z-index:2;}
   .label-circle .info-text{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:8px;line-height:1.25;text-align:center;max-width:1.55in;}
-  .label-circle .info-text .t{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:9px;display:block;}
+  .label-circle .info-text .t{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:9px;display:block;}
   .label-sheet-grid{display:grid;grid-template-columns:repeat(4,1.8in);gap:0.2in;justify-items:center;}
 
   @media print{
@@ -186,15 +211,15 @@
   .bulk-box{background:var(--surf1);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:24px;}
   .bulk-box textarea{width:100%;min-height:110px;background:rgba(0,0,0,0.3);border:1px solid var(--line);color:var(--white);border-radius:10px;padding:10px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:12px;resize:vertical;}
 
-  .pin-input{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:22px;letter-spacing:10px;text-align:center;width:130px;padding:10px 0 10px 14px;}
+  .pin-input{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:22px;letter-spacing:10px;text-align:center;width:130px;padding:10px 0 10px 14px;}
   .login-box{background:var(--surf3);backdrop-filter:blur(12px);color:var(--white);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;animation:fadeIn 0.3s ease both;}
-  .login-box .who{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:16px;}
+  .login-box .who{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;}
 
   .modal-overlay{position:fixed;inset:0;background:rgba(5,6,9,0.75);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;animation:fadeIn 0.2s ease;}
   .modal-card{background:var(--glass);backdrop-filter:blur(24px) saturate(1.4);color:var(--white);border:1px solid var(--line);width:400px;max-width:100%;border-radius:20px;overflow:hidden;box-shadow:0 30px 80px var(--shadow);animation:modalIn 0.25s cubic-bezier(.25,.8,.35,1) both;}
   .modal-header{padding:26px 20px;position:relative;min-height:120px;display:flex;flex-direction:column;justify-content:flex-end;background-size:cover;background-position:center;}
-  .modal-header .eyebrow{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.8);}
-  .modal-header .t{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:26px;font-weight:600;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.6);}
+  .modal-header .eyebrow{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.8);}
+  .modal-header .t{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:26px;font-weight:600;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.6);}
   .title-logo{max-width:70%;max-height:80px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6));}
   .hero-logo{max-height:130px;max-width:420px;margin-bottom:6px;}
   .modal-close{position:absolute;top:10px;right:12px;background:rgba(0,0,0,0.4);backdrop-filter:blur(8px);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;transition:background 0.18s ease,transform 0.18s ease;}
@@ -204,7 +229,7 @@
   /* ---- TV page ---- */
   #tvRoot{min-height:100vh;background:var(--bg);}
   .tv-header{padding:36px 56px 8px;}
-  .tv-logo{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-weight:700;font-size:34px;letter-spacing:1px;background:linear-gradient(135deg,#fff,var(--red) 140%);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .tv-logo{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:700;font-size:34px;letter-spacing:1px;background:linear-gradient(135deg,#fff,var(--red) 140%);-webkit-background-clip:text;background-clip:text;color:transparent;}
   #tvRoot .hero{min-height:70vh;padding:70px 56px;}
   #tvRoot .hero-content{max-width:780px;}
   #tvRoot .hero-title{font-size:68px;}
@@ -224,14 +249,14 @@
   #tvSendBox .modal-header .eyebrow{font-size:14px;}
   #tvSendBox .modal-header .t{font-size:38px;}
   #tvSendBox .modal-body{padding:30px;}
-  .tv-send-btn{width:100%;font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:20px;letter-spacing:0.5px;padding:18px 0;border-radius:10px;border:none;cursor:pointer;background:linear-gradient(135deg,var(--red),var(--red-dark));color:#fff;box-shadow:0 4px 20px var(--glow);transition:filter 0.18s ease,transform 0.1s ease;}
+  .tv-send-btn{width:100%;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:20px;letter-spacing:-0.01em;font-weight:590;padding:18px 0;border-radius:999px;border:none;cursor:pointer;background:var(--red);color:#fff;transition:filter 0.18s ease,transform 0.1s ease;}
   .tv-send-btn:hover{filter:brightness(1.08);}
   .tv-send-btn:active{transform:scale(0.98);}
-  .tv-send-btn.sent{background:linear-gradient(135deg,var(--green),#22B588);color:#062017;cursor:default;box-shadow:0 4px 20px rgba(52,211,153,0.3);}
+  .tv-send-btn.sent{background:var(--green);color:#04240F;cursor:default;}
 
   .kiosk-tv-banner{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;animation:fadeInUp 0.3s ease both;}
-  .kiosk-tv-banner .label{font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;}
-  .kiosk-tv-banner .title{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:18px;color:var(--white);margin-top:2px;}
+  .kiosk-tv-banner .label{font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;}
+  .kiosk-tv-banner .title{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:18px;color:var(--white);margin-top:2px;}
 </style>
 </head>
 <body>
@@ -241,10 +266,13 @@
 <div class="topbar">
   <div class="logo" id="logoHome">SANDY SERVER</div>
   <div class="search-wrap">
-    <span class="icon">🔍</span>
+    <svg class="icon-svg" viewBox="0 0 24 24" fill="none" width="16" height="16"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     <input id="searchBox" placeholder="Search titles..." />
   </div>
-  <button class="theme-toggle" id="themeToggleBtn" title="Switch light/dark" type="button">🌙</button>
+  <button class="theme-toggle" id="themeToggleBtn" title="Switch light/dark" type="button">
+    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" width="18" height="18"><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="2"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="2.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="21.5"/><line x1="2.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="21.5" y2="12"/><line x1="5.1" y1="5.1" x2="6.9" y2="6.9"/><line x1="17.1" y1="17.1" x2="18.9" y2="18.9"/><line x1="5.1" y1="18.9" x2="6.9" y2="17.1"/><line x1="17.1" y1="6.9" x2="18.9" y2="5.1"/></g></svg>
+    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+  </button>
 </div>
 
 <div class="nav">
@@ -257,7 +285,7 @@
     <button data-tab="labels">Print labels</button>
     <button data-tab="admin">Manage inventory</button>
     <button data-tab="users">Manage users</button>
-    <button id="openTvBtn" type="button">📺 TV Display</button>
+    <button id="openTvBtn" type="button"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg> TV Display</button>
   </span>
 </div>
 
@@ -322,12 +350,12 @@
   <div class="panel" data-panel="admin">
     <div class="panel-inner">
       <div class="subnav" id="adminSubnav">
-        <button class="subnav-btn active" data-subtab="inventory">📋 Inventory</button>
-        <button class="subnav-btn" data-subtab="addtitle">➕ Add Title</button>
-        <button class="subnav-btn" data-subtab="addseries">📺 Add Series</button>
-        <button class="subnav-btn" data-subtab="bulk">📦 Bulk Import</button>
-        <button class="subnav-btn" data-subtab="autofill">🔎 Auto-Fill</button>
-        <button class="subnav-btn" data-subtab="bays">🔦 Bays</button>
+        <button class="subnav-btn active" data-subtab="inventory"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="5" y="4" width="14" height="17" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="9" x2="16" y2="9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="13" x2="16" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="17" x2="13" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Inventory</button>
+        <button class="subnav-btn" data-subtab="addtitle"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Add Title</button>
+        <button class="subnav-btn" data-subtab="addseries"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg> Add Series</button>
+        <button class="subnav-btn" data-subtab="bulk"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M3 8l9-4.5L21 8v9l-9 4.5L3 17V8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M3 8l9 4.5L21 8M12 12.5V21" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Bulk Import</button>
+        <button class="subnav-btn" data-subtab="autofill"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Auto-Fill</button>
+        <button class="subnav-btn" data-subtab="bays"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 21h4M8 12a4 4 0 1 1 8 0c0 2-1.5 3-2 4.5H10c-.5-1.5-2-2.5-2-4.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Bays</button>
       </div>
 
       <div class="subpanel active" data-subpanel="inventory">
@@ -354,7 +382,7 @@
               <input id="newSeasonInput" type="number" min="1" placeholder="Season #" style="flex:1;" />
               <input id="newDiscInput" type="number" min="1" placeholder="Disc #" style="flex:1;" />
             </div>
-            <label class="file-label">📷 Attach a photo of the case
+            <label class="file-label"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12.5" r="3.5" stroke="currentColor" stroke-width="2"/></svg> Attach a photo of the case
               <input type="file" accept="image/*" capture="environment" id="newPosterInput" />
             </label>
             <span id="newPosterStatus" style="font-size:11px;color:var(--muted);"></span>
@@ -381,7 +409,7 @@
               <input id="seriesDiscCountInput" type="number" min="1" placeholder="Number of discs" value="3" style="flex:1;" />
               <input id="seriesStockInput" type="number" min="0" placeholder="Stock per disc" value="1" style="flex:1;" />
             </div>
-            <label class="file-label">🎵 Attach theme song clip (optional, your own audio file)
+            <label class="file-label"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M9 18V5l11-2v13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" stroke="currentColor" stroke-width="2"/><circle cx="17.5" cy="16" r="2.5" stroke="currentColor" stroke-width="2"/></svg> Attach theme song clip (optional, your own audio file)
               <input type="file" accept="audio/*" id="seriesThemeInput" />
             </label>
             <span id="seriesThemeStatus" style="font-size:11px;color:var(--muted);"></span>
@@ -402,7 +430,7 @@
           <div class="bulk-box" style="margin-top:0;flex:1;min-width:300px;max-width:480px;">
             <div class="display" style="font-size:15px;margin-bottom:6px;">Bulk import posters &amp; banners</div>
             <div class="scan-msg" style="margin-top:0;">Select several image files at once, named to match your titles (e.g. <code>Night Circuit.jpg</code> matches "Night Circuit") — each gets matched and attached automatically, used for both the poster card and the hero banner. This can't reach the web, so use images you already have the rights to use.</div>
-            <label class="file-label">📁 Choose poster images
+            <label class="file-label"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Choose poster images
               <input type="file" accept="image/*" multiple id="bulkPosterInput" />
             </label>
             <span id="bulkPosterStatus" style="font-size:11px;color:var(--muted);margin-left:8px;"></span>
@@ -430,7 +458,7 @@
             <button class="secondary" id="saveTmdbKeyBtn" style="padding:9px 14px;font-size:12px;">Save key</button>
           </div>
           <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Don't have one yet? <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener" style="color:var(--muted);">Get a free TMDb key</a> — this is also the only source of the title-logo image, and is much better than OMDb for TV series.</div>
-          <button class="primary" id="autofillBtn">🔎 Auto-fill missing titles</button>
+          <button class="primary" id="autofillBtn"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Auto-fill missing titles</button>
           <span id="autofillStatus" style="font-size:11px;color:var(--muted);margin-left:8px;"></span>
         </div>
       </div>
@@ -552,6 +580,29 @@
     const has = (m.imdbId||"").trim().length>0;
     label = label || (has ? "IMDb ↗" : "Find on IMDb ↗");
     return `<a href="${imdbUrl(m)}" target="_blank" rel="noopener" style="font-size:11px;color:var(--muted);text-decoration:none;border-bottom:1px solid var(--line);padding-bottom:1px;">${label}</a>`;
+  }
+
+  // Trailers: if TMDb found an official one, it's embedded straight from
+  // YouTube (nothing downloaded or re-hosted) — a "Watch trailer" button
+  // swaps itself for the actual embedded player on click. Without one on
+  // file, this falls back to a plain link to a YouTube search, same idea
+  // as the "Find on IMDb" fallback above.
+  function trailerButtonHtml(m, idPrefix){
+    if((m.trailerKey||"").trim()){
+      return `<button class="secondary" data-playtrailer="${m.id}" data-trailerkey="${m.trailerKey}" data-slot="${idPrefix}" style="font-size:12px;padding:8px 14px;">▶ Watch trailer</button>`;
+    }
+    const q = encodeURIComponent((m.title||"") + " " + (m.year||"") + " trailer");
+    return `<a href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener" style="font-size:11px;color:var(--muted);text-decoration:none;border-bottom:1px solid var(--line);padding-bottom:1px;">Find trailer on YouTube ↗</a>`;
+  }
+
+  function playTrailerInline(slotId, trailerKey){
+    const slot = document.getElementById(slotId);
+    if(!slot) return;
+    slot.innerHTML = `<div style="position:relative;padding-top:56.25%;border-radius:10px;overflow:hidden;">
+      <iframe src="https://www.youtube.com/embed/${trailerKey}?autoplay=1" title="Trailer" frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe>
+    </div>`;
   }
 
   // Photos come from the viewer's own camera/files — resized client-side
@@ -774,7 +825,7 @@
       : `background-image:linear-gradient(160deg, ${color}, #141414 85%);`;
     const tag = seriesTag(m);
     return `<div class="poster-card" data-openmovie="${m.id}" style="${bg}">
-      <span class="poster-dot" style="background:${out?'#737373':'#46D369'};" title="${out?'Out of stock':'In stock'}"></span>
+      <span class="poster-dot${out?'':' in-stock'}" style="background:${out?'#737373':'#46D369'};" title="${out?'Out of stock':'In stock'}"></span>
       ${tag ? `<span style="position:absolute;top:8px;left:8px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,0.55);padding:2px 7px;border-radius:6px;">${tag}</span>` : ""}
       <span class="poster-title">${m.title}</span>
     </div>`;
@@ -790,7 +841,7 @@
       : `background-image:linear-gradient(160deg, ${color}, #141414 85%);`;
     const totalStock = discs.reduce((s,d) => s+(d.stock||0), 0);
     return `<div class="poster-card" data-openseries="${encodeURIComponent(seriesName)}" style="${bg}">
-      <span class="poster-dot" style="background:${totalStock>0?'#46D369':'#737373'};" title="${totalStock>0?'In stock':'Out of stock'}"></span>
+      <span class="poster-dot${totalStock>0?' in-stock':''}" style="background:${totalStock>0?'#46D369':'#737373'};" title="${totalStock>0?'In stock':'Out of stock'}"></span>
       <span style="position:absolute;top:8px;left:8px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,0.55);padding:2px 7px;border-radius:6px;">${discs.length} disc${discs.length===1?'':'s'}</span>
       <span class="poster-title">${seriesName}</span>
     </div>`;
@@ -814,17 +865,36 @@
 
   function rowHtml(label, items, delayIndex){
     const delay = typeof delayIndex==="number" ? `style="animation-delay:${(delayIndex*0.08).toFixed(2)}s;"` : "";
-    return `<div class="row-block" ${delay}>
+    return `<div class="row-block reveal-pending" ${delay}>
       <div class="row-title">${label}</div>
       <div class="row-scroller">${items.map(posterTileHtml).join("")}</div>
     </div>`;
   }
 
   function gridHtml(label, items){
-    return `<div class="row-block">
+    return `<div class="row-block reveal-pending">
       ${label ? `<div class="row-title">${label}</div>` : ""}
       <div class="poster-grid">${buildMixedGridHtml(items)}</div>
     </div>`;
+  }
+
+  // Reveals each row/grid block as it scrolls into view instead of
+  // everything popping in at once — observes once per render pass since
+  // the containers get their innerHTML fully replaced each time.
+  function setupScrollReveal(container){
+    if(!container || !("IntersectionObserver" in window)) return;
+    const pending = container.querySelectorAll(".row-block.reveal-pending");
+    if(pending.length === 0) return;
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if(entry.isIntersecting){
+          entry.target.classList.add("revealed");
+          entry.target.classList.remove("reveal-pending");
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: "0px 0px -40px 0px" });
+    pending.forEach(el => observer.observe(el));
   }
 
   function heroHtml(m, mode){
@@ -837,7 +907,7 @@
       ? (m.description.length > 200 ? m.description.slice(0, 197) + "…" : m.description)
       : "";
     const actions = mode==="tv"
-      ? `<button class="hero-btn primary" data-hero-action>📺 Send to Kiosk</button>`
+      ? `<button class="hero-btn primary" data-hero-action><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg> Send to Kiosk</button>`
       : `<button class="hero-btn primary" data-hero-action ${out?'disabled':''}>▶ ${out?'Unavailable':'Rent Now'}</button>
          <button class="hero-btn secondary" data-hero-info>ℹ More Info</button>`;
     return `<div class="hero" style="${bg}">
@@ -895,6 +965,7 @@
         : `<div style="color:var(--muted);font-size:14px;padding:24px 40px;">No titles match "${query}".</div>`;
       wireBrowseCards(rowsEl, openMovieModal);
       wireSeriesCards(rowsEl);
+      setupScrollReveal(rowsEl);
       return;
     }
 
@@ -914,6 +985,7 @@
     rowsEl.innerHTML = gridHtml("", catalog);
     wireBrowseCards(rowsEl, openMovieModal);
     wireSeriesCards(rowsEl);
+    setupScrollReveal(rowsEl);
   }
 
   function renderRentals(){
@@ -925,7 +997,7 @@
 
     const list = rentals.filter(r => renterFilter==="All" || (r.renterName||"Unknown")===renterFilter);
     if(list.length===0){ el.innerHTML = `<div style="color:var(--muted);font-size:14px;">No discs checked out.</div>`; return; }
-    el.innerHTML = list.map(r => {
+    el.innerHTML = `<div class="list-group">` + list.map(r => {
       const daysLeft = Math.ceil((r.dueOn - Date.now()) / 86400000);
       const overdue = daysLeft < 0;
       return `<div class="row">
@@ -938,7 +1010,7 @@
         </div>
         <button class="teal" data-return="${r.id}">Return disc</button>
       </div>`;
-    }).join("");
+    }).join("") + `</div>`;
     el.querySelectorAll("[data-return]").forEach(b => b.onclick = () => returnRental(b.dataset.return));
   }
 
@@ -951,7 +1023,7 @@
     }
     const list = rentals.filter(r => r.renterName === loggedInUser.name);
     if(list.length===0){ el.innerHTML = `<div style="color:var(--muted);font-size:14px;margin-top:14px;">Nothing checked out right now.</div>`; return; }
-    el.innerHTML = `<div style="margin-top:14px;">` + list.map(r => {
+    el.innerHTML = `<div class="list-group" style="margin-top:14px;">` + list.map(r => {
       const daysLeft = Math.ceil((r.dueOn - Date.now()) / 86400000);
       const overdue = daysLeft < 0;
       return `<div class="row">
@@ -969,7 +1041,7 @@
 
   function renderAdminList(){
     const el = $("#adminList");
-    el.innerHTML = catalog.map(m => `<div class="row">
+    el.innerHTML = `<div class="list-group">` + catalog.map(m => `<div class="row">
       <img class="poster-thumb" src="${m.poster || ''}" style="${m.poster?'':'visibility:hidden;'}" />
       <div style="flex:1;">
         <span style="font-size:14px;">${m.title}</span>
@@ -977,11 +1049,11 @@
         <div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
           <input class="imdbInput" data-imdb="${m.id}" placeholder="tt1234567" value="${m.imdbId||''}" style="font-size:11px;padding:4px 8px;width:110px;" />
           ${imdbLinkHtml(m)}
-          <label class="file-label">📷 ${m.poster?'Replace photo':'Add photo'}
+          <label class="file-label"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12.5" r="3.5" stroke="currentColor" stroke-width="2"/></svg> ${m.poster?'Replace photo':'Add photo'}
             <input type="file" accept="image/*" capture="environment" class="posterInput" data-poster="${m.id}" />
           </label>
-          <button class="secondary" data-lookup="${m.id}" style="padding:5px 9px;font-size:11px;">🔎 Look up on OMDb</button>
-          ${m.seriesName ? `<label class="file-label">🎵 ${m.themeSong?'Replace theme':'Add theme'}
+          <button class="secondary" data-lookup="${m.id}" style="padding:5px 9px;font-size:11px;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Look up on OMDb</button>
+          ${m.seriesName ? `<label class="file-label"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M9 18V5l11-2v13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" stroke="currentColor" stroke-width="2"/><circle cx="17.5" cy="16" r="2.5" stroke="currentColor" stroke-width="2"/></svg> ${m.themeSong?'Replace theme':'Add theme'}
             <input type="file" accept="audio/*" class="themeInput" data-theme="${m.id}" />
           </label>` : ''}
         </div>
@@ -992,7 +1064,7 @@
         <button class="adjbtn" data-adj="1|${m.id}">+</button>
         <button class="adjbtn" style="color:#E87C03;border-color:#5A3A20;" data-remove="${m.id}">×</button>
       </div>
-    </div>`).join("");
+    </div>`).join("") + `</div>`;
     el.querySelectorAll("[data-adj]").forEach(b => b.onclick = () => {
       const [delta,id] = b.dataset.adj.split("|");
       adjustStock(id, parseInt(delta,10));
@@ -1064,7 +1136,7 @@
     const el = $("#usersList");
     if(!el) return;
     if(users.length===0){ el.innerHTML = `<div style="color:var(--muted);font-size:14px;">No users yet — add household members and their PINs above.</div>`; return; }
-    el.innerHTML = users.map(u => {
+    el.innerHTML = `<div class="list-group">` + users.map(u => {
       const active = rentals.filter(r => r.renterName===u.name);
       const activeText = active.length===0 ? "Nothing checked out" : `Has: ${active.map(r=>r.title).join(", ")}`;
       return `<div class="row" style="align-items:flex-start;">
@@ -1079,7 +1151,7 @@
         </div>
         <button class="adjbtn" style="color:#E87C03;border-color:#5A3A20;" data-removeuser="${u.id}">×</button>
       </div>`;
-    }).join("");
+    }).join("") + `</div>`;
     el.querySelectorAll("[data-removeuser]").forEach(b => b.onclick = () => removeUser(b.dataset.removeuser));
     el.querySelectorAll("[data-saveuser]").forEach(b => b.onclick = () => {
       const id = b.dataset.saveuser;
@@ -1122,8 +1194,15 @@
     modalMovieId = null;
     modalSeriesName = null;
     stopThemeSong();
-    $("#movieModal").style.display = "none";
-    $("#movieModal").innerHTML = "";
+    const overlay = $("#movieModal");
+    const card = overlay.querySelector(".modal-card");
+    if(card){
+      card.style.animation = "modalOut 0.18s ease both";
+      setTimeout(() => { overlay.style.display = "none"; overlay.innerHTML = ""; }, 170);
+    } else {
+      overlay.style.display = "none";
+      overlay.innerHTML = "";
+    }
   }
 
   function renderModal(){
@@ -1171,8 +1250,9 @@
           <span>${out ? 'Out of stock' : m.stock+' disc'+(m.stock===1?'':'s')+' on hand'}</span>
         </div>
         ${m.description ? `<div style="font-size:13px;color:#D8D4CC;line-height:1.5;margin-bottom:16px;">${m.description}</div>` : ''}
-        ${(m.seriesName && m.themeSong) ? `<button class="secondary" id="themeStopBtn" style="font-size:11px;padding:6px 10px;margin-bottom:16px;">🔊 Playing theme — tap to stop</button>` : ''}
-        <div style="margin-bottom:16px;">${imdbLinkHtml(m)}</div>
+        ${(m.seriesName && m.themeSong) ? `<button class="secondary" id="themeStopBtn" style="font-size:11px;padding:6px 10px;margin-bottom:16px;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M4 9v6h4l5 4V5L8 9H4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Playing theme — tap to stop</button>` : ''}
+        <div id="trailerSlot-modal" style="margin-bottom:16px;"></div>
+        <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:16px;">${imdbLinkHtml(m)}${trailerButtonHtml(m, "trailerSlot-modal")}</div>
         ${actionHtml}
       </div>
     </div>`;
@@ -1182,6 +1262,8 @@
     overlay.onclick = (e) => { if(e.target===overlay) closeModal(); };
     const themeStopBtn = $("#themeStopBtn");
     if(themeStopBtn) themeStopBtn.onclick = () => { stopThemeSong(); themeStopBtn.remove(); };
+    const trailerBtn = overlay.querySelector("[data-playtrailer]");
+    if(trailerBtn) trailerBtn.onclick = () => { playTrailerInline(trailerBtn.dataset.slot, trailerBtn.dataset.trailerkey); trailerBtn.remove(); };
 
     if(!out && loggedInUser){
       $("#modalRentBtn").onclick = async () => { await rentByMovie(m, loggedInUser.name); closeModal(); };
@@ -1240,7 +1322,8 @@
       </div>
       <div class="modal-body">
         ${descDisc ? `<div style="font-size:13px;color:#D8D4CC;line-height:1.5;margin-bottom:16px;">${descDisc.description}</div>` : ''}
-        ${imdbLinkHtml(rep) ? `<div style="margin-bottom:16px;">${imdbLinkHtml(rep)}</div>` : ''}
+        <div id="trailerSlot-series" style="margin-bottom:16px;"></div>
+        <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:16px;">${imdbLinkHtml(rep)}${trailerButtonHtml(rep, "trailerSlot-series")}</div>
         ${loginHtml}
         <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">${discRows}</div>
       </div>
@@ -1249,6 +1332,8 @@
 
     $("#modalCloseBtn").onclick = closeModal;
     overlay.onclick = (e) => { if(e.target===overlay) closeModal(); };
+    const trailerBtn = overlay.querySelector("[data-playtrailer]");
+    if(trailerBtn) trailerBtn.onclick = () => { playTrailerInline(trailerBtn.dataset.slot, trailerBtn.dataset.trailerkey); trailerBtn.remove(); };
 
     if(loggedInUser){
       $("#modalLogoutBtn").onclick = () => { pinLogout(); };
@@ -1304,6 +1389,7 @@
     });
     rowsEl.innerHTML = rowsOut;
     wireBrowseCards(rowsEl, openTvSendBox);
+    setupScrollReveal(rowsEl);
   }
 
   function openTvSendBox(id){
@@ -1336,7 +1422,7 @@
         ${m.logo ? `<img src="${m.logo}" alt="${m.title}" class="title-logo" />` : `<div class="t">${m.title}</div>`}
       </div>
       <div class="modal-body">
-        <button class="tv-send-btn" id="tvSendConfirmBtn">📺 Send to Kiosk</button>
+        <button class="tv-send-btn" id="tvSendConfirmBtn"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg> Send to Kiosk</button>
       </div>
     </div>`;
     box.style.display = "flex";
@@ -1366,7 +1452,7 @@
     if(!tvSelection){ el.innerHTML = ""; return; }
     el.innerHTML = `<div class="kiosk-tv-banner">
       <div>
-        <div class="label">📺 Sent from TV</div>
+        <div class="label"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg> Sent from TV</div>
         <div class="title">${tvSelection.title}</div>
       </div>
       <div style="display:flex;gap:8px;">
@@ -1404,9 +1490,16 @@
       const m2 = $("#modalPinMsg"); if(m2) m2.textContent = text;
       $$(".pinMsgField").forEach(m => m.textContent = text);
     };
-    if(pin.length!==4){ setMsg("Enter all 4 digits."); return; }
+    const shakeInputs = () => {
+      $$(".pin-input").forEach(el => {
+        el.style.animation = "none";
+        void el.offsetWidth; // restart the animation
+        el.style.animation = "shakeX 0.4s ease";
+      });
+    };
+    if(pin.length!==4){ setMsg("Enter all 4 digits."); shakeInputs(); return; }
     const u = users.find(x => x.pin === pin);
-    if(!u){ setMsg("PIN not recognized. Ask an admin to add you under Manage users."); return; }
+    if(!u){ setMsg("PIN not recognized. Ask an admin to add you under Manage users."); shakeInputs(); return; }
     loggedInUser = { id: u.id, name: u.name, isAdmin: !!u.isAdmin };
     renderLoginArea();
     renderModal();
@@ -1791,6 +1884,7 @@
       if(result.logo) patch.logo = result.logo;
       if(result.description) patch.description = result.description;
       if(result.imdbId) patch.imdbId = result.imdbId;
+      if(result.trailerKey) patch.trailerKey = result.trailerKey;
       if(Object.keys(patch).length === 0){ toast("Found it, but no new details to add"); return; }
       await api.send("PATCH", "/api/titles/"+id, patch);
       await refetch("titles");
@@ -1865,7 +1959,7 @@
           <select id="scanNewRating"><option>G</option><option>PG</option><option selected>PG-13</option><option>R</option></select>
           <input id="scanNewStock" type="number" min="0" value="1" placeholder="Stock" />
           <input id="scanNewImdb" placeholder="IMDb id, e.g. tt1234567 (optional)" />
-          <label class="file-label">📷 Attach a photo of the case
+          <label class="file-label"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12.5" r="3.5" stroke="currentColor" stroke-width="2"/></svg> Attach a photo of the case
             <input type="file" accept="image/*" capture="environment" id="scanNewPoster" />
           </label>
           <button class="primary" id="scanAddBtn">Add &amp; link this code</button>
@@ -1970,13 +2064,21 @@
 
   // ---------- tabs ----------
   function setTab(tab){
-    $$(".nav button").forEach(b => b.classList.toggle("active", b.dataset.tab===tab));
+    $$(".nav button").forEach(b => {
+      const isActive = b.dataset.tab===tab;
+      b.classList.toggle("active", isActive);
+      if(isActive){ b.style.animation="none"; void b.offsetWidth; b.style.animation="tabPop 0.25s ease"; }
+    });
     $$(".panel").forEach(p => p.classList.toggle("active", p.dataset.panel===tab));
     if(tab !== "scan" && scanning) stopScanner();
   }
 
   function setAdminSubtab(tab){
-    $$("#adminSubnav .subnav-btn").forEach(b => b.classList.toggle("active", b.dataset.subtab===tab));
+    $$("#adminSubnav .subnav-btn").forEach(b => {
+      const isActive = b.dataset.subtab===tab;
+      b.classList.toggle("active", isActive);
+      if(isActive){ b.style.animation="none"; void b.offsetWidth; b.style.animation="tabPop 0.25s ease"; }
+    });
     $$('.panel[data-panel="admin"] .subpanel').forEach(p => p.classList.toggle("active", p.dataset.subpanel===tab));
   }
 
@@ -1987,8 +2089,6 @@
   function setTheme(theme){
     document.documentElement.setAttribute("data-theme", theme);
     try{ localStorage.setItem("sandyServerTheme", theme); }catch(e){}
-    const btn = $("#themeToggleBtn");
-    if(btn) btn.textContent = theme === "light" ? "🌙" : "☀️";
   }
   function toggleTheme(){
     setTheme(getTheme() === "light" ? "dark" : "light");

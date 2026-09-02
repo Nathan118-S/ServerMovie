@@ -250,7 +250,7 @@ async function lookupTmdb(title, year, type){
 
   let detail;
   try{
-    detail = await httpsGetJson(`https://api.themoviedb.org/3/${kind}/${best.id}?api_key=${encodeURIComponent(key)}&append_to_response=images&include_image_language=en,null`);
+    detail = await httpsGetJson(`https://api.themoviedb.org/3/${kind}/${best.id}?api_key=${encodeURIComponent(key)}&append_to_response=images,videos&include_image_language=en,null`);
   }catch(e){ return null; }
 
   let poster = "";
@@ -263,6 +263,15 @@ async function lookupTmdb(title, year, type){
   if(bestLogo){
     try{ logo = await httpsGetImageAsDataUri("https://image.tmdb.org/t/p/w500" + bestLogo.file_path); }catch(e){}
   }
+
+  // official trailer, if TMDb has one on file — just the YouTube video id,
+  // embedded via YouTube's own player, never downloaded or re-hosted
+  let trailerKey = "";
+  const videos = (detail.videos && detail.videos.results) || [];
+  const bestVideo = videos.find(v => v.site === "YouTube" && v.type === "Trailer" && v.official)
+    || videos.find(v => v.site === "YouTube" && v.type === "Trailer")
+    || videos.find(v => v.site === "YouTube");
+  if(bestVideo) trailerKey = bestVideo.key || "";
 
   let imdbId = "";
   if(kind === "tv"){
@@ -286,7 +295,8 @@ async function lookupTmdb(title, year, type){
     description: detail.overview || "",
     imdbId,
     poster,
-    logo
+    logo,
+    trailerKey
   };
 }
 
@@ -335,7 +345,8 @@ async function lookupMetadata(title, year, type){
     description: (omdb && omdb.description) || (tmdb && tmdb.description) || "",
     imdbId: (omdb && omdb.imdbId) || (tmdb && tmdb.imdbId) || "",
     poster: (omdb && omdb.poster) || (tmdb && tmdb.poster) || "",
-    logo: (tmdb && tmdb.logo) || ""
+    logo: (tmdb && tmdb.logo) || "",
+    trailerKey: (tmdb && tmdb.trailerKey) || ""
   };
 }
 
@@ -549,7 +560,7 @@ app.post("/api/autofill", async (req, res) => {
   if(!getOmdbKey() && !getTmdbKey()){
     return res.status(500).json({ error: "No OMDb or TMDb API key configured — paste one under Manage inventory.", code: "NO_API_KEY" });
   }
-  const targets = db.titles.filter(t => !t.poster || !t.description || (t.seriesName && !t.logo));
+  const targets = db.titles.filter(t => !t.poster || !t.description || !t.trailerKey || (t.seriesName && !t.logo));
   let updated = 0, notFound = 0, failed = 0;
   const cache = new Map();
   for(const t of targets){
@@ -567,6 +578,7 @@ app.post("/api/autofill", async (req, res) => {
       if(!t.description && result.description) t.description = result.description;
       if(!t.imdbId && result.imdbId) t.imdbId = result.imdbId;
       if(!t.logo && result.logo) t.logo = result.logo;
+      if(!t.trailerKey && result.trailerKey) t.trailerKey = result.trailerKey;
       updated++;
     }catch(e){
       cache.set(cacheKey, null);

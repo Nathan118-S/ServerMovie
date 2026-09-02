@@ -228,6 +228,18 @@ single year.
 environment-variable method still works for OMDb — see below — and the
 app checks the saved key first, falling back to the environment variable.)
 
+### Trailers
+
+Every title also gets a **▶ Watch trailer** button when TMDb has an
+official one on file — clicking it embeds the actual YouTube player right
+in the modal. Nothing is downloaded or re-hosted; it's the same embed
+mechanism any website uses to show a YouTube video, just pointed at
+whatever trailer the studio already uploaded. This needs a TMDb key (the
+same one from above) and gets filled in by the same lookup/auto-fill
+buttons as everything else. No trailer on file yet? The button becomes a
+plain "Find trailer on YouTube" link instead, same fallback idea as the
+IMDb link.
+
 <details>
 <summary>Setting the OMDb key via environment variable instead</summary>
 
