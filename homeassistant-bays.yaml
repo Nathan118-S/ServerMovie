@@ -1,0 +1,70 @@
+# Sandy Server — Home Assistant automations for bay sensors
+#
+# Two automations (checkout on pull, return on replace) call small REST
+# endpoints on Sandy Server whenever a bay's binary_sensor changes state.
+# One automation covers every bay — you don't need to duplicate this per
+# bay, just list all your bay entity IDs in the `entity_id:` blocks below.
+#
+# BEFORE USING THIS:
+#   1. Replace 192.168.1.50 with your Pi's actual IP address.
+#   2. Flash esphome-bays.yaml to your ESP32, let it join Home Assistant,
+#      then check Settings > Devices & Services > Entities and search
+#      "bay" to see the *real* entity IDs it created — they usually look
+#      like binary_sensor.sandy_server_bays_bay_01 but can vary slightly
+#      by ESPHome version. Update the entity_id lists below to match.
+#   3. Add this file's contents to Home Assistant — as a package (put it
+#      at config/packages/sandy_server_bays.yaml, same as the sensor
+#      package from earlier) or by copying the `rest_command:` block into
+#      your existing `rest_command:` section and the `automation:` items
+#      into your existing `automation:` list.
+#
+# HOW THE BAY NUMBER GETS SENT: each automation pulls the two digits off
+# the end of the entity id (e.g. "..._bay_04" -> 4) and passes that as
+# `bay` to Sandy Server, which looks up whichever title is assigned to
+# that bay number under Manage inventory > Bays.
+
+rest_command:
+  sandy_bay_checkout:
+    url: "http://192.168.1.50:3000/api/bay-checkout"
+    method: POST
+    content_type: "application/json"
+    payload: '{"bay": {{ bay }} }'
+
+  sandy_bay_return:
+    url: "http://192.168.1.50:3000/api/bay-return"
+    method: POST
+    content_type: "application/json"
+    payload: '{"bay": {{ bay }} }'
+
+automation:
+  - alias: "Sandy Server — case pulled from bay (checkout)"
+    id: sandy_server_bay_checkout
+    trigger:
+      - platform: state
+        entity_id:
+          - binary_sensor.sandy_server_bays_bay_01
+          - binary_sensor.sandy_server_bays_bay_02
+          - binary_sensor.sandy_server_bays_bay_03
+          - binary_sensor.sandy_server_bays_bay_04
+          # add one line per remaining bay
+        to: "off"   # "off" = switch released = case lifted out
+    action:
+      - service: rest_command.sandy_bay_checkout
+        data:
+          bay: "{{ trigger.entity_id.split('_')[-1] | int }}"
+
+  - alias: "Sandy Server — case placed back in bay (return)"
+    id: sandy_server_bay_return
+    trigger:
+      - platform: state
+        entity_id:
+          - binary_sensor.sandy_server_bays_bay_01
+          - binary_sensor.sandy_server_bays_bay_02
+          - binary_sensor.sandy_server_bays_bay_03
+          - binary_sensor.sandy_server_bays_bay_04
+          # add one line per remaining bay
+        to: "on"    # "on" = switch pressed = case present
+    action:
+      - service: rest_command.sandy_bay_return
+        data:
+          bay: "{{ trigger.entity_id.split('_')[-1] | int }}"

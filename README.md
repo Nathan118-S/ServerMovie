@@ -281,6 +281,130 @@ episodes a particular publisher put on which disc of a specific release,
 so double-check it against your actual box set and edit the description
 if it's off.
 
+## Bay sensors &amp; WLED lighting (ESP32 + Home Assistant)
+
+If you've moved from printed labels to a physical bay system — each case
+lives in its own numbered slot, wired with a microswitch — Sandy Server
+can auto-checkout a title the moment its case is lifted out, and
+optionally light up each bay with an addressable LED strip via WLED to
+show what's in stock at a glance.
+
+### How it fits together
+
+```
+ [microswitch per bay] --> [ESP32 running ESPHome] --> [Home Assistant]
+                                                              |
+                                                    (automation calls a
+                                                     small REST endpoint)
+                                                              v
+                                                      [Sandy Server on the Pi]
+                                                              |
+                                                    (pushes LED color updates)
+                                                              v
+                                            [ESP32 running WLED + LED strip]
+```
+
+Two separate ESP32s are involved: one runs **ESPHome** and reads the
+switches, the other runs **WLED** and drives the lights. They don't talk
+to each other directly — Home Assistant bridges the switch side, and
+Sandy Server itself talks straight to WLED's own API for the lights.
+
+### Setting up the switches
+
+1. Wire one microswitch per bay to a GPIO pin on an ESP32 (see the wiring
+   notes at the top of `esphome-bays.yaml` for pin choices and the
+   assumption about which state means "case present").
+2. Flash `esphome-bays.yaml` with the ESPHome tool (`esphome run
+   esphome-bays.yaml`, or the ESPHome dashboard if you use that) — you'll
+   need a `secrets.yaml` alongside it with your `wifi_ssid`,
+   `wifi_password`, `api_encryption_key`, and `ota_password`. Duplicate
+   the `binary_sensor:` block once per bay you actually have; only 4
+   examples are included as a starting pattern.
+3. It should show up in Home Assistant automatically (Settings > Devices
+   & Services > ESPHome). Check its entities to confirm the exact
+   `binary_sensor.` IDs it created.
+4. Add `homeassistant-bays.yaml`'s contents to Home Assistant (as a
+   package, or copy the `rest_command:`/`automation:` sections into your
+   existing config) — update the IP address and the entity ID lists to
+   match what you saw in step 3.
+5. In Sandy Server, under **Manage inventory > Bays**, click "Add bay"
+   for each bay number you wired, then use the dropdown on each bay's
+   card to pick which title lives there.
+
+Pull a case, and that title checks out automatically. Put it back, and it
+returns automatically — including if it goes back in a *different* bay
+than it came from (see the next section), which real-world tidiness
+never quite guarantees. Both attribute correctly regardless of who's
+logged in where, with one caveat covered next.
+
+### Returning a disc to the wrong bay
+
+A switch can only tell you *that* something was placed in a bay, not
+*which* disc it was — so Sandy Server handles this the same way it
+handles checkout attribution:
+
+- If the bay that received something already has a title assigned **and**
+  that title is actually checked out, it's returned — the normal case of
+  putting something back where it belongs.
+- If the bay is empty, or holds something that isn't actually rented out,
+  Sandy Server checks whether someone's logged in (same active-session
+  window as checkout). If they have exactly one thing checked out, that's
+  what's returned — **and that title's bay assignment moves to wherever
+  it actually got placed**, so the Bay Dashboard stays accurate without
+  you fixing it up by hand.
+- If neither applies (nobody's logged in, or they have more than one
+  thing out and it's ambiguous which one this is), the return doesn't
+  process automatically — return it from within the app instead (Scan
+  tab or the checkout modal both have a return option).
+
+### Who a bay checkout gets attributed to
+
+A switch can tell you *that* something was pulled, not *who* pulled it.
+Sandy Server handles this the same way you'd expect a kiosk to work: when
+someone logs in with their PIN (anywhere in the app — Browse, Scan, it
+doesn't matter), the server remembers them as the "active" person for a
+window of time (90 seconds by default, adjustable under **Manage
+inventory > Bays**). Any bay pulled during that window is attributed to
+them. Nobody logged in, or the window's expired? It's still checked out —
+just recorded as "Unknown (bay sensor)" so you can fix it up later in
+**All rentals** instead of it silently not counting.
+
+### The Bay Dashboard
+
+**Manage inventory > Bays** is a grid, one card per physical bay:
+
+- **Add bay** at the top creates a new bay by number
+- Each card shows the bay number, whatever title is currently assigned
+  (with its in-stock/checked-out status), a dropdown to assign or change
+  which title lives there, an LED # field, and an × to remove the bay
+  entirely
+
+A bay's LED index is a property of the bay itself — it's the fixed wiring
+position on your strip, and it stays put even if you later reassign that
+bay to hold a different title. Swapping which movie sits in bay 12
+doesn't mean re-wiring or re-numbering anything.
+
+### Setting up the lights (WLED)
+
+1. Flash [WLED](https://kno.wled.ge/) onto a second ESP32 wired to an
+   addressable LED strip (WS2812B or similar), with one LED per bay along
+   the strip. WLED has its own web installer and setup wizard — that part
+   isn't Sandy Server-specific, follow WLED's own docs for getting it
+   on your network.
+2. Note WLED's IP address, and enter it under **Manage inventory > Bays**
+   in the "WLED controller address" field.
+3. On each bay's card, set its "LED #" — which position along your
+   physical strip corresponds to that bay (0 for the first LED, 1 for the
+   second, and so on; this can differ from the bay number if your wiring
+   order doesn't match the bay numbering).
+
+From there it's automatic: whenever a title's stock changes for any
+reason — a bay pull, a normal in-app rental, a manual +/- in inventory —
+Sandy Server looks up whichever bay that title is currently assigned to
+Sandy Server pushes that bay's LED green (in stock) or red (checked out)
+to WLED. If WLED is unreachable for a moment, that's fine — a light not
+updating never blocks or breaks a checkout.
+
 ## Home Assistant integration
 
 `homeassistant.yaml` adds four sensors (discs checked out, overdue count,

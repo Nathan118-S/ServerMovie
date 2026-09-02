@@ -1,0 +1,61 @@
+# Sandy Server — Home Assistant dashboard view for bay status
+#
+# A simple at-a-glance view: every bay's current state (case in / case out)
+# plus a history graph so you can see activity over time. This is what
+# actually delivers on "visibility" — the automations in
+# homeassistant-bays.yaml make the checkouts happen, this just makes them
+# visible.
+#
+# HOW TO ADD THIS:
+#   Settings > Dashboards > (your dashboard) > Edit Dashboard (pencil,
+#   top right) > three-dot menu > "Edit in YAML". Paste this in as a new
+#   view (or merge the `cards:` list into an existing view) — update the
+#   entity IDs to match your real ones first (see homeassistant-bays.yaml
+#   for how to find them).
+#
+#   Alternatively, add it as a totally separate dashboard: Settings >
+#   Dashboards > Add Dashboard > "New dashboard from scratch", then use
+#   the same "Edit in YAML" step above on that new dashboard.
+
+views:
+  - title: Bays
+    icon: mdi:archive-outline
+    cards:
+      - type: glance
+        title: Bay status
+        show_state: true
+        state_color: true
+        entities:
+          - entity: binary_sensor.sandy_server_bays_bay_01
+            name: "Bay 1"
+          - entity: binary_sensor.sandy_server_bays_bay_02
+            name: "Bay 2"
+          - entity: binary_sensor.sandy_server_bays_bay_03
+            name: "Bay 3"
+          - entity: binary_sensor.sandy_server_bays_bay_04
+            name: "Bay 4"
+          # add one entry per remaining bay
+
+      - type: history-graph
+        title: Bay activity (last 24h)
+        hours_to_show: 24
+        entities:
+          - entity: binary_sensor.sandy_server_bays_bay_01
+            name: "Bay 1"
+          - entity: binary_sensor.sandy_server_bays_bay_02
+            name: "Bay 2"
+          - entity: binary_sensor.sandy_server_bays_bay_03
+            name: "Bay 3"
+          - entity: binary_sensor.sandy_server_bays_bay_04
+            name: "Bay 4"
+          # add one entry per remaining bay
+
+      - type: logbook
+        title: Recent bay events
+        hours_to_show: 48
+        entities:
+          - binary_sensor.sandy_server_bays_bay_01
+          - binary_sensor.sandy_server_bays_bay_02
+          - binary_sensor.sandy_server_bays_bay_03
+          - binary_sensor.sandy_server_bays_bay_04
+          # add one entry per remaining bay

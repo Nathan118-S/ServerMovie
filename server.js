@@ -13,6 +13,7 @@ const QRCode = require("qrcode");
 const bwipjs = require("bwip-js");
 
 const PORT = process.env.PORT || 3000;
+const RENTAL_DAYS_MS = 3 * 24 * 60 * 60 * 1000; // matches the client's 3-night default
 const OMDB_API_KEY = process.env.OMDB_API_KEY || "";
 const DATA_DIR = path.join(__dirname, "data");
 const DATA_FILE = path.join(DATA_DIR, "db.json");
@@ -65,6 +66,62 @@ function httpsGetImageAsDataUri(url){
       });
     }).on("error", reject);
   });
+}
+
+// ---------- WLED bay lighting ----------
+// Best-effort, fire-and-forget: a light not updating should never block or
+// break a checkout/return. Uses WLED's JSON API to set one individual LED.
+function pushBayLed(ledIndex, colorHex){
+  let wledUrl = ((db.settings && db.settings.wledUrl) || "").trim();
+  if(!wledUrl || ledIndex === undefined || ledIndex === null || ledIndex === "") return;
+  if(!/^https?:\/\//i.test(wledUrl)) wledUrl = "http://" + wledUrl;
+  const url = wledUrl.replace(/\/+$/, "") + "/json/state";
+  const body = JSON.stringify({ seg: [{ i: [ledIndex, colorHex] }] });
+  try{
+    const client = url.startsWith("https") ? https : require("http");
+    const req = client.request(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) },
+      timeout: 3000
+    }, res => { res.on("data", () => {}); });
+    req.on("error", () => {});
+    req.on("timeout", () => req.destroy());
+    req.write(body);
+    req.end();
+  }catch(e){}
+}
+
+function updateBayLedForTitle(title){
+  if(!title) return;
+  const bay = db.bays.find(b => b.titleId === title.id);
+  if(!bay) return;
+  const idx = parseInt(bay.ledIndex, 10);
+  if(!Number.isInteger(idx)) return;
+  pushBayLed(idx, title.stock > 0 ? "00FF00" : "FF0000");
+}
+
+// Blinks a title's bay white a few times, then settles back to its steady
+// in-stock/checked-out color — helps someone find the physical bay after
+// renting from the app rather than standing in front of it. Not used for
+// bay-sensor-triggered checkouts, since a hand's already right there.
+function flashBayForTitle(title){
+  if(!title) return;
+  const bay = db.bays.find(b => b.titleId === title.id);
+  if(!bay) return;
+  const idx = parseInt(bay.ledIndex, 10);
+  if(!Number.isInteger(idx)) return;
+
+  const blinks = 5;
+  let step = 0;
+  const timer = setInterval(() => {
+    pushBayLed(idx, step % 2 === 0 ? "FFFFFF" : "000000");
+    step++;
+    if(step >= blinks * 2){
+      clearInterval(timer);
+      const current = db.titles.find(t => t.id === title.id);
+      if(current) updateBayLedForTitle(current);
+    }
+  }, 300);
 }
 
 function mapGenre(omdbGenre){
@@ -232,8 +289,10 @@ function loadDb(){
       titles: SEED_TITLES,
       rentals: [],
       users: [{ id: newId("u"), name: "Admin", pin: "0000", isAdmin: true }],
-      settings: { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "" },
-      tvSelection: null
+      settings: { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90 },
+      tvSelection: null,
+      activeSession: null,
+      bays: []
     };
     fs.mkdirSync(DATA_DIR, { recursive: true });
     fs.writeFileSync(DATA_FILE, JSON.stringify(initial, null, 2));
@@ -245,10 +304,31 @@ function loadDb(){
   parsed.titles = parsed.titles || [];
   parsed.rentals = parsed.rentals || [];
   parsed.users = parsed.users || [];
-  parsed.settings = parsed.settings || { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "" };
+  parsed.settings = parsed.settings || { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90 };
   if(parsed.settings.omdbApiKey === undefined) parsed.settings.omdbApiKey = "";
   if(parsed.settings.tmdbApiKey === undefined) parsed.settings.tmdbApiKey = "";
+  if(parsed.settings.wledUrl === undefined) parsed.settings.wledUrl = "";
+  if(parsed.settings.bayWindowSeconds === undefined) parsed.settings.bayWindowSeconds = 90;
   if(parsed.tvSelection === undefined) parsed.tvSelection = null;
+  if(parsed.activeSession === undefined) parsed.activeSession = null;
+
+  // bays: {number, ledIndex, titleId} — a bay's LED position is fixed
+  // wiring and shouldn't move just because a different title gets
+  // assigned to that slot later, so it lives here, not on the title.
+  if(parsed.bays === undefined) parsed.bays = [];
+  // one-time migration from the earlier version, which stored bay/ledIndex
+  // directly on each title
+  let migrated = false;
+  parsed.titles.forEach(t => {
+    if(t.bay !== undefined && t.bay !== "" && !parsed.bays.some(b => String(b.number) === String(t.bay))){
+      parsed.bays.push({ number: t.bay, ledIndex: (t.ledIndex !== undefined && t.ledIndex !== "") ? t.ledIndex : null, titleId: t.id });
+      migrated = true;
+    }
+    delete t.bay;
+    delete t.ledIndex;
+  });
+  if(migrated) fs.writeFileSync(DATA_FILE, JSON.stringify(parsed, null, 2));
+
   return parsed;
 }
 
@@ -297,7 +377,7 @@ serveVendorFile("/vendor/html5-qrcode.min.js", [
 
 // ---------- read endpoints ----------
 app.get("/api/state", (req, res) => {
-  res.json({ titles: db.titles, rentals: db.rentals, users: db.users, settings: db.settings, tvSelection: db.tvSelection });
+  res.json({ titles: db.titles, rentals: db.rentals, users: db.users, settings: db.settings, tvSelection: db.tvSelection, bays: db.bays });
 });
 app.get("/api/titles", (req, res) => res.json(db.titles));
 app.get("/api/rentals", (req, res) => res.json(db.rentals));
@@ -445,6 +525,7 @@ app.put("/api/titles/:id", (req, res) => {
   else db.titles.push(data);
   saveDb();
   broadcast("titles");
+  updateBayLedForTitle(db.titles.find(t => t.id === id));
   res.json({ ok: true });
 });
 
@@ -454,6 +535,7 @@ app.patch("/api/titles/:id", (req, res) => {
   Object.assign(t, req.body);
   saveDb();
   broadcast("titles");
+  if("stock" in req.body || "bay" in req.body || "ledIndex" in req.body) updateBayLedForTitle(t);
   res.json({ ok: true });
 });
 
@@ -462,6 +544,142 @@ app.delete("/api/titles/:id", (req, res) => {
   saveDb();
   broadcast("titles");
   res.json({ ok: true });
+});
+
+// ---------- active session (for attributing bay pulls to a person) ----------
+app.get("/api/active-session", (req, res) => {
+  if(db.activeSession && db.activeSession.expiresAt > Date.now()) res.json(db.activeSession);
+  else res.json(null);
+});
+
+app.put("/api/active-session", (req, res) => {
+  const { userId, name } = req.body;
+  if(!name) return res.status(400).json({ error: "name is required" });
+  const windowSeconds = (db.settings && db.settings.bayWindowSeconds) || 90;
+  db.activeSession = { userId, name, expiresAt: Date.now() + windowSeconds * 1000 };
+  saveDb();
+  broadcast("active-session");
+  res.json(db.activeSession);
+});
+
+app.delete("/api/active-session", (req, res) => {
+  db.activeSession = null;
+  saveDb();
+  broadcast("active-session");
+  res.json({ ok: true });
+});
+
+// ---------- bays (physical slots — number, LED position, assigned title) ----------
+app.get("/api/bays", (req, res) => res.json(db.bays));
+
+app.put("/api/bays/:number", (req, res) => {
+  const number = req.params.number;
+  const { ledIndex, titleId } = req.body;
+  let bay = db.bays.find(b => String(b.number) === String(number));
+  if(!bay){
+    bay = { number, ledIndex: null, titleId: null };
+    db.bays.push(bay);
+  }
+  if(ledIndex !== undefined) bay.ledIndex = (ledIndex === "" ? null : ledIndex);
+  if(titleId !== undefined){
+    // a title can only live in one bay at a time — clear it from any
+    // other bay it was previously assigned to before assigning it here
+    if(titleId){
+      db.bays.forEach(b => { if(b !== bay && b.titleId === titleId) b.titleId = null; });
+    }
+    bay.titleId = (titleId === "" ? null : titleId);
+  }
+  saveDb();
+  broadcast("bays");
+  const title = db.titles.find(t => t.id === bay.titleId);
+  if(title) updateBayLedForTitle(title);
+  res.json(bay);
+});
+
+app.delete("/api/bays/:number", (req, res) => {
+  db.bays = db.bays.filter(b => String(b.number) !== String(req.params.number));
+  saveDb();
+  broadcast("bays");
+  res.json({ ok: true });
+});
+
+// Called by the client right after a software-initiated rental (Browse,
+// Scan) so the person can find the physical bay — a few blinks, then it
+// settles back to steady red (checked out).
+app.post("/api/locate-bay", (req, res) => {
+  const { titleId } = req.body;
+  const title = db.titles.find(t => t.id === titleId);
+  if(!title) return res.status(404).json({ error: "title not found" });
+  flashBayForTitle(title);
+  res.json({ ok: true });
+});
+
+// ---------- bay sensor events (called by Home Assistant) ----------
+app.post("/api/bay-checkout", (req, res) => {
+  const bayNumber = req.body.bay;
+  if(bayNumber === undefined || bayNumber === null) return res.status(400).json({ error: "bay is required" });
+  const bay = db.bays.find(b => String(b.number) === String(bayNumber));
+  if(!bay || !bay.titleId) return res.status(404).json({ error: `No title assigned to bay ${bayNumber}` });
+  const title = db.titles.find(t => t.id === bay.titleId);
+  if(!title) return res.status(404).json({ error: `Bay ${bayNumber}'s assigned title no longer exists` });
+  if(title.stock <= 0) return res.status(409).json({ error: `"${title.title}" shows no stock — was it already checked out?` });
+
+  let renterName = "Unknown (bay sensor)";
+  if(db.activeSession && db.activeSession.expiresAt > Date.now()) renterName = db.activeSession.name;
+
+  title.stock -= 1;
+  const now = Date.now();
+  const rental = { id: newId("r"), movieId: title.id, title: title.title, genre: title.genre, renterName, rentedOn: now, dueOn: now + RENTAL_DAYS_MS };
+  db.rentals.push(rental);
+  saveDb();
+  broadcast("titles");
+  broadcast("rentals");
+  updateBayLedForTitle(title);
+  res.json({ ok: true, title: title.title, renterName, rental });
+});
+
+app.post("/api/bay-return", (req, res) => {
+  const bayNumber = req.body.bay;
+  if(bayNumber === undefined || bayNumber === null) return res.status(400).json({ error: "bay is required" });
+  let bay = db.bays.find(b => String(b.number) === String(bayNumber));
+
+  // Case 1: this bay already has a title assigned, and that title is
+  // actually out — the common case of putting something back where it
+  // belongs. No need to guess who's returning it.
+  let title = bay && bay.titleId ? db.titles.find(t => t.id === bay.titleId) : null;
+  let rental = title ? db.rentals.find(r => r.movieId === title.id) : null;
+  let movedBay = false;
+
+  // Case 2: this bay is empty, or holds a title that isn't actually
+  // rented — the disc went back in the wrong slot. If someone's logged
+  // in and has exactly one thing checked out, that's almost certainly
+  // what just got returned, so re-home this bay to that title.
+  if(!rental && db.activeSession && db.activeSession.expiresAt > Date.now()){
+    const theirRentals = db.rentals.filter(r => r.renterName === db.activeSession.name);
+    if(theirRentals.length === 1){
+      rental = theirRentals[0];
+      title = db.titles.find(t => t.id === rental.movieId);
+      if(title){
+        if(!bay){ bay = { number: bayNumber, ledIndex: null, titleId: null }; db.bays.push(bay); }
+        // this title moves to the bay it was actually placed in — clear
+        // it from wherever it used to live first
+        db.bays.forEach(b => { if(b.titleId === title.id) b.titleId = null; });
+        bay.titleId = title.id;
+        movedBay = true;
+      }
+    }
+  }
+
+  if(!title || !rental) return res.status(404).json({ error: `Can't tell what was returned to bay ${bayNumber} — log in with your PIN before returning if it's not going back in its usual bay.` });
+
+  title.stock += 1;
+  db.rentals = db.rentals.filter(r => r.id !== rental.id);
+  saveDb();
+  broadcast("titles");
+  broadcast("rentals");
+  if(movedBay) broadcast("bays");
+  updateBayLedForTitle(title);
+  res.json({ ok: true, title: title.title, movedToBay: movedBay ? bayNumber : null });
 });
 
 // ---------- rentals ----------

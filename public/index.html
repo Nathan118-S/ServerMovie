@@ -3,31 +3,54 @@
 <head>
 <meta charset="utf-8" />
 <title>Sandy Server</title>
+<script>
+  // Applied immediately, before the stylesheet paints, so there's no
+  // flash of the wrong theme on load.
+  (function(){
+    try{
+      var saved = localStorage.getItem('sandyServerTheme');
+      var theme = saved || ((window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', theme);
+    }catch(e){}
+  })();
+</script>
 <style>
-  /* No Google Fonts import — this runs fully offline. 'Oswald'/'Inter' stay
-     declared so they're used automatically if you ever add local font files
-     under /public/fonts and a @font-face rule; until then the fallback
-     stacks below render fine on their own. */
+  /* No Google Fonts import — this runs fully offline. The font stacks below
+     lean on each OS's own modern system fonts (San Francisco / Segoe UI
+     Variable / Roboto) rather than a single named face, so it looks native
+     and current on whatever device it's opened on, with zero network calls.
+     'Poppins'/'Inter' stay declared first in case you ever drop matching
+     font files under /public/fonts with a @font-face rule. */
 
   :root{
     --bg:#0A0C10; --panel:#12161D; --panel2:#1A2029; --line:rgba(255,255,255,0.08);
     --red:#3E7BFA; --red-dark:#2D5FD9; --glow:rgba(62,123,250,0.35);
     --white:#F5F7FA; --muted:#9AA3B2; --muted2:#656D7A;
-    --green:#34D399; --glass:rgba(18,22,29,0.72);
+    --green:#34D399; --glass:rgba(18,22,29,0.68);
+    --bg-radial:#151b26;
+    --shadow:rgba(0,0,0,0.5);
+  }
+  :root[data-theme="light"]{
+    --bg:#EEF1F6; --panel:#FFFFFF; --panel2:#F3F5F9; --line:rgba(15,23,42,0.09);
+    --red:#3E7BFA; --red-dark:#2D5FD9; --glow:rgba(62,123,250,0.22);
+    --white:#12161D; --muted:#5B6472; --muted2:#8A93A3;
+    --green:#0FA968; --glass:rgba(255,255,255,0.68);
+    --bg-radial:#ffffff;
+    --shadow:rgba(15,23,42,0.12);
   }
   *{box-sizing:border-box;}
   html,body{margin:0;background:var(--bg);}
-  body{font-family:'Inter',system-ui,sans-serif;color:var(--white);background:radial-gradient(ellipse 1200px 800px at 50% -10%, #151b26 0%, var(--bg) 55%) fixed;}
-  .display{font-family:'Oswald','Arial Narrow',sans-serif;}
+  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:var(--white);background:radial-gradient(ellipse 1200px 800px at 50% -10%, var(--bg-radial) 0%, var(--bg) 55%) fixed;transition:background 0.25s ease,color 0.25s ease;}
+  .display{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;}
   ::-webkit-scrollbar{height:8px;width:8px;}
-  ::-webkit-scrollbar-thumb{background:#333;border-radius:4px;}
+  ::-webkit-scrollbar-thumb{background:var(--muted2);border-radius:4px;opacity:0.5;}
 
   @keyframes fadeInUp{ from{opacity:0;transform:translateY(16px);} to{opacity:1;transform:translateY(0);} }
   @keyframes fadeIn{ from{opacity:0;} to{opacity:1;} }
   @keyframes modalIn{ from{opacity:0;transform:scale(0.94) translateY(8px);} to{opacity:1;transform:scale(1) translateY(0);} }
 
   .topbar{position:sticky;top:0;z-index:40;background:var(--glass);backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);padding:14px 40px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;border-bottom:1px solid var(--line);}
-  .logo{font-family:'Oswald';font-weight:700;font-size:24px;letter-spacing:0.5px;background:linear-gradient(135deg,#fff,var(--red) 140%);-webkit-background-clip:text;background-clip:text;color:transparent;cursor:pointer;flex-shrink:0;transition:opacity 0.15s ease;}
+  .logo{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-weight:700;font-size:24px;letter-spacing:0.5px;background:linear-gradient(135deg,#fff,var(--red) 140%);-webkit-background-clip:text;background-clip:text;color:transparent;cursor:pointer;flex-shrink:0;transition:opacity 0.15s ease;}
   .logo:hover{opacity:0.8;}
   .search-wrap{flex:1;min-width:180px;max-width:340px;display:flex;align-items:center;background:rgba(255,255,255,0.05);border:1px solid var(--line);border-radius:24px;padding:6px 14px;gap:8px;transition:border-color 0.18s ease,background 0.18s ease,box-shadow 0.18s ease;}
   .search-wrap:focus-within{border-color:var(--red);background:rgba(255,255,255,0.07);box-shadow:0 0 0 4px var(--glow);}
@@ -36,11 +59,11 @@
   .search-wrap .icon{font-size:13px;color:var(--muted);}
 
   .nav{padding:10px 40px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:rgba(10,12,16,0.6);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);}
-  .nav button{font-family:'Oswald';font-size:13px;letter-spacing:0.5px;padding:8px 16px;background:transparent;color:var(--muted);border:none;border-radius:18px;cursor:pointer;transition:background 0.18s ease,color 0.18s ease,transform 0.1s ease;}
+  .nav button{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:13px;letter-spacing:0.5px;padding:8px 16px;background:transparent;color:var(--muted);border:none;border-radius:18px;cursor:pointer;transition:background 0.18s ease,color 0.18s ease,transform 0.1s ease;}
   .nav button:hover{color:var(--white);background:rgba(255,255,255,0.06);}
   .nav button.active{background:linear-gradient(135deg,var(--red),var(--red-dark));color:#fff;box-shadow:0 4px 16px var(--glow);}
   .nav button:active{transform:scale(0.96);}
-  .nav-label{font-family:'Oswald';font-size:11px;letter-spacing:1px;color:var(--muted2);align-self:center;margin:0 2px 0 10px;text-transform:uppercase;}
+  .nav-label{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:11px;letter-spacing:1px;color:var(--muted2);align-self:center;margin:0 2px 0 10px;text-transform:uppercase;}
   .admin-nav-group{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
 
   .toast{position:fixed;bottom:26px;left:50%;background:var(--glass);backdrop-filter:blur(16px);color:#fff;padding:12px 22px;font-size:13px;border-radius:12px;border:1px solid var(--line);box-shadow:0 20px 50px rgba(0,0,0,0.5);z-index:60;opacity:0;pointer-events:none;transform:translate(-50%,12px);transition:opacity 0.25s ease,transform 0.25s ease;}
@@ -52,9 +75,9 @@
   .panel.active{display:block;animation:fadeInUp 0.35s ease both;}
   .panel-inner{padding:24px 40px;}
 
-  input,select{background:rgba(255,255,255,0.04);border:1px solid var(--line);color:var(--white);border-radius:10px;padding:9px 12px;font-size:13px;font-family:'Inter';transition:border-color 0.18s ease,box-shadow 0.18s ease;}
+  input,select{background:rgba(255,255,255,0.04);border:1px solid var(--line);color:var(--white);border-radius:10px;padding:9px 12px;font-size:13px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;transition:border-color 0.18s ease,box-shadow 0.18s ease;}
   input:focus,select:focus{outline:none;border-color:var(--red);box-shadow:0 0 0 4px var(--glow);}
-  button.primary{background:linear-gradient(135deg,var(--red),var(--red-dark));color:#fff;border:none;border-radius:10px;padding:11px 16px;font-family:'Oswald';font-size:14px;letter-spacing:0.5px;cursor:pointer;box-shadow:0 4px 14px var(--glow);transition:box-shadow 0.18s ease,transform 0.1s ease,filter 0.18s ease;}
+  button.primary{background:linear-gradient(135deg,var(--red),var(--red-dark));color:#fff;border:none;border-radius:10px;padding:11px 16px;font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:14px;letter-spacing:0.5px;cursor:pointer;box-shadow:0 4px 14px var(--glow);transition:box-shadow 0.18s ease,transform 0.1s ease,filter 0.18s ease;}
   button.primary:hover{filter:brightness(1.08);box-shadow:0 6px 20px var(--glow);}
   button.primary:active{transform:scale(0.97);}
   button.primary:disabled{background:#2a2f38;color:#5a6270;cursor:not-allowed;transform:none;box-shadow:none;filter:none;}
@@ -68,11 +91,11 @@
   /* ---- Hero ---- */
   .hero{position:relative;min-height:64vh;display:flex;align-items:flex-end;padding:60px 40px;margin-bottom:8px;}
   .hero-content{max-width:560px;animation:fadeInUp 0.7s ease both;}
-  .hero-eyebrow{font-family:'Oswald';font-size:12px;letter-spacing:1px;color:var(--muted);margin-bottom:8px;}
-  .hero-title{font-family:'Oswald';font-weight:700;font-size:44px;line-height:1.05;color:#fff;text-shadow:0 2px 20px rgba(0,0,0,0.5);margin-bottom:10px;}
+  .hero-eyebrow{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:12px;letter-spacing:1px;color:var(--muted);margin-bottom:8px;}
+  .hero-title{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-weight:700;font-size:44px;line-height:1.05;color:#fff;text-shadow:0 2px 20px rgba(0,0,0,0.5);margin-bottom:10px;}
   .hero-meta{font-size:14px;color:var(--muted);margin-bottom:20px;}
   .hero-actions{display:flex;gap:12px;}
-  .hero-btn{font-family:'Oswald';font-size:15px;letter-spacing:0.3px;padding:12px 22px;border-radius:10px;border:none;cursor:pointer;transition:background 0.18s ease,transform 0.1s ease,box-shadow 0.18s ease;}
+  .hero-btn{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:15px;letter-spacing:0.3px;padding:12px 22px;border-radius:10px;border:none;cursor:pointer;transition:background 0.18s ease,transform 0.1s ease,box-shadow 0.18s ease;}
   .hero-btn.primary{background:#fff;color:#0A0C10;box-shadow:0 8px 24px rgba(255,255,255,0.15);}
   .hero-btn.primary:hover{background:#e8ecf2;}
   .hero-btn.primary:active{transform:scale(0.97);}
@@ -83,7 +106,7 @@
 
   /* ---- Rows ---- */
   .row-block{margin-bottom:28px;animation:fadeInUp 0.5s ease both;}
-  .row-title{font-family:'Oswald';font-size:19px;font-weight:600;color:#fff;padding:0 40px;margin-bottom:10px;}
+  .row-title{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:19px;font-weight:600;color:#fff;padding:0 40px;margin-bottom:10px;}
   .row-scroller{display:flex;gap:12px;overflow-x:auto;padding:6px 40px 14px;scrollbar-width:none;
     -webkit-mask-image:linear-gradient(to right, transparent 0, black 40px, black calc(100% - 40px), transparent 100%);
     mask-image:linear-gradient(to right, transparent 0, black 40px, black calc(100% - 40px), transparent 100%);}
@@ -91,7 +114,7 @@
   .poster-grid{display:flex;flex-wrap:wrap;gap:16px;padding:6px 40px 20px;}
   .poster-card{position:relative;flex-shrink:0;width:150px;height:225px;border-radius:12px;cursor:pointer;display:flex;align-items:flex-end;padding:10px;background-size:cover;background-position:center;box-shadow:0 4px 16px rgba(0,0,0,0.5);transition:transform 0.25s cubic-bezier(.25,.8,.35,1),box-shadow 0.25s ease;}
   .poster-card:hover{transform:scale(1.08) translateY(-6px);box-shadow:0 16px 40px rgba(0,0,0,0.6),0 0 0 2px var(--red),0 0 24px var(--glow);z-index:2;}
-  .poster-title{font-family:'Oswald';font-size:14px;line-height:1.15;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.7);}
+  .poster-title{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:14px;line-height:1.15;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.7);}
   .poster-dot{position:absolute;top:8px;right:8px;width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 2px rgba(0,0,0,0.4);}
 
   .row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:rgba(255,255,255,0.03);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:8px;transition:border-color 0.18s ease,background 0.18s ease;}
@@ -104,18 +127,26 @@
   .manual-entry input{flex:1;}
 
   .match-card{background:rgba(255,255,255,0.04);backdrop-filter:blur(12px);color:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:16px;animation:fadeInUp 0.3s ease both;}
-  .match-card .t{font-family:'Oswald';font-size:20px;}
+  .match-card .t{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:20px;}
   .match-card .g{font-size:12px;color:var(--muted);margin-top:2px;}
 
   .new-form{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
 
   .subnav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px;border-bottom:1px solid var(--line);padding-bottom:14px;}
-  .subnav-btn{font-family:'Oswald';font-size:12px;letter-spacing:0.4px;padding:8px 14px;background:rgba(255,255,255,0.04);border:1px solid var(--line);color:var(--muted);border-radius:20px;cursor:pointer;transition:background 0.18s ease,color 0.18s ease,border-color 0.18s ease,transform 0.1s ease;}
+  .subnav-btn{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:12px;letter-spacing:0.4px;padding:8px 14px;background:rgba(255,255,255,0.04);border:1px solid var(--line);color:var(--muted);border-radius:20px;cursor:pointer;transition:background 0.18s ease,color 0.18s ease,border-color 0.18s ease,transform 0.1s ease;}
   .subnav-btn:hover{color:var(--white);background:rgba(255,255,255,0.09);}
   .subnav-btn.active{background:linear-gradient(135deg,var(--red),var(--red-dark));color:#fff;border-color:transparent;box-shadow:0 4px 14px var(--glow);}
   .subnav-btn:active{transform:scale(0.96);}
   .subpanel{display:none;}
   .subpanel.active{display:block;animation:fadeInUp 0.3s ease both;}
+
+  .bay-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;}
+  .bay-card{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;}
+  .bay-card .bay-num{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:13px;font-weight:600;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;}
+  .bay-card .bay-title{font-size:14px;color:var(--white);min-height:20px;}
+  .bay-card .bay-empty{font-size:13px;color:var(--muted2);font-style:italic;}
+  .bay-card select{width:100%;}
+  .bay-card .bay-row{display:flex;gap:6px;align-items:center;}
 
   .label-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
   .label-list .row label{display:flex;align-items:center;gap:10px;font-size:14px;}
@@ -124,8 +155,8 @@
   .label-circle{position:relative;width:1.8in;height:1.8in;border-radius:50%;border:1px dashed #999;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:0.1in 0.12in;box-sizing:border-box;background:#fff;color:#111;overflow:hidden;}
   .label-circle .barcode{max-width:1.5in;max-height:0.4in;object-fit:contain;}
   .label-circle .hole{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:0.62in;height:0.62in;border-radius:50%;background:#fff;border:1px dashed #bbb;z-index:2;}
-  .label-circle .info-text{font-family:'Inter';font-size:8px;line-height:1.25;text-align:center;max-width:1.55in;}
-  .label-circle .info-text .t{font-family:'Oswald';font-size:9px;display:block;}
+  .label-circle .info-text{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:8px;line-height:1.25;text-align:center;max-width:1.55in;}
+  .label-circle .info-text .t{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:9px;display:block;}
   .label-sheet-grid{display:grid;grid-template-columns:repeat(4,1.8in);gap:0.2in;justify-items:center;}
 
   @media print{
@@ -143,17 +174,17 @@
   .file-label:hover{background:rgba(255,255,255,0.06);}
   .file-label input{display:none;}
   .bulk-box{background:rgba(255,255,255,0.03);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:24px;}
-  .bulk-box textarea{width:100%;min-height:110px;background:rgba(0,0,0,0.3);border:1px solid var(--line);color:var(--white);border-radius:10px;padding:10px;font-family:'Inter';font-size:12px;resize:vertical;}
+  .bulk-box textarea{width:100%;min-height:110px;background:rgba(0,0,0,0.3);border:1px solid var(--line);color:var(--white);border-radius:10px;padding:10px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:12px;resize:vertical;}
 
-  .pin-input{font-family:'Oswald';font-size:22px;letter-spacing:10px;text-align:center;width:130px;padding:10px 0 10px 14px;}
+  .pin-input{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:22px;letter-spacing:10px;text-align:center;width:130px;padding:10px 0 10px 14px;}
   .login-box{background:rgba(255,255,255,0.05);backdrop-filter:blur(12px);color:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;animation:fadeIn 0.3s ease both;}
-  .login-box .who{font-family:'Oswald';font-size:16px;}
+  .login-box .who{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:16px;}
 
   .modal-overlay{position:fixed;inset:0;background:rgba(5,6,9,0.75);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;animation:fadeIn 0.2s ease;}
   .modal-card{background:var(--glass);backdrop-filter:blur(24px) saturate(1.4);color:#fff;border:1px solid rgba(255,255,255,0.1);width:400px;max-width:100%;border-radius:20px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,0.6);animation:modalIn 0.25s cubic-bezier(.25,.8,.35,1) both;}
   .modal-header{padding:26px 20px;position:relative;min-height:120px;display:flex;flex-direction:column;justify-content:flex-end;background-size:cover;background-position:center;}
-  .modal-header .eyebrow{font-family:'Oswald';font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.8);}
-  .modal-header .t{font-family:'Oswald';font-size:26px;font-weight:600;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.6);}
+  .modal-header .eyebrow{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.8);}
+  .modal-header .t{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:26px;font-weight:600;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.6);}
   .title-logo{max-width:70%;max-height:80px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6));}
   .hero-logo{max-height:130px;max-width:420px;margin-bottom:6px;}
   .modal-close{position:absolute;top:10px;right:12px;background:rgba(0,0,0,0.4);backdrop-filter:blur(8px);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;transition:background 0.18s ease,transform 0.18s ease;}
@@ -163,7 +194,7 @@
   /* ---- TV page ---- */
   #tvRoot{min-height:100vh;background:var(--bg);}
   .tv-header{padding:36px 56px 8px;}
-  .tv-logo{font-family:'Oswald';font-weight:700;font-size:34px;letter-spacing:1px;background:linear-gradient(135deg,#fff,var(--red) 140%);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .tv-logo{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-weight:700;font-size:34px;letter-spacing:1px;background:linear-gradient(135deg,#fff,var(--red) 140%);-webkit-background-clip:text;background-clip:text;color:transparent;}
   #tvRoot .hero{min-height:70vh;padding:70px 56px;}
   #tvRoot .hero-content{max-width:780px;}
   #tvRoot .hero-title{font-size:68px;}
@@ -183,14 +214,14 @@
   #tvSendBox .modal-header .eyebrow{font-size:14px;}
   #tvSendBox .modal-header .t{font-size:38px;}
   #tvSendBox .modal-body{padding:30px;}
-  .tv-send-btn{width:100%;font-family:'Oswald';font-size:20px;letter-spacing:0.5px;padding:18px 0;border-radius:10px;border:none;cursor:pointer;background:linear-gradient(135deg,var(--red),var(--red-dark));color:#fff;box-shadow:0 4px 20px var(--glow);transition:filter 0.18s ease,transform 0.1s ease;}
+  .tv-send-btn{width:100%;font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:20px;letter-spacing:0.5px;padding:18px 0;border-radius:10px;border:none;cursor:pointer;background:linear-gradient(135deg,var(--red),var(--red-dark));color:#fff;box-shadow:0 4px 20px var(--glow);transition:filter 0.18s ease,transform 0.1s ease;}
   .tv-send-btn:hover{filter:brightness(1.08);}
   .tv-send-btn:active{transform:scale(0.98);}
   .tv-send-btn.sent{background:linear-gradient(135deg,var(--green),#22B588);color:#062017;cursor:default;box-shadow:0 4px 20px rgba(52,211,153,0.3);}
 
   .kiosk-tv-banner{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;animation:fadeInUp 0.3s ease both;}
-  .kiosk-tv-banner .label{font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;font-family:'Oswald';}
-  .kiosk-tv-banner .title{font-family:'Oswald';font-size:18px;color:#fff;margin-top:2px;}
+  .kiosk-tv-banner .label{font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;}
+  .kiosk-tv-banner .title{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:18px;color:#fff;margin-top:2px;}
 </style>
 </head>
 <body>
@@ -285,6 +316,7 @@
         <button class="subnav-btn" data-subtab="addseries">📺 Add Series</button>
         <button class="subnav-btn" data-subtab="bulk">📦 Bulk Import</button>
         <button class="subnav-btn" data-subtab="autofill">🔎 Auto-Fill</button>
+        <button class="subnav-btn" data-subtab="bays">🔦 Bays</button>
       </div>
 
       <div class="subpanel active" data-subpanel="inventory">
@@ -389,6 +421,33 @@
           <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Don't have one yet? <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener" style="color:var(--muted);">Get a free TMDb key</a> — this is also the only source of the title-logo image, and is much better than OMDb for TV series.</div>
           <button class="primary" id="autofillBtn">🔎 Auto-fill missing titles</button>
           <span id="autofillStatus" style="font-size:11px;color:var(--muted);margin-left:8px;"></span>
+        </div>
+      </div>
+
+      <div class="subpanel" data-subpanel="bays">
+        <div class="bulk-box" style="margin-top:0;max-width:520px;">
+          <div class="display" style="font-size:15px;margin-bottom:6px;">Bay sensors &amp; lighting (ESP32 / Home Assistant / WLED)</div>
+          <div class="scan-msg" style="margin-top:0;">Assign each title to a physical bay number so a microswitch pulling it triggers an automatic checkout, and optionally a lit LED index on a WLED strip so the bay's light reflects whether it's in stock. See README.md for the full ESPHome + Home Assistant + WLED setup.</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+            <input id="wledUrlInput" placeholder="WLED controller address, e.g. 192.168.1.60" style="min-width:220px;flex:1;" />
+            <button class="secondary" id="saveWledUrlBtn" style="padding:9px 14px;font-size:12px;">Save</button>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+            <input id="bayWindowInput" type="number" min="10" placeholder="Attribution window (seconds)" style="width:220px;" />
+            <button class="secondary" id="saveBayWindowBtn" style="padding:9px 14px;font-size:12px;">Save</button>
+          </div>
+          <div style="font-size:11px;color:var(--muted);">How long after someone logs in with their PIN a bay pull still counts as theirs — long enough to walk over and grab it, short enough that the next person doesn't get blamed for it.</div>
+        </div>
+
+        <div class="bulk-box" style="max-width:900px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+            <div class="display" style="font-size:15px;">Bay dashboard</div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input id="newBayNumberInput" type="number" min="1" placeholder="Bay #" style="width:90px;" />
+              <button class="primary" id="addBayBtn" style="padding:9px 14px;font-size:12px;">Add bay</button>
+            </div>
+          </div>
+          <div id="bayDashboard" class="bay-grid"></div>
         </div>
       </div>
     </div>
@@ -550,6 +609,9 @@
   let maxCheckouts = 3;
   let omdbApiKey = "";
   let tmdbApiKey = "";
+  let wledUrl = "";
+  let bayWindowSeconds = 90;
+  let bays = []; // [{number, ledIndex, titleId}]
 
   const $ = sel => document.querySelector(sel);
   const $$ = sel => Array.from(document.querySelectorAll(sel));
@@ -569,8 +631,9 @@
       if(resource==="titles") catalog = data;
       else if(resource==="rentals") rentals = data;
       else if(resource==="users") users = data;
-      else if(resource==="settings"){ maxCheckouts = data.maxCheckouts || 3; omdbApiKey = data.omdbApiKey || ""; tmdbApiKey = data.tmdbApiKey || ""; }
+      else if(resource==="settings"){ maxCheckouts = data.maxCheckouts || 3; omdbApiKey = data.omdbApiKey || ""; tmdbApiKey = data.tmdbApiKey || ""; wledUrl = data.wledUrl || ""; bayWindowSeconds = data.bayWindowSeconds || 90; }
       else if(resource==="tv-selection") tvSelection = data && data.movieId ? data : null;
+      else if(resource==="bays") bays = data;
       render();
     }catch(e){ toast("Couldn't reach the local server"); }
   }
@@ -584,7 +647,10 @@
       maxCheckouts = (state.settings && state.settings.maxCheckouts) || 3;
       omdbApiKey = (state.settings && state.settings.omdbApiKey) || "";
       tmdbApiKey = (state.settings && state.settings.tmdbApiKey) || "";
+      wledUrl = (state.settings && state.settings.wledUrl) || "";
+      bayWindowSeconds = (state.settings && state.settings.bayWindowSeconds) || 90;
       tvSelection = state.tvSelection && state.tvSelection.movieId ? state.tvSelection : null;
+      bays = state.bays || [];
       apiReady = true;
       render();
     }catch(e){
@@ -619,6 +685,7 @@
     renderModal();
     renderNavVisibility();
     renderKioskTvBanner();
+    renderBayDashboard();
     if(isTvMode()) renderTv();
     const mcInput = $("#maxCheckoutInput");
     if(mcInput && document.activeElement !== mcInput) mcInput.value = maxCheckouts;
@@ -626,6 +693,10 @@
     if(okInput && document.activeElement !== okInput) okInput.value = omdbApiKey;
     const tkInput = $("#tmdbKeyInput");
     if(tkInput && document.activeElement !== tkInput) tkInput.value = tmdbApiKey;
+    const wuInput = $("#wledUrlInput");
+    if(wuInput && document.activeElement !== wuInput) wuInput.value = wledUrl;
+    const bwInput = $("#bayWindowInput");
+    if(bwInput && document.activeElement !== bwInput) bwInput.value = bayWindowSeconds;
   }
 
   function renderNavVisibility(){
@@ -663,7 +734,7 @@
     const tag = seriesTag(m);
     return `<div class="poster-card" data-openmovie="${m.id}" style="${bg}">
       <span class="poster-dot" style="background:${out?'#737373':'#46D369'};" title="${out?'Out of stock':'In stock'}"></span>
-      ${tag ? `<span style="position:absolute;top:8px;left:8px;font-family:'Inter';font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,0.55);padding:2px 7px;border-radius:6px;">${tag}</span>` : ""}
+      ${tag ? `<span style="position:absolute;top:8px;left:8px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,0.55);padding:2px 7px;border-radius:6px;">${tag}</span>` : ""}
       <span class="poster-title">${m.title}</span>
     </div>`;
   }
@@ -679,7 +750,7 @@
     const totalStock = discs.reduce((s,d) => s+(d.stock||0), 0);
     return `<div class="poster-card" data-openseries="${encodeURIComponent(seriesName)}" style="${bg}">
       <span class="poster-dot" style="background:${totalStock>0?'#46D369':'#737373'};" title="${totalStock>0?'In stock':'Out of stock'}"></span>
-      <span style="position:absolute;top:8px;left:8px;font-family:'Inter';font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,0.55);padding:2px 7px;border-radius:6px;">${discs.length} disc${discs.length===1?'':'s'}</span>
+      <span style="position:absolute;top:8px;left:8px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,0.55);padding:2px 7px;border-radius:6px;">${discs.length} disc${discs.length===1?'':'s'}</span>
       <span class="poster-title">${seriesName}</span>
     </div>`;
   }
@@ -928,7 +999,7 @@
     if(loggedInUser){
       const count = rentals.filter(r => r.renterName===loggedInUser.name).length;
       el.innerHTML = `<div class="login-box">
-        <span class="who">Checking out as ${loggedInUser.name} <span style="font-family:'Inter';font-weight:400;font-size:12px;color:var(--muted);">(${count}/${maxCheckouts} discs out)</span></span>
+        <span class="who">Checking out as ${loggedInUser.name} <span style="font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:12px;color:var(--muted);">(${count}/${maxCheckouts} discs out)</span></span>
         <button class="secondary" data-logout>Not you? Log out</button>
       </div>`;
       el.querySelector("[data-logout]").onclick = pinLogout;
@@ -1034,7 +1105,7 @@
       const count = rentals.filter(r => r.renterName===loggedInUser.name).length;
       const atLimit = count >= maxCheckouts;
       actionHtml = `<div class="login-box" style="margin-bottom:0;">
-        <span class="who">Checking out as ${loggedInUser.name} <span style="font-family:'Inter';font-weight:400;font-size:12px;color:var(--muted);">(${count}/${maxCheckouts} discs out)</span></span>
+        <span class="who">Checking out as ${loggedInUser.name} <span style="font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:12px;color:var(--muted);">(${count}/${maxCheckouts} discs out)</span></span>
         <button class="secondary" id="modalLogoutBtn">Not you?</button>
       </div>
       <button class="primary" id="modalRentBtn" style="width:100%;margin-top:12px;" ${atLimit?'disabled':''}>${atLimit?'Checkout limit reached':'Rent this disc'}</button>`;
@@ -1300,6 +1371,7 @@
     renderModal();
     renderNavVisibility();
     resetAutoLogoutTimer();
+    api.send("PUT", "/api/active-session", { userId: u.id, name: u.name }).catch(()=>{});
     toast(u.isAdmin ? `Welcome, ${u.name} (admin)` : `Welcome, ${u.name}`);
   }
 
@@ -1309,6 +1381,7 @@
     renderLoginArea();
     renderModal();
     renderNavVisibility();
+    api.send("DELETE", "/api/active-session").catch(()=>{});
   }
 
   async function setMaxCheckouts(n){
@@ -1331,6 +1404,87 @@
     try{ await api.send("PUT", "/api/settings", { tmdbApiKey: key }); tmdbApiKey = key; render(); }
     catch(e){ toast("Couldn't save the API key"); return; }
     toast(key ? "TMDb API key saved" : "TMDb API key cleared");
+  }
+
+  async function setWledUrl(url){
+    url = (url||"").trim();
+    try{ await api.send("PUT", "/api/settings", { wledUrl: url }); wledUrl = url; render(); }
+    catch(e){ toast("Couldn't save the WLED address"); return; }
+    toast(url ? "WLED address saved" : "WLED address cleared");
+  }
+
+  async function setBayWindowSeconds(n){
+    n = parseInt(n, 10);
+    if(!Number.isInteger(n) || n < 10){ toast("Enter at least 10 seconds"); return; }
+    try{ await api.send("PUT", "/api/settings", { bayWindowSeconds: n }); bayWindowSeconds = n; render(); }
+    catch(e){ toast("Couldn't save the setting"); return; }
+    toast(`Bay attribution window set to ${n}s`);
+  }
+
+  async function addBay(number){
+    number = parseInt(number, 10);
+    if(!Number.isInteger(number) || number < 1){ toast("Enter a valid bay number"); return; }
+    if(bays.some(b => String(b.number) === String(number))){ toast(`Bay ${number} already exists`); return; }
+    try{ await api.send("PUT", "/api/bays/"+number, {}); await refetch("bays"); }
+    catch(e){ toast("Couldn't add bay"); return; }
+    toast(`Added bay ${number}`);
+  }
+
+  async function removeBay(number){
+    try{ await api.send("DELETE", "/api/bays/"+number); await refetch("bays"); }
+    catch(e){ toast("Couldn't remove bay"); return; }
+    toast(`Removed bay ${number}`);
+  }
+
+  async function setBayLedIndex(number, ledIndex){
+    try{ await api.send("PUT", "/api/bays/"+number, { ledIndex: ledIndex===""?"":Number(ledIndex) }); await refetch("bays"); }
+    catch(e){ toast("Couldn't save LED index"); }
+  }
+
+  async function assignBayTitle(number, titleId){
+    try{ await api.send("PUT", "/api/bays/"+number, { titleId: titleId||"" }); await refetch("bays"); await refetch("titles"); }
+    catch(e){ toast("Couldn't save assignment"); return; }
+    toast(titleId ? "Assigned" : "Cleared");
+  }
+
+  function renderBayDashboard(){
+    const el = $("#bayDashboard");
+    if(!el) return;
+    if(bays.length===0){ el.innerHTML = `<div style="color:var(--muted);font-size:14px;">No bays yet — add one above with its number.</div>`; return; }
+    const sorted = bays.slice().sort((a,b) => Number(a.number)-Number(b.number));
+    const titleOptions = catalog.slice().sort((a,b)=>a.title.localeCompare(b.title))
+      .map(m => `<option value="${m.id}">${m.title}${seriesTag(m) ? ' ('+seriesTag(m)+')' : ''}</option>`).join("");
+
+    el.innerHTML = sorted.map(bay => {
+      const title = catalog.find(m => m.id === bay.titleId);
+      const statusLine = title
+        ? `<div class="bay-title">${title.title}${seriesTag(title) ? ' <span style="color:var(--muted);font-size:11px;">('+seriesTag(title)+')</span>' : ''}</div>
+           <div style="font-size:11px;color:${title.stock>0?'var(--green)':'#E87C03'};">${title.stock>0?'In stock':'Checked out'}</div>`
+        : `<div class="bay-empty">Empty — no title assigned</div>`;
+      return `<div class="bay-card">
+        <div class="bay-num">Bay ${bay.number}</div>
+        ${statusLine}
+        <select class="baySelect" data-bay="${bay.number}">
+          <option value="">— empty —</option>
+          ${titleOptions}
+        </select>
+        <div class="bay-row">
+          <input class="ledIndexInput" data-bayled="${bay.number}" type="number" min="0" placeholder="LED #" value="${bay.ledIndex!==null&&bay.ledIndex!==undefined?bay.ledIndex:''}" style="flex:1;font-size:12px;padding:7px 8px;" />
+          <button class="adjbtn" data-removebay="${bay.number}" style="color:#E87C03;border-color:#5A3A20;" title="Remove this bay">×</button>
+        </div>
+      </div>`;
+    }).join("");
+
+    el.querySelectorAll(".baySelect").forEach(sel => {
+      sel.value = (bays.find(b=>String(b.number)===sel.dataset.bay)||{}).titleId || "";
+      sel.onchange = () => assignBayTitle(sel.dataset.bay, sel.value);
+    });
+    el.querySelectorAll(".ledIndexInput").forEach(inp => {
+      inp.onchange = () => setBayLedIndex(inp.dataset.bayled, inp.value);
+    });
+    el.querySelectorAll("[data-removebay]").forEach(b => {
+      b.onclick = () => removeBay(b.dataset.removebay);
+    });
   }
 
   async function addUser(name, pin, isAdmin){
@@ -1386,6 +1540,7 @@
     }catch(e){ toast("Couldn't save rental"); return; }
     await refetch("titles");
     await refetch("rentals");
+    api.send("POST", "/api/locate-bay", { titleId: movie.id }).catch(()=>{}); // best-effort — helps find the bay, never blocks the rental
     toast(`Rented "${movie.title}" to ${renterName} — due in ${RENTAL_DAYS} nights`);
   }
 
@@ -1869,6 +2024,9 @@
     $("#omdbKeyShow").onchange = (e) => { $("#omdbKeyInput").type = e.target.checked ? "text" : "password"; };
     $("#saveTmdbKeyBtn").onclick = () => setTmdbApiKey($("#tmdbKeyInput").value);
     $("#tmdbKeyShow").onchange = (e) => { $("#tmdbKeyInput").type = e.target.checked ? "text" : "password"; };
+    $("#saveWledUrlBtn").onclick = () => setWledUrl($("#wledUrlInput").value);
+    $("#saveBayWindowBtn").onclick = () => setBayWindowSeconds($("#bayWindowInput").value);
+    $("#addBayBtn").onclick = () => { addBay($("#newBayNumberInput").value); $("#newBayNumberInput").value=""; };
 
     $("#addUserBtn").onclick = async () => {
       await addUser($("#newUserName").value, $("#newUserPin").value, $("#newUserIsAdmin").checked);
