@@ -369,6 +369,15 @@ handles checkout attribution:
   process automatically — return it from within the app instead (Scan
   tab or the checkout modal both have a return option).
 
+For exactly this ambiguous case, **Scan a disc** has a **Return a disc**
+button: click it, scan the disc you're actually returning (unambiguous —
+you told it directly), then place that case in a bay slot. The next
+switch trigger for *any* bay completes that specific return and re-homes
+the bay to wherever you put it, overriding all the guessing above. It
+also works by scanning that bay's barcode instead of triggering the
+switch, which is handy for testing the flow before your hardware's fully
+wired up.
+
 ### Who a bay checkout gets attributed to
 
 A switch can tell you *that* something was pulled, not *who* pulled it.
@@ -395,6 +404,13 @@ A bay's LED index is a property of the bay itself — it's the fixed wiring
 position on your strip, and it stays put even if you later reassign that
 bay to hold a different title. Swapping which movie sits in bay 12
 doesn't mean re-wiring or re-numbering anything.
+
+**Print bay barcodes** generates one barcode label per existing bay
+(add the bays first) — stick each one on the physical shelf, not on a
+disc. From **Scan a disc**, scan a disc that isn't assigned to a bay yet,
+then scan that bay's barcode, and it links automatically — no need to
+touch the dropdowns above by hand. Scanning a bay barcode with nothing
+pending just tells you what's currently in that bay instead.
 
 ### Door animations (whole-strip effects)
 
@@ -512,10 +528,9 @@ you go this route.
   `server.js`, reached over a small REST API + Server-Sent Events for live
   updates between devices on your network (e.g. the TV page pushing to the
   kiosk banner in real time).
-- Printed labels are now circular hub-style rings (like a real rental
-  disc's printed center label) with a Code128 barcode instead of a QR
-  code, generated server-side with `bwip-js` — cut around the outer dashed
-  line, punch the inner dashed circle for the spindle hole.
+- Printed labels are plain rectangular barcode stickers for the disc
+  case, generated server-side with `bwip-js` — cut around the dashed line
+  and stick it on.
 - The camera/barcode scanner library (`html5-qrcode`) is served locally
   from `node_modules` instead of a CDN.
 - Google Fonts was dropped — the app now uses your system's fonts. It looks

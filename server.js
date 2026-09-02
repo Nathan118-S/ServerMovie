@@ -360,6 +360,7 @@ function loadDb(){
       settings: { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90, wledOpenEffect: 9, wledCloseEffect: 2, wledEffectSeconds: 6, doorCloseDelaySeconds: 60 },
       tvSelection: null,
       activeSession: null,
+      pendingReturn: null,
       bays: []
     };
     fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -383,6 +384,7 @@ function loadDb(){
   if(parsed.settings.bayWindowSeconds === undefined) parsed.settings.bayWindowSeconds = 90;
   if(parsed.tvSelection === undefined) parsed.tvSelection = null;
   if(parsed.activeSession === undefined) parsed.activeSession = null;
+  if(parsed.pendingReturn === undefined) parsed.pendingReturn = null;
 
   // bays: {number, ledIndex, titleId} — a bay's LED position is fixed
   // wiring and shouldn't move just because a different title gets
@@ -642,6 +644,28 @@ app.delete("/api/active-session", (req, res) => {
   res.json({ ok: true });
 });
 
+// ---------- pending return (Return button: scan a disc, then whatever
+// bay it's placed in gets logged as that disc's return) ----------
+app.put("/api/pending-return", (req, res) => {
+  const { titleId } = req.body;
+  const title = db.titles.find(t => t.id === titleId);
+  if(!title) return res.status(404).json({ error: "title not found" });
+  const rental = db.rentals.find(r => r.movieId === titleId);
+  if(!rental) return res.status(409).json({ error: `"${title.title}" isn't currently checked out.` });
+  const windowSeconds = (db.settings && db.settings.bayWindowSeconds) || 90;
+  db.pendingReturn = { titleId, title: title.title, expiresAt: Date.now() + windowSeconds * 1000 };
+  saveDb();
+  broadcast("pending-return");
+  res.json(db.pendingReturn);
+});
+
+app.delete("/api/pending-return", (req, res) => {
+  db.pendingReturn = null;
+  saveDb();
+  broadcast("pending-return");
+  res.json({ ok: true });
+});
+
 // ---------- bays (physical slots — number, LED position, assigned title) ----------
 app.get("/api/bays", (req, res) => res.json(db.bays));
 
@@ -735,13 +759,33 @@ app.post("/api/bay-return", (req, res) => {
   const bayNumber = req.body.bay;
   if(bayNumber === undefined || bayNumber === null) return res.status(400).json({ error: "bay is required" });
   let bay = db.bays.find(b => String(b.number) === String(bayNumber));
+  let title = null, rental = null, movedBay = false;
+
+  // Case 0: a "Return" button flow already told us exactly which disc is
+  // being returned (scan disc → place in a slot) — this is unambiguous,
+  // so it takes priority over every other guess below.
+  if(db.pendingReturn && db.pendingReturn.expiresAt > Date.now()){
+    const pendingTitle = db.titles.find(t => t.id === db.pendingReturn.titleId);
+    const pendingRental = pendingTitle ? db.rentals.find(r => r.movieId === pendingTitle.id) : null;
+    if(pendingTitle && pendingRental){
+      title = pendingTitle;
+      rental = pendingRental;
+      if(!bay){ bay = { number: bayNumber, ledIndex: null, titleId: null }; db.bays.push(bay); }
+      db.bays.forEach(b => { if(b.titleId === title.id) b.titleId = null; });
+      bay.titleId = title.id;
+      movedBay = true;
+    }
+    db.pendingReturn = null;
+    broadcast("pending-return");
+  }
 
   // Case 1: this bay already has a title assigned, and that title is
   // actually out — the common case of putting something back where it
   // belongs. No need to guess who's returning it.
-  let title = bay && bay.titleId ? db.titles.find(t => t.id === bay.titleId) : null;
-  let rental = title ? db.rentals.find(r => r.movieId === title.id) : null;
-  let movedBay = false;
+  if(!title){
+    title = bay && bay.titleId ? db.titles.find(t => t.id === bay.titleId) : null;
+    rental = title ? db.rentals.find(r => r.movieId === title.id) : null;
+  }
 
   // Case 2: this bay is empty, or holds a title that isn't actually
   // rented — the disc went back in the wrong slot. If someone's logged

@@ -109,7 +109,7 @@
   button.teal:active{transform:scale(0.97);}
 
   /* ---- Hero ---- */
-  .hero{position:relative;min-height:64vh;display:flex;align-items:flex-end;padding:60px 40px;margin-bottom:8px;}
+  .hero{position:relative;min-height:64vh;display:flex;align-items:flex-end;padding:60px 40px;margin-bottom:8px;background-size:cover;background-position:center top;background-repeat:no-repeat;}
   .hero-content{max-width:560px;animation:fadeInUp 0.7s ease both;}
   .hero-eyebrow{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:1px;color:var(--muted);margin-bottom:8px;}
   .hero-title{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:700;font-size:44px;line-height:1.05;color:#fff;text-shadow:0 2px 20px rgba(0,0,0,0.5);margin-bottom:10px;}
@@ -162,6 +162,8 @@
   .manual-entry input{flex:1;}
 
   .match-card{background:var(--surf2);backdrop-filter:blur(12px);color:var(--white);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:16px;animation:fadeInUp 0.3s ease both;}
+  #returnModeBtn.active{background:var(--green);color:#04240F;}
+  .return-mode-banner{background:var(--surf3);border:1px solid var(--green);border-radius:12px;padding:12px 14px;margin-top:12px;font-size:13px;animation:fadeInUp 0.3s ease both;}
   .match-card .t{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:20px;}
   .match-card .g{font-size:12px;color:var(--muted);margin-top:2px;}
 
@@ -187,12 +189,15 @@
   .label-list .row label{display:flex;align-items:center;gap:10px;font-size:14px;}
 
   #label-sheet{display:none;}
-  .label-circle{position:relative;width:1.8in;height:1.8in;border-radius:50%;border:1px dashed #999;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:0.1in 0.12in;box-sizing:border-box;background:#fff;color:#111;overflow:hidden;}
-  .label-circle .barcode{max-width:1.5in;max-height:0.4in;object-fit:contain;}
-  .label-circle .hole{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:0.62in;height:0.62in;border-radius:50%;background:#fff;border:1px dashed #bbb;z-index:2;}
-  .label-circle .info-text{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:8px;line-height:1.25;text-align:center;max-width:1.55in;}
-  .label-circle .info-text .t{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:9px;display:block;}
-  .label-sheet-grid{display:grid;grid-template-columns:repeat(4,1.8in);gap:0.2in;justify-items:center;}
+  .disc-label{width:2.6in;height:1.1in;border:1px dashed #999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:8px;box-sizing:border-box;background:#fff;color:#111;overflow:hidden;}
+  .disc-label .disc-label-title{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:13px;font-weight:600;line-height:1.15;text-align:center;max-width:2.4in;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .disc-label img{max-width:2.3in;max-height:0.45in;object-fit:contain;}
+  .disc-label .disc-label-code{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:8px;color:#555;}
+  .label-sheet-grid{display:grid;grid-template-columns:repeat(3,2.6in);gap:0.15in;justify-items:center;}
+  .bay-label-grid{display:grid;grid-template-columns:repeat(3,2.6in);gap:0.15in;justify-items:center;}
+  .bay-label{width:2.6in;height:1.3in;border:1px dashed #999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:10px;box-sizing:border-box;background:#fff;color:#111;}
+  .bay-label .bay-label-title{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:16px;font-weight:700;letter-spacing:0.5px;}
+  .bay-label img{max-width:2.2in;max-height:0.6in;object-fit:contain;}
 
   @media print{
     body *{visibility:hidden;}
@@ -302,10 +307,12 @@
         <div class="scan-msg">Point a camera at the barcode on an existing case, or at a printed Sandy Server label. If camera access isn't available here, type or wedge-scan the code below — this also works with a USB barcode scanner.</div>
         <div id="loginArea"></div>
         <div id="reader"></div>
-        <div style="display:flex;gap:8px;margin-top:10px;">
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
           <button class="primary" id="startScanBtn">Start camera</button>
           <button class="secondary" id="stopScanBtn" style="display:none;">Stop camera</button>
+          <button class="secondary" id="returnModeBtn"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 1 1 2.3 5.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 17v-5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Return a disc</button>
         </div>
+        <div id="returnModeBanner"></div>
         <div class="manual-entry">
           <input id="manualCode" placeholder="Or type / scan a code, then press Enter" />
           <button class="secondary" id="manualSubmit">Look up</button>
@@ -337,7 +344,7 @@
   <div class="panel" data-panel="labels">
     <div class="panel-inner">
       <div class="display" style="font-size:16px;margin-bottom:8px;">Print labels for your catalog</div>
-      <div class="scan-msg">Pick titles below, then print. Each label is a small circular ring sized to fit around a disc's center hole, just like the printed hub labels on a real rental disc — cut around the outer dashed circle, punch out the inner dashed circle for the spindle hole, and stick it on. Scanning the barcode works exactly like scanning the disc's original barcode.</div>
+      <div class="scan-msg">Pick titles below, then print. Each label is a plain rectangular barcode sticker for the disc case — cut it out and stick it on. Scanning it works exactly like scanning the disc's original barcode.</div>
       <div class="label-controls">
         <button class="secondary" id="selectAllLabels">Select all</button>
         <button class="secondary" id="selectNoneLabels">Select none</button>
@@ -495,11 +502,13 @@
         <div class="bulk-box" style="max-width:900px;">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
             <div class="display" style="font-size:15px;">Bay dashboard</div>
-            <div style="display:flex;gap:8px;align-items:center;">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
               <input id="newBayNumberInput" type="number" min="1" placeholder="Bay #" style="width:90px;" />
               <button class="primary" id="addBayBtn" style="padding:9px 14px;font-size:12px;">Add bay</button>
+              <button class="secondary" id="printBayBarcodesBtn" style="padding:9px 14px;font-size:12px;">Print bay barcodes</button>
             </div>
           </div>
+          <div class="scan-msg" style="margin-top:0;margin-bottom:14px;">Stick a printed bay barcode on each shelf. Then, from Scan a disc, scan a disc that isn't assigned to a bay yet followed by a bay barcode, and it's linked automatically — no need to use the dropdowns below by hand.</div>
           <div id="bayDashboard" class="bay-grid"></div>
         </div>
       </div>
@@ -1584,6 +1593,39 @@
     toast(`Removed bay ${number}`);
   }
 
+  // Prints one barcode label per existing bay (not per disc) — stuck on
+  // the shelf itself. Encodes "BAY:<number>" so the scanner can tell a bay
+  // label apart from a disc's own barcode.
+  async function printBayBarcodes(){
+    if(bays.length===0){ toast("Add at least one bay first"); return; }
+    const sorted = bays.slice().sort((a,b) => Number(a.number)-Number(b.number));
+    const sheet = $("#label-sheet");
+    sheet.innerHTML = `<div class="bay-label-grid" id="bayLabelSheetGrid"></div>`;
+    const grid = $("#bayLabelSheetGrid");
+    const cards = sorted.map(bay => {
+      const card = document.createElement("div");
+      card.className = "bay-label";
+      const title = document.createElement("div");
+      title.className = "bay-label-title";
+      title.textContent = "Bay " + bay.number;
+      card.appendChild(title);
+      const img = document.createElement("img");
+      card.appendChild(img);
+      grid.appendChild(card);
+      return { bay, img };
+    });
+    await Promise.all(cards.map(async ({bay, img}) => {
+      try{
+        const data = await api.get("/api/barcode?text=" + encodeURIComponent("BAY:"+bay.number));
+        img.src = data.dataUrl;
+      }catch(e){ img.replaceWith(document.createTextNode(String(bay.number))); }
+    }));
+    setTimeout(() => {
+      window.print();
+      sheet.innerHTML = `<div class="label-sheet-grid" id="labelSheetGrid"></div>`; // restore disc-label container
+    }, 200);
+  }
+
   async function setBayLedIndex(number, ledIndex){
     try{ await api.send("PUT", "/api/bays/"+number, { ledIndex: ledIndex===""?"":Number(ledIndex) }); await refetch("bays"); }
     catch(e){ toast("Couldn't save LED index"); }
@@ -1593,6 +1635,51 @@
     try{ await api.send("PUT", "/api/bays/"+number, { titleId: titleId||"" }); await refetch("bays"); await refetch("titles"); }
     catch(e){ toast("Couldn't save assignment"); return; }
     toast(titleId ? "Assigned" : "Cleared");
+  }
+
+  // Called when a scanned barcode turns out to be a bay label ("BAY:N").
+  // If a disc with no bay was just scanned, this finishes that
+  // assignment; otherwise it just shows what's currently in that bay.
+  async function handleBayBarcodeScanned(bayNumber){
+    const box = $("#scanResult");
+    const bay = bays.find(b => String(b.number) === String(bayNumber));
+    if(!bay){
+      box.innerHTML = `<div class="match-card"><div class="t">Bay ${bayNumber}</div><div class="g">This bay hasn't been added yet — create it first under Manage inventory &gt; Bays.</div></div>`;
+      pendingAssignTitleId = null;
+      return;
+    }
+
+    if(pendingAssignTitleId){
+      const title = catalog.find(m => m.id === pendingAssignTitleId);
+      const titleId = pendingAssignTitleId;
+      pendingAssignTitleId = null;
+      if(!title){ box.innerHTML = ""; return; }
+      await assignBayTitle(bayNumber, titleId);
+      box.innerHTML = `<div class="match-card">
+        <div class="t">Assigned to Bay ${bayNumber}</div>
+        <div class="g">"${title.title}" is now linked to this bay.</div>
+      </div>`;
+      return;
+    }
+
+    // No pending assignment — try completing a return in progress (same
+    // endpoint the physical microswitch calls), useful for testing the
+    // Return flow before the hardware side is fully wired up.
+    try{
+      const result = await api.send("POST", "/api/bay-return", { bay: bayNumber });
+      await refetch("titles"); await refetch("rentals"); await refetch("bays");
+      box.innerHTML = `<div class="match-card">
+        <div class="t">Returned</div>
+        <div class="g">"${result.title}" logged as returned to Bay ${bayNumber}${result.movedToBay ? ' (bay assignment updated)' : ''}.</div>
+      </div>`;
+      return;
+    }catch(e){ /* nothing pending to return here — fall through to the info view */ }
+
+    const current = catalog.find(m => m.id === bay.titleId);
+    box.innerHTML = `<div class="match-card">
+      <div class="t">Bay ${bayNumber}</div>
+      <div class="g">${current ? `Currently holds "${current.title}"` : "Nothing assigned to this bay yet"} — scan a disc first, then this bay's barcode, to assign or reassign it.</div>
+    </div>`;
   }
 
   function renderBayDashboard(){
@@ -1914,9 +2001,62 @@
   }
 
   // ---------- scanning ----------
+  let pendingAssignTitleId = null; // set when a disc with no bay was just scanned, waiting for a bay barcode
+  let returnMode = false; // Scan tab "Return a disc" toggle — next disc scan is treated as a return-and-place
+
+  function toggleReturnMode(){
+    returnMode = !returnMode;
+    const btn = $("#returnModeBtn");
+    if(btn) btn.classList.toggle("active", returnMode);
+    const banner = $("#returnModeBanner");
+    if(banner) banner.innerHTML = returnMode
+      ? `<div class="return-mode-banner">Return mode on — scan the disc you're returning. Once it's found, place it in a bay slot (or scan its bay barcode) to log the return.</div>`
+      : "";
+  }
+
+  async function handleReturnModeScan(code){
+    let stripped = code;
+    if(stripped.indexOf("SANDYSERVER:")===0) stripped = stripped.slice(12);
+    else if(stripped.indexOf("REELBOX:")===0) stripped = stripped.slice(8);
+    const match = catalog.find(m => m.code === stripped);
+    const box = $("#scanResult");
+    if(!match){
+      box.innerHTML = `<div class="match-card"><div class="t">Unrecognized code</div><div class="g">Code "${stripped}" isn't in the catalog — nothing to return.</div></div>`;
+      return;
+    }
+    const rental = rentals.find(r => r.movieId === match.id);
+    if(!rental){
+      box.innerHTML = `<div class="match-card"><div class="t">${match.title}</div><div class="g">This isn't currently checked out — nothing to return.</div></div>`;
+      toggleReturnMode();
+      return;
+    }
+    try{
+      await api.send("PUT", "/api/pending-return", { titleId: match.id });
+    }catch(e){
+      box.innerHTML = `<div class="match-card"><div class="t">Couldn't start the return</div><div class="g">${match.title} is checked out, but the server couldn't be reached to flag it for return.</div></div>`;
+      return;
+    }
+    box.innerHTML = `<div class="match-card"><div class="t">${match.title}</div><div class="g">Ready — place it in a bay slot now (or scan that bay's barcode) to log the return and its location.</div></div>`;
+    toggleReturnMode(); // turn the toggle off — we're now just waiting on the physical placement / bay scan
+  }
+
   function handleScannedCode(code){
     code = (code||"").trim();
     if(!code) return;
+
+    if(returnMode){
+      handleReturnModeScan(code);
+      return;
+    }
+
+    // A bay barcode ("BAY:<number>") completes a pending disc→bay
+    // assignment, or just shows what's in that bay if nothing's pending.
+    if(code.indexOf("BAY:")===0){
+      const bayNumber = code.slice(4);
+      handleBayBarcodeScanned(bayNumber);
+      return;
+    }
+
     if(code.indexOf("SANDYSERVER:")===0) code = code.slice(12);
     else if(code.indexOf("REELBOX:")===0) code = code.slice(8);
     const match = catalog.find(m => m.code === code);
@@ -1924,12 +2064,16 @@
     if(match){
       const out = match.stock<=0;
       const activeRentals = rentals.filter(r => r.movieId === match.id);
+      const hasBay = bays.some(b => b.titleId === match.id);
       const returnHtml = activeRentals.length > 0 ? `<div style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px;">
         <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">This title is currently checked out${activeRentals.length>1?` (${activeRentals.length} copies)`:''}:</div>
         ${activeRentals.map(r => `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;">
           <span style="font-size:13px;">Rented by ${r.renterName}</span>
           <button class="teal" data-return-scan="${r.id}" style="padding:7px 12px;font-size:12px;flex-shrink:0;">Mark as returned</button>
         </div>`).join("")}
+      </div>` : "";
+      const assignHtml = !hasBay ? `<div style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px;font-size:12px;color:var(--muted);">
+        Not assigned to a bay yet — scan a bay barcode now to link it here.
       </div>` : "";
       box.innerHTML = `<div class="match-card">
         <div class="t">${match.title}</div>
@@ -1939,6 +2083,7 @@
           ${!out ? `<button class="primary" id="scanRentBtn">Rent this disc</button>` : `<span style="font-size:12px;color:#E87C03;">Out of stock</span>`}
         </div>
         ${returnHtml}
+        ${assignHtml}
       </div>`;
       if(!out){ $("#scanRentBtn").onclick = () => {
         if(!loggedInUser){ toast("Log in with your PIN first"); return; }
@@ -1948,7 +2093,9 @@
         await returnRental(b.dataset.returnScan);
         box.innerHTML = "";
       });
+      pendingAssignTitleId = hasBay ? null : match.id;
     } else {
+      pendingAssignTitleId = null;
       box.innerHTML = `<div class="match-card">
         <div class="t">Unrecognized code</div>
         <div class="g">Code "${code}" isn't in the catalog yet. Add it below to link this case to a title.</div>
@@ -2035,20 +2182,20 @@
     grid.innerHTML = "";
     const cards = items.map(m => {
       const card = document.createElement("div");
-      card.className = "label-circle";
+      card.className = "disc-label";
+
+      const title = document.createElement("div");
+      title.className = "disc-label-title";
+      title.textContent = m.title;
+      card.appendChild(title);
 
       const barcodeImg = document.createElement("img");
-      barcodeImg.className = "barcode";
       card.appendChild(barcodeImg);
 
-      const hole = document.createElement("div");
-      hole.className = "hole";
-      card.appendChild(hole);
-
-      const info = document.createElement("div");
-      info.className = "info-text";
-      info.innerHTML = `<span class="t">${m.title}</span>${m.code}`;
-      card.appendChild(info);
+      const code = document.createElement("div");
+      code.className = "disc-label-code";
+      code.textContent = m.code;
+      card.appendChild(code);
 
       grid.appendChild(card);
       return { m, barcodeImg };
@@ -2125,6 +2272,7 @@
     $("#searchBox").oninput = e => { query = e.target.value; renderBrowse(); };
 
     $("#startScanBtn").onclick = startScanner;
+    $("#returnModeBtn").onclick = toggleReturnMode;
     $("#stopScanBtn").onclick = stopScanner;
     $("#manualSubmit").onclick = () => { handleScannedCode($("#manualCode").value); $("#manualCode").value=""; };
     $("#manualCode").addEventListener("keydown", e => {
@@ -2205,6 +2353,7 @@
       closeDelaySeconds: $("#doorCloseDelayInput").value
     });
     $("#addBayBtn").onclick = () => { addBay($("#newBayNumberInput").value); $("#newBayNumberInput").value=""; };
+    $("#printBayBarcodesBtn").onclick = printBayBarcodes;
 
     $("#addUserBtn").onclick = async () => {
       await addUser($("#newUserName").value, $("#newUserPin").value, $("#newUserIsAdmin").checked);
