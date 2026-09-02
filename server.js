@@ -451,7 +451,11 @@ serveVendorFile("/vendor/html5-qrcode.min.js", [
 
 // ---------- read endpoints ----------
 app.get("/api/state", (req, res) => {
-  res.json({ titles: db.titles, rentals: db.rentals, users: db.users, settings: db.settings, tvSelection: db.tvSelection, bays: db.bays });
+  res.json({ titles: db.titles, rentals: db.rentals, users: db.users, settings: db.settings, tvSelection: db.tvSelection, bays: db.bays, pendingReturn: db.pendingReturn });
+});
+app.get("/api/pending-return", (req, res) => {
+  if(db.pendingReturn && db.pendingReturn.expiresAt > Date.now()) res.json(db.pendingReturn);
+  else res.json(null);
 });
 app.get("/api/titles", (req, res) => res.json(db.titles));
 app.get("/api/rentals", (req, res) => res.json(db.rentals));

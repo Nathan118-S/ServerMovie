@@ -349,11 +349,23 @@ than it came from (see the next section), which real-world tidiness
 never quite guarantees. Both attribute correctly regardless of who's
 logged in where, with one caveat covered next.
 
-### Returning a disc to the wrong bay
+### Every return waits for the disc to actually be back
+
+No "Return disc" button anywhere in the app — All rentals, My Rentals, or
+the checkout modal — completes a return instantly anymore. Clicking one
+flags that title as **pending**: the row shows "⏳ Return pending — place
+it in a bay to finish" with a Cancel option, and the return only actually
+completes once that disc lands in a bay (the microswitch firing, or a
+scanned bay barcode as a manual/testing fallback). There's also a
+standalone **Return** button in the top bar, next to the theme toggle —
+it jumps straight to Scan a disc with return mode already switched on, so
+you can scan the disc and place it without extra clicks.
 
 A switch can only tell you *that* something was placed in a bay, not
-*which* disc it was — so Sandy Server handles this the same way it
-handles checkout attribution:
+*which* disc — so once a return is pending, the next switch trigger for
+*any* bay completes that exact return and re-homes the bay to wherever it
+landed, no guessing needed. If nothing's pending when a switch fires,
+Sandy Server falls back to the older heuristics:
 
 - If the bay that received something already has a title assigned **and**
   that title is actually checked out, it's returned — the normal case of
@@ -361,22 +373,10 @@ handles checkout attribution:
 - If the bay is empty, or holds something that isn't actually rented out,
   Sandy Server checks whether someone's logged in (same active-session
   window as checkout). If they have exactly one thing checked out, that's
-  what's returned — **and that title's bay assignment moves to wherever
-  it actually got placed**, so the Bay Dashboard stays accurate without
-  you fixing it up by hand.
-- If neither applies (nobody's logged in, or they have more than one
-  thing out and it's ambiguous which one this is), the return doesn't
-  process automatically — return it from within the app instead (Scan
-  tab or the checkout modal both have a return option).
-
-For exactly this ambiguous case, **Scan a disc** has a **Return a disc**
-button: click it, scan the disc you're actually returning (unambiguous —
-you told it directly), then place that case in a bay slot. The next
-switch trigger for *any* bay completes that specific return and re-homes
-the bay to wherever you put it, overriding all the guessing above. It
-also works by scanning that bay's barcode instead of triggering the
-switch, which is handy for testing the flow before your hardware's fully
-wired up.
+  what's returned — and that title's bay assignment moves to wherever it
+  actually got placed.
+- If neither applies, nothing happens automatically — start a return from
+  the app (top bar, Scan tab, My Rentals, or All rentals) instead.
 
 ### Who a bay checkout gets attributed to
 
