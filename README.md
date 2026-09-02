@@ -384,6 +384,34 @@ position on your strip, and it stays put even if you later reassign that
 bay to hold a different title. Swapping which movie sits in bay 12
 doesn't mean re-wiring or re-numbering anything.
 
+### Door animations (whole-strip effects)
+
+Separate from the per-bay lighting: if you wire a sensor to the cabinet
+door itself (not a bay), opening it plays a WLED effect across the
+*entire* strip — a proper "welcome" moment — and once it's stayed closed
+for a while, a "leaving" effect plays before the strip settles back to
+everyone's normal per-bay colors. This uses a second binary_sensor
+(`cabinet_door`, already included in `esphome-bays.yaml` — same ESP32,
+different GPIO) and two more automations (already in
+`homeassistant-bays.yaml`).
+
+Configure it under **Manage inventory > Bays > Door animations**:
+
+- **Open effect ID** / **Close effect ID** — which WLED built-in effect
+  plays for each. WLED numbers its effects, and that numbering can differ
+  slightly by firmware version — check your WLED web UI's effect picker,
+  or `GET http://<wled-ip>/json/eff` for the exact indexed list on your
+  installation, rather than trusting the defaults (9 and 2) blindly.
+- **Effect duration** — how many seconds the animation plays before the
+  strip reverts to normal per-bay status colors.
+- **Delay after close** — how long the door has to stay shut before the
+  "leaving" effect plays (60 seconds by default). Opening the door again
+  during that wait cancels it — so quickly stepping back in doesn't
+  trigger a leaving animation for no reason. Once the leaving effect
+  finishes, every LED goes dark and **stays off** until the door opens
+  again — it doesn't revert to showing in-stock/checked-out colors while
+  nobody's around to see them.
+
 ### Setting up the lights (WLED)
 
 1. Flash [WLED](https://kno.wled.ge/) onto a second ESP32 wired to an

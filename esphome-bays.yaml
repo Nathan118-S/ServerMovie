@@ -103,3 +103,16 @@ binary_sensor:
   # ... duplicate the block above for every remaining bay, incrementing
   # bay_05, bay_06, etc. and picking the next free GPIO from the list
   # in the comment at the top of this file.
+
+  # The cabinet/case door — separate from the bay switches above. Wired
+  # so "on" = door open, "off" = door closed; if your switch reads the
+  # opposite way, add `inverted: true` here like the bay sensors have.
+  - platform: gpio
+    id: cabinet_door
+    name: "Cabinet Door"
+    pin:
+      number: GPIO27
+      mode: INPUT_PULLUP
+    filters:
+      - delayed_on: 50ms
+      - delayed_off: 50ms

@@ -36,6 +36,18 @@ rest_command:
     content_type: "application/json"
     payload: '{"bay": {{ bay }} }'
 
+  sandy_door_opened:
+    url: "http://192.168.1.50:3000/api/door-opened"
+    method: POST
+    content_type: "application/json"
+    payload: '{}'
+
+  sandy_door_closed:
+    url: "http://192.168.1.50:3000/api/door-closed"
+    method: POST
+    content_type: "application/json"
+    payload: '{}'
+
 automation:
   - alias: "Sandy Server — case pulled from bay (checkout)"
     id: sandy_server_bay_checkout
@@ -68,3 +80,25 @@ automation:
       - service: rest_command.sandy_bay_return
         data:
           bay: "{{ trigger.entity_id.split('_')[-1] | int }}"
+
+  # ---------- cabinet door ----------
+  # Separate from the bay switches — one sensor for the whole enclosure,
+  # triggers a whole-strip WLED animation instead of a single LED.
+
+  - alias: "Sandy Server — cabinet door opened"
+    id: sandy_server_door_opened
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.sandy_server_bays_cabinet_door
+        to: "on"
+    action:
+      - service: rest_command.sandy_door_opened
+
+  - alias: "Sandy Server — cabinet door closed"
+    id: sandy_server_door_closed
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.sandy_server_bays_cabinet_door
+        to: "off"
+    action:
+      - service: rest_command.sandy_door_closed

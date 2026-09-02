@@ -100,6 +100,63 @@ function updateBayLedForTitle(title){
   pushBayLed(idx, title.stock > 0 ? "00FF00" : "FF0000");
 }
 
+// Restores every bay's LED to its normal steady state — used after a
+// whole-strip animation finishes, since that temporarily overrides the
+// individual per-bay colors.
+function refreshAllBayLeds(){
+  db.bays.forEach(bay => {
+    const idx = parseInt(bay.ledIndex, 10);
+    if(!Number.isInteger(idx)) return;
+    if(bay.titleId){
+      const t = db.titles.find(x => x.id === bay.titleId);
+      if(t) pushBayLed(idx, t.stock > 0 ? "00FF00" : "FF0000");
+    } else {
+      pushBayLed(idx, "000000"); // empty bay, no title assigned — lights off
+    }
+  });
+}
+
+// Used after the door's been closed a while — lights stay off until the
+// door opens again, rather than reverting to per-bay status colors.
+function turnOffAllBayLeds(){
+  db.bays.forEach(bay => {
+    const idx = parseInt(bay.ledIndex, 10);
+    if(Number.isInteger(idx)) pushBayLed(idx, "000000");
+  });
+}
+
+// Plays a WLED built-in effect across the whole strip (not per-LED), then
+// runs `afterFn` once it's done. Effect IDs are whatever WLED numbers them
+// as on your firmware — check your WLED web UI (or GET
+// http://<wled-ip>/json/eff for the full indexed list) rather than
+// trusting the defaults blindly, since the list can shift between WLED
+// versions.
+function pushWledEffect(effectId){
+  let wledUrl = ((db.settings && db.settings.wledUrl) || "").trim();
+  if(!wledUrl || effectId === undefined || effectId === null || effectId === "") return;
+  if(!/^https?:\/\//i.test(wledUrl)) wledUrl = "http://" + wledUrl;
+  const url = wledUrl.replace(/\/+$/, "") + "/json/state";
+  const body = JSON.stringify({ seg: [{ fx: parseInt(effectId, 10) }] });
+  try{
+    const client = url.startsWith("https") ? https : require("http");
+    const req = client.request(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) },
+      timeout: 3000
+    }, res => { res.on("data", () => {}); });
+    req.on("error", () => {});
+    req.on("timeout", () => req.destroy());
+    req.write(body);
+    req.end();
+  }catch(e){}
+}
+
+function playDoorAnimation(effectId, afterFn){
+  pushWledEffect(effectId);
+  const seconds = (db.settings && db.settings.wledEffectSeconds) || 6;
+  setTimeout(afterFn || refreshAllBayLeds, seconds * 1000);
+}
+
 // Blinks a title's bay white a few times, then settles back to its steady
 // in-stock/checked-out color — helps someone find the physical bay after
 // renting from the app rather than standing in front of it. Not used for
@@ -289,7 +346,7 @@ function loadDb(){
       titles: SEED_TITLES,
       rentals: [],
       users: [{ id: newId("u"), name: "Admin", pin: "0000", isAdmin: true }],
-      settings: { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90 },
+      settings: { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90, wledOpenEffect: 9, wledCloseEffect: 2, wledEffectSeconds: 6, doorCloseDelaySeconds: 60 },
       tvSelection: null,
       activeSession: null,
       bays: []
@@ -304,7 +361,11 @@ function loadDb(){
   parsed.titles = parsed.titles || [];
   parsed.rentals = parsed.rentals || [];
   parsed.users = parsed.users || [];
-  parsed.settings = parsed.settings || { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90 };
+  parsed.settings = parsed.settings || { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90, wledOpenEffect: 9, wledCloseEffect: 2, wledEffectSeconds: 6, doorCloseDelaySeconds: 60 };
+  if(parsed.settings.wledOpenEffect === undefined) parsed.settings.wledOpenEffect = 9;
+  if(parsed.settings.wledCloseEffect === undefined) parsed.settings.wledCloseEffect = 2;
+  if(parsed.settings.wledEffectSeconds === undefined) parsed.settings.wledEffectSeconds = 6;
+  if(parsed.settings.doorCloseDelaySeconds === undefined) parsed.settings.doorCloseDelaySeconds = 60;
   if(parsed.settings.omdbApiKey === undefined) parsed.settings.omdbApiKey = "";
   if(parsed.settings.tmdbApiKey === undefined) parsed.settings.tmdbApiKey = "";
   if(parsed.settings.wledUrl === undefined) parsed.settings.wledUrl = "";
@@ -611,6 +672,26 @@ app.post("/api/locate-bay", (req, res) => {
   const title = db.titles.find(t => t.id === titleId);
   if(!title) return res.status(404).json({ error: "title not found" });
   flashBayForTitle(title);
+  res.json({ ok: true });
+});
+
+// ---------- cabinet door sensor (called by Home Assistant) ----------
+let doorCloseTimer = null;
+
+app.post("/api/door-opened", (req, res) => {
+  clearTimeout(doorCloseTimer);
+  doorCloseTimer = null;
+  playDoorAnimation((db.settings && db.settings.wledOpenEffect) || 9);
+  res.json({ ok: true });
+});
+
+app.post("/api/door-closed", (req, res) => {
+  clearTimeout(doorCloseTimer);
+  const delaySeconds = (db.settings && db.settings.doorCloseDelaySeconds) || 60;
+  doorCloseTimer = setTimeout(() => {
+    doorCloseTimer = null;
+    playDoorAnimation((db.settings && db.settings.wledCloseEffect) || 2, turnOffAllBayLeds);
+  }, delaySeconds * 1000);
   res.json({ ok: true });
 });
 
