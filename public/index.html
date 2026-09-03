@@ -64,6 +64,8 @@
 
   .topbar{position:sticky;top:0;z-index:40;background:var(--glass);backdrop-filter:blur(20px) saturate(1.8);-webkit-backdrop-filter:blur(20px) saturate(1.8);padding:14px 40px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;border-bottom:1px solid var(--line);}
   .admin-mode-bar{position:sticky;top:0;z-index:41;background:#B3261E;color:#fff;padding:9px 40px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px;font-weight:600;}
+  #adminConsole{opacity:0;transition:opacity 0.22s ease;}
+  #adminConsole.visible{opacity:1;}
   .admin-mode-bar button{background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.4);color:#fff;padding:6px 12px;border-radius:999px;font-size:12px;cursor:pointer;}
   .admin-mode-bar button:hover{background:rgba(255,255,255,0.28);}
   .logo{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:700;font-size:21px;letter-spacing:-0.02em;color:var(--white);cursor:pointer;flex-shrink:0;transition:opacity 0.15s ease;}
@@ -410,6 +412,7 @@
         <button class="subnav-btn" data-subtab="bulk"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M3 8l9-4.5L21 8v9l-9 4.5L3 17V8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M3 8l9 4.5L21 8M12 12.5V21" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Bulk Import</button>
         <button class="subnav-btn" data-subtab="autofill"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Auto-Fill</button>
         <button class="subnav-btn" data-subtab="bays"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 21h4M8 12a4 4 0 1 1 8 0c0 2-1.5 3-2 4.5H10c-.5-1.5-2-2.5-2-4.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Bays</button>
+        <button class="subnav-btn" data-subtab="backup"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0 4-4m-4 4-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Backup</button>
       </div>
 
       <div class="subpanel active" data-subpanel="inventory">
@@ -557,6 +560,20 @@
           </div>
           <div class="scan-msg" style="margin-top:0;margin-bottom:14px;">Stick a printed bay barcode on each shelf. Then, from Scan a disc, scan a disc that isn't assigned to a bay yet followed by a bay barcode, and it's linked automatically — no need to use the dropdowns below by hand.</div>
           <div id="bayDashboard" class="bay-grid"></div>
+        </div>
+      </div>
+
+      <div class="subpanel" data-subpanel="backup">
+        <div class="bulk-box" style="margin-top:0;max-width:520px;">
+          <div class="display" style="font-size:15px;margin-bottom:6px;">Export &amp; import</div>
+          <div class="scan-msg" style="margin-top:0;">Everything — catalog, rentals, watch history, users and PINs, bays, settings — lives in one file the server already keeps. This just gives you a copy of it to save somewhere else, and a way to bring it back.</div>
+          <button class="primary" id="exportDataBtn" style="margin-bottom:20px;">Export data</button>
+          <div class="display" style="font-size:14px;margin-bottom:6px;">Import a backup</div>
+          <div class="scan-msg" style="margin-top:0;">This replaces your entire catalog, rentals, and history with whatever's in the file — there's no merging. Use it to restore a backup, not to add a few titles.</div>
+          <label class="file-label">Choose a backup file
+            <input type="file" accept="application/json" id="importDataInput" />
+          </label>
+          <span id="importDataStatus" style="font-size:11px;color:var(--muted);margin-left:8px;"></span>
         </div>
       </div>
     </div>
@@ -736,9 +753,11 @@
   let wledCloseEffect = 2;
   let wledEffectSeconds = 6;
   let doorCloseDelaySeconds = 60;
+  let maxRenewals = 2;
   let bays = []; // [{number, ledIndex, titleId}]
   let pendingReturn = null; // {titleId, title, expiresAt} — set until the disc lands back in a bay
   let pendingCheckout = null; // {titleId, title, renterName, expiresAt} — set until the disc leaves its bay
+  let rentalHistory = []; // [{id, movieId, title, genre, renterName, rentedOn, dueOn, renewals, returnedOn}]
 
   const $ = sel => document.querySelector(sel);
   const $$ = sel => Array.from(document.querySelectorAll(sel));
@@ -758,11 +777,12 @@
       if(resource==="titles") catalog = data;
       else if(resource==="rentals") rentals = data;
       else if(resource==="users") users = data;
-      else if(resource==="settings"){ maxCheckouts = data.maxCheckouts || 3; omdbApiKey = data.omdbApiKey || ""; tmdbApiKey = data.tmdbApiKey || ""; wledUrl = data.wledUrl || ""; bayWindowSeconds = data.bayWindowSeconds || 90; wledOpenEffect = data.wledOpenEffect ?? 9; wledCloseEffect = data.wledCloseEffect ?? 2; wledEffectSeconds = data.wledEffectSeconds || 6; doorCloseDelaySeconds = data.doorCloseDelaySeconds || 60; }
+      else if(resource==="settings"){ maxCheckouts = data.maxCheckouts || 3; omdbApiKey = data.omdbApiKey || ""; tmdbApiKey = data.tmdbApiKey || ""; wledUrl = data.wledUrl || ""; bayWindowSeconds = data.bayWindowSeconds || 90; wledOpenEffect = data.wledOpenEffect ?? 9; wledCloseEffect = data.wledCloseEffect ?? 2; wledEffectSeconds = data.wledEffectSeconds || 6; doorCloseDelaySeconds = data.doorCloseDelaySeconds || 60; maxRenewals = data.maxRenewals ?? 2; }
       else if(resource==="tv-selection") tvSelection = data && data.movieId ? data : null;
       else if(resource==="bays") bays = data;
       else if(resource==="pending-return") pendingReturn = data;
       else if(resource==="pending-checkout") pendingCheckout = data;
+      else if(resource==="rental-history") rentalHistory = data;
       render();
     }catch(e){ toast("Couldn't reach the local server"); }
   }
@@ -782,10 +802,12 @@
       wledCloseEffect = (state.settings && state.settings.wledCloseEffect) ?? 2;
       wledEffectSeconds = (state.settings && state.settings.wledEffectSeconds) || 6;
       doorCloseDelaySeconds = (state.settings && state.settings.doorCloseDelaySeconds) || 60;
+      maxRenewals = (state.settings && state.settings.maxRenewals) ?? 2;
       tvSelection = state.tvSelection && state.tvSelection.movieId ? state.tvSelection : null;
       bays = state.bays || [];
       pendingReturn = state.pendingReturn && state.pendingReturn.expiresAt > Date.now() ? state.pendingReturn : null;
       pendingCheckout = state.pendingCheckout && state.pendingCheckout.expiresAt > Date.now() ? state.pendingCheckout : null;
+      rentalHistory = state.rentalHistory || [];
       apiReady = true;
       render();
       if(!loggedInUser && !isTvMode()) openLoginGate();
@@ -812,19 +834,26 @@
   // ---------- rendering ----------
   function render(){
     renderBrowse();
-    renderRentals();
     renderMyRentalsPanel();
-    renderAdminList();
-    renderLabelList();
-    renderUsersList();
     renderLoginArea();
     renderModal();
     renderNavVisibility();
     renderKioskTvBanner();
-    renderBayDashboard();
     renderPendingReturnOverlay();
     renderPendingCheckoutOverlay();
     if(isTvMode()) renderTv();
+    // The admin-only panels (inventory list, users, labels, bay dashboard,
+    // all-rentals) are invisible whenever the customer view is showing —
+    // regenerating their HTML on every single state change is wasted work
+    // once the catalog/bay list grows. enterAdminConsole() renders them
+    // once on the way in instead.
+    if(adminMode){
+      renderRentals();
+      renderAdminList();
+      renderLabelList();
+      renderUsersList();
+      renderBayDashboard();
+    }
     const mcInput = $("#maxCheckoutInput");
     if(mcInput && document.activeElement !== mcInput) mcInput.value = maxCheckouts;
     const okInput = $("#omdbKeyInput");
@@ -864,13 +893,22 @@
   function enterAdminConsole(){
     adminMode = true;
     $("#appRoot").style.display = "none";
-    $("#adminConsole").style.display = "block";
+    const console_ = $("#adminConsole");
+    console_.style.display = "block";
+    requestAnimationFrame(() => console_.classList.add("visible"));
+    renderRentals();
+    renderAdminList();
+    renderLabelList();
+    renderUsersList();
+    renderBayDashboard();
     setTab("rentals");
   }
 
   function exitAdminConsole(){
     adminMode = false;
-    $("#adminConsole").style.display = "none";
+    const console_ = $("#adminConsole");
+    console_.classList.remove("visible");
+    setTimeout(() => { console_.style.display = "none"; }, 220);
     $("#appRoot").style.display = "block";
     setTab("browse");
   }
@@ -1192,21 +1230,42 @@
       return;
     }
     const list = rentals.filter(r => r.renterName === loggedInUser.name);
-    if(list.length===0){ el.innerHTML = `<div style="color:var(--muted);font-size:14px;margin-top:14px;">Nothing checked out right now.</div>`; return; }
-    el.innerHTML = `<div class="list-group" style="margin-top:14px;">` + list.map(r => {
-      const daysLeft = Math.ceil((r.dueOn - Date.now()) / 86400000);
-      const overdue = daysLeft < 0;
-      return `<div class="row">
-        <div>
-          <div class="display" style="font-size:16px;">${r.title}</div>
-          <div style="font-size:12px;color:${overdue?'#E87C03':'var(--muted2)'};margin-top:2px;">
-            ${overdue ? `${Math.abs(daysLeft)} day(s) overdue — $${(Math.abs(daysLeft)*LATE_FEE_PER_DAY).toFixed(2)} fee accruing` : `Due in ${daysLeft} day(s)`}
+    const activeHtml = list.length===0
+      ? `<div style="color:var(--muted);font-size:14px;margin-top:14px;">Nothing checked out right now.</div>`
+      : `<div class="list-group" style="margin-top:14px;">` + list.map(r => {
+        const daysLeft = Math.ceil((r.dueOn - Date.now()) / 86400000);
+        const overdue = daysLeft < 0;
+        const renewals = r.renewals || 0;
+        const canRenew = renewals < maxRenewals;
+        return `<div class="row">
+          <div>
+            <div class="display" style="font-size:16px;">${r.title}</div>
+            <div style="font-size:12px;color:${overdue?'#E87C03':'var(--muted2)'};margin-top:2px;">
+              ${overdue ? `${Math.abs(daysLeft)} day(s) overdue — $${(Math.abs(daysLeft)*LATE_FEE_PER_DAY).toFixed(2)} fee accruing` : `Due in ${daysLeft} day(s)`}
+              ${renewals>0 ? ` · renewed ${renewals}/${maxRenewals}` : ''}
+            </div>
           </div>
+          <div style="display:flex;gap:6px;">
+            ${canRenew ? `<button class="secondary" data-myrenew="${r.id}" style="padding:9px 12px;font-size:12px;">Renew</button>` : ''}
+            <button class="teal" data-myreturn="${r.id}">Return disc</button>
+          </div>
+        </div>`;
+      }).join("") + `</div>`;
+
+    const myHistory = rentalHistory.filter(r => r.renterName === loggedInUser.name)
+      .sort((a,b) => b.returnedOn - a.returnedOn).slice(0, 10);
+    const historyHtml = myHistory.length===0 ? "" : `
+      <div class="display" style="font-size:14px;margin-top:24px;margin-bottom:8px;">Recently watched</div>
+      <div class="list-group">` + myHistory.map(r => `<div class="row">
+        <div>
+          <div style="font-size:14px;">${r.title}</div>
+          <div style="font-size:11px;color:var(--muted2);margin-top:2px;">Returned ${new Date(r.returnedOn).toLocaleDateString()}</div>
         </div>
-        <button class="teal" data-myreturn="${r.id}">Return disc</button>
-      </div>`;
-    }).join("") + `</div>`;
+      </div>`).join("") + `</div>`;
+
+    el.innerHTML = activeHtml + historyHtml;
     el.querySelectorAll("[data-myreturn]").forEach(b => b.onclick = () => startReturn(rentals.find(r=>r.id===b.dataset.myreturn)));
+    el.querySelectorAll("[data-myrenew]").forEach(b => b.onclick = () => renewRental(b.dataset.myrenew));
   }
 
   function renderAdminList(){
@@ -1683,7 +1742,6 @@
   function pinLogin(pin){
     pin = (pin||"").trim();
     const setMsg = (text) => {
-      const m2 = $("#modalPinMsg"); if(m2) m2.textContent = text;
       const gm = $("#gatePinMsg"); if(gm) gm.textContent = text;
       $$(".pinMsgField").forEach(m => m.textContent = text);
     };
@@ -1866,7 +1924,7 @@
 
     try{
       const result = await api.send("POST", "/api/bay-return", { bay: bayNumber });
-      await refetch("titles"); await refetch("rentals"); await refetch("bays");
+      await refetch("titles"); await refetch("rentals"); await refetch("bays"); await refetch("rental-history");
       box.innerHTML = `<div class="match-card">
         <div class="t">Returned</div>
         <div class="g">"${result.title}" logged as returned to Bay ${bayNumber}${result.movedToBay ? ' (bay assignment updated)' : ''}.</div>
@@ -2014,7 +2072,18 @@
     }catch(e){ toast("Couldn't save return"); return; }
     await refetch("titles");
     await refetch("rentals");
+    await refetch("rental-history");
     toast(fee>0 ? `Returned "${r.title}" — ${lateDays} day(s) late, $${fee.toFixed(2)} fee` : `Returned "${r.title}" — thanks!`);
+  }
+
+  async function renewRental(rentalId){
+    try{
+      const result = await api.send("POST", "/api/rentals/"+rentalId+"/renew");
+      await refetch("rentals");
+      toast(`Renewed "${result.rental.title}" — new due date set.`);
+    }catch(e){
+      toast(e.message || "Couldn't renew that rental");
+    }
   }
 
   // The button-facing return action everywhere in the app now: flags the
@@ -2096,7 +2165,7 @@
     const box = $("#scanResult");
     try{
       const result = await api.send("POST", "/api/scan-return", { titleId: match.id });
-      await refetch("titles"); await refetch("rentals");
+      await refetch("titles"); await refetch("rentals"); await refetch("rental-history");
       box.innerHTML = `<div class="match-card"><div class="t">Returned</div><div class="g">"${result.title}" confirmed back.</div></div>`;
     }catch(e){
       box.innerHTML = `<div class="match-card"><div class="t">Couldn't confirm</div><div class="g">${e.message||"Try again."}</div></div>`;
@@ -2550,6 +2619,29 @@
       if(!movie){ toast("Pick a title first"); return; }
       rentByMovie(movie, renterName);
       $("#manualCheckoutRenter").value = "";
+    };
+    $("#exportDataBtn").onclick = () => { window.location.href = "/api/export"; };
+    $("#importDataInput").onchange = async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if(!file) return;
+      const statusEl = $("#importDataStatus");
+      if(!confirm(`Import "${file.name}"? This replaces your entire catalog, rentals, and history — there's no undo.`)){
+        e.target.value = "";
+        return;
+      }
+      statusEl.textContent = "Importing…";
+      try{
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+        const result = await api.send("POST", "/api/import", parsed);
+        statusEl.textContent = `Imported ${result.titles} titles, ${result.rentals} active rentals, ${result.users} users, ${result.bays} bays.`;
+        await initApi();
+        toast("Backup imported");
+      }catch(err){
+        statusEl.textContent = "";
+        toast(err.message || "Couldn't import that file — is it a Sandy Server backup?");
+      }
+      e.target.value = "";
     };
 
     if(isTvMode()){

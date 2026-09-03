@@ -9,6 +9,7 @@ const path = require("path");
 const crypto = require("crypto");
 const https = require("https");
 const express = require("express");
+const compression = require("compression");
 const QRCode = require("qrcode");
 const bwipjs = require("bwip-js");
 
@@ -121,6 +122,13 @@ function autoAssignOpenBays(){
   }
   if(assigned > 0){ saveDb(); broadcast("bays"); }
   return assigned;
+}
+
+// Every completed return gets archived here (separate from db.rentals,
+// which only ever holds *active* rentals) — the source for both a
+// customer's own watch history and the admin "most rented" view.
+function archiveRentalToHistory(rental){
+  db.rentalHistory.push({ ...rental, returnedOn: Date.now() });
 }
 
 // Restores every bay's LED to its normal steady state — used after a
@@ -379,8 +387,9 @@ function loadDb(){
     const initial = {
       titles: SEED_TITLES,
       rentals: [],
+      rentalHistory: [],
       users: [{ id: newId("u"), name: "Admin", pin: "0000", isAdmin: true }],
-      settings: { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90, wledOpenEffect: 9, wledCloseEffect: 2, wledEffectSeconds: 6, doorCloseDelaySeconds: 60 },
+      settings: { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90, wledOpenEffect: 9, wledCloseEffect: 2, wledEffectSeconds: 6, doorCloseDelaySeconds: 60, maxRenewals: 2 },
       tvSelection: null,
       activeSession: null,
       pendingReturn: null,
@@ -396,8 +405,9 @@ function loadDb(){
   // fill in defaults for anything missing (upgrades from an older data file)
   parsed.titles = parsed.titles || [];
   parsed.rentals = parsed.rentals || [];
+  parsed.rentalHistory = parsed.rentalHistory || [];
   parsed.users = parsed.users || [];
-  parsed.settings = parsed.settings || { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90, wledOpenEffect: 9, wledCloseEffect: 2, wledEffectSeconds: 6, doorCloseDelaySeconds: 60 };
+  parsed.settings = parsed.settings || { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90, wledOpenEffect: 9, wledCloseEffect: 2, wledEffectSeconds: 6, doorCloseDelaySeconds: 60, maxRenewals: 2 };
   if(parsed.settings.wledOpenEffect === undefined) parsed.settings.wledOpenEffect = 9;
   if(parsed.settings.wledCloseEffect === undefined) parsed.settings.wledCloseEffect = 2;
   if(parsed.settings.wledEffectSeconds === undefined) parsed.settings.wledEffectSeconds = 6;
@@ -406,6 +416,7 @@ function loadDb(){
   if(parsed.settings.tmdbApiKey === undefined) parsed.settings.tmdbApiKey = "";
   if(parsed.settings.wledUrl === undefined) parsed.settings.wledUrl = "";
   if(parsed.settings.bayWindowSeconds === undefined) parsed.settings.bayWindowSeconds = 90;
+  if(parsed.settings.maxRenewals === undefined) parsed.settings.maxRenewals = 2;
   if(parsed.tvSelection === undefined) parsed.tvSelection = null;
   if(parsed.activeSession === undefined) parsed.activeSession = null;
   if(parsed.pendingReturn === undefined) parsed.pendingReturn = null;
@@ -447,13 +458,16 @@ function broadcast(resource){
 
 // ---------- app ----------
 const app = express();
+app.use(compression()); // gzip everything — the JSON responses here are mostly
+                         // base64 poster/logo images, which compress well
 app.use(express.json({ limit: "20mb" })); // poster/logo images and short theme-song clips are all small data URLs, but give room
 app.use(express.static(path.join(__dirname, "public")));
 
 // ---------- read endpoints ----------
 app.get("/api/state", (req, res) => {
-  res.json({ titles: db.titles, rentals: db.rentals, users: db.users, settings: db.settings, tvSelection: db.tvSelection, bays: db.bays, pendingReturn: db.pendingReturn, pendingCheckout: db.pendingCheckout });
+  res.json({ titles: db.titles, rentals: db.rentals, rentalHistory: db.rentalHistory, users: db.users, settings: db.settings, tvSelection: db.tvSelection, bays: db.bays, pendingReturn: db.pendingReturn, pendingCheckout: db.pendingCheckout });
 });
+app.get("/api/rental-history", (req, res) => res.json(db.rentalHistory));
 app.get("/api/pending-checkout", (req, res) => {
   if(db.pendingCheckout && db.pendingCheckout.expiresAt > Date.now()) res.json(db.pendingCheckout);
   else res.json(null);
@@ -464,6 +478,10 @@ app.put("/api/pending-checkout", (req, res) => {
   if(!title) return res.status(404).json({ error: "title not found" });
   if(!renterName) return res.status(400).json({ error: "renterName is required" });
   if(title.stock <= 0) return res.status(409).json({ error: `"${title.title}" shows no stock.` });
+  const renterUser = db.users.find(u => u.name === renterName);
+  if(renterUser && Array.isArray(renterUser.restrictedRatings) && renterUser.restrictedRatings.includes(title.rating)){
+    return res.status(403).json({ error: `${renterName}'s account can't check out ${title.rating}-rated titles.` });
+  }
   const windowSeconds = (db.settings && db.settings.bayWindowSeconds) || 90;
   db.pendingCheckout = { titleId, title: title.title, renterName, expiresAt: Date.now() + windowSeconds * 1000 };
   saveDb();
@@ -520,6 +538,7 @@ app.post("/api/scan-return", (req, res) => {
   const rental = title ? db.rentals.find(r => r.movieId === title.id) : null;
   if(!title || !rental) return res.status(404).json({ error: "Nothing to return for that title." });
   title.stock += 1;
+  archiveRentalToHistory(rental);
   db.rentals = db.rentals.filter(r => r.id !== rental.id);
   db.pendingReturn = null;
   saveDb();
@@ -918,6 +937,7 @@ app.post("/api/bay-return", (req, res) => {
   if(!title || !rental) return res.status(404).json({ error: `Can't tell what was returned to bay ${bayNumber} — log in with your PIN before returning if it's not going back in its usual bay.` });
 
   title.stock += 1;
+  archiveRentalToHistory(rental);
   db.rentals = db.rentals.filter(r => r.id !== rental.id);
   saveDb();
   broadcast("titles");
@@ -937,7 +957,24 @@ app.post("/api/rentals", (req, res) => {
   res.json(rental);
 });
 
+app.post("/api/rentals/:id/renew", (req, res) => {
+  const r = db.rentals.find(x => x.id === req.params.id);
+  if(!r) return res.status(404).json({ error: "Rental not found." });
+  const maxRenewals = (db.settings && db.settings.maxRenewals) ?? 2;
+  const renewals = r.renewals || 0;
+  if(renewals >= maxRenewals){
+    return res.status(409).json({ error: `Already renewed the maximum ${maxRenewals} time${maxRenewals===1?'':'s'} — return and check it out again if you need it longer.` });
+  }
+  r.dueOn = Date.now() + RENTAL_DAYS_MS;
+  r.renewals = renewals + 1;
+  saveDb();
+  broadcast("rentals");
+  res.json({ ok: true, rental: r });
+});
+
 app.delete("/api/rentals/:id", (req, res) => {
+  const rental = db.rentals.find(r => r.id === req.params.id);
+  if(rental) archiveRentalToHistory(rental);
   db.rentals = db.rentals.filter(r => r.id !== req.params.id);
   saveDb();
   broadcast("rentals");
@@ -982,6 +1019,41 @@ app.put("/api/settings", (req, res) => {
   saveDb();
   broadcast("settings");
   res.json(db.settings);
+});
+
+// ---------- backup: export / import everything ----------
+app.get("/api/export", (req, res) => {
+  const stamp = new Date().toISOString().slice(0, 10);
+  res.setHeader("Content-Type", "application/json");
+  res.setHeader("Content-Disposition", `attachment; filename="sandy-server-backup-${stamp}.json"`);
+  res.send(JSON.stringify(db, null, 2));
+});
+
+app.post("/api/import", (req, res) => {
+  const incoming = req.body;
+  if(!incoming || typeof incoming !== "object" || !Array.isArray(incoming.titles)){
+    return res.status(400).json({ error: "That doesn't look like a Sandy Server backup file — expected a titles list." });
+  }
+  db = {
+    titles: incoming.titles || [],
+    rentals: incoming.rentals || [],
+    rentalHistory: incoming.rentalHistory || [],
+    users: (incoming.users && incoming.users.length) ? incoming.users : db.users,
+    settings: { ...db.settings, ...(incoming.settings || {}) },
+    tvSelection: incoming.tvSelection || null,
+    activeSession: null,   // a restored backup shouldn't resurrect a stale login session
+    pendingReturn: null,
+    pendingCheckout: null,
+    bays: incoming.bays || []
+  };
+  saveDb();
+  broadcast("titles");
+  broadcast("rentals");
+  broadcast("rental-history");
+  broadcast("users");
+  broadcast("settings");
+  broadcast("bays");
+  res.json({ ok: true, titles: db.titles.length, rentals: db.rentals.length, users: db.users.length, bays: db.bays.length });
 });
 
 // ---------- TV selection ----------
