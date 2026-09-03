@@ -100,6 +100,29 @@ function updateBayLedForTitle(title){
   pushBayLed(idx, title.stock > 0 ? "00FF00" : "FF0000");
 }
 
+// Whenever a bay opens up (added, or cleared) or a title ends up with no
+// bay (added, or its bay was cleared/removed), pair off whatever's left
+// unmatched on both sides — lowest bay numbers filled first, titles in
+// alphabetical order, so it's predictable rather than arbitrary. Safe to
+// call after any change; it's a no-op if nothing's actually unmatched.
+function autoAssignOpenBays(){
+  const openBays = db.bays.filter(b => !b.titleId).sort((a,b) => Number(a.number)-Number(b.number));
+  if(openBays.length === 0) return 0;
+  const unassignedTitles = db.titles
+    .filter(t => !db.bays.some(b => b.titleId === t.id))
+    .sort((a,b) => a.title.localeCompare(b.title));
+  let assigned = 0;
+  for(const bay of openBays){
+    const title = unassignedTitles[assigned];
+    if(!title) break;
+    bay.titleId = title.id;
+    updateBayLedForTitle(title);
+    assigned++;
+  }
+  if(assigned > 0){ saveDb(); broadcast("bays"); }
+  return assigned;
+}
+
 // Restores every bay's LED to its normal steady state — used after a
 // whole-strip animation finishes, since that temporarily overrides the
 // individual per-bay colors.
@@ -504,6 +527,7 @@ app.post("/api/scan-return", (req, res) => {
   broadcast("rentals");
   broadcast("pending-return");
   updateBayLedForTitle(title);
+  autoAssignOpenBays();
   res.json({ ok: true, title: title.title });
 });
 
@@ -900,6 +924,7 @@ app.post("/api/bay-return", (req, res) => {
   broadcast("rentals");
   if(movedBay) broadcast("bays");
   updateBayLedForTitle(title);
+  autoAssignOpenBays();
   res.json({ ok: true, title: title.title, movedToBay: movedBay ? bayNumber : null });
 });
 
@@ -916,6 +941,7 @@ app.delete("/api/rentals/:id", (req, res) => {
   db.rentals = db.rentals.filter(r => r.id !== req.params.id);
   saveDb();
   broadcast("rentals");
+  autoAssignOpenBays();
   res.json({ ok: true });
 });
 

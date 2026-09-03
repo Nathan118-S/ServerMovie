@@ -448,6 +448,17 @@ position on your strip, and it stays put even if you later reassign that
 bay to hold a different title. Swapping which movie sits in bay 12
 doesn't mean re-wiring or re-numbering anything.
 
+**Open bays get filled when a disc comes back.** Every time a return
+completes — physically (a bay pull), by scanning a barcode, or a manual
+admin return in All rentals — Sandy Server checks for any title sitting
+with no bay assigned and any bay sitting empty, and pairs them off:
+lowest bay numbers first, titles alphabetically. It doesn't run when a
+title or bay is first created, only on a return, so newly added titles
+wait for the next return before they're auto-placed rather than getting
+grabbed immediately. You'll still want to double-check the pairing makes
+physical sense (it doesn't know which shelf is actually empty), but you
+won't be manually matching things up one at a time.
+
 **Print bay barcodes** generates one barcode label per existing bay
 (add the bays first) — stick each one on the physical shelf, not on a
 disc. Scan a disc that isn't assigned to a bay yet in the barcode bar,
