@@ -293,7 +293,10 @@
     <input id="searchBox" placeholder="Search titles..." />
   </div>
   <button class="secondary" id="topBarReturnBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 1 1 2.3 5.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 17v-5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Return</button>
-  <button class="secondary" id="adminConsoleBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Admin Console</button>
+  <button class="secondary" id="adminConsoleBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;display:none;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Admin Console</button>
+  <button class="theme-toggle" id="scanBarToggleBtn" title="Show/hide barcode scanner &amp; login" type="button">
+    <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/><line x1="7" y1="8" x2="7" y2="16" stroke="currentColor" stroke-width="2"/><line x1="10" y1="8" x2="10" y2="16" stroke="currentColor" stroke-width="1"/><line x1="12.5" y1="8" x2="12.5" y2="16" stroke="currentColor" stroke-width="2"/><line x1="15" y1="8" x2="15" y2="16" stroke="currentColor" stroke-width="1"/><line x1="17.5" y1="8" x2="17.5" y2="16" stroke="currentColor" stroke-width="2"/></svg>
+  </button>
   <button class="theme-toggle" id="themeToggleBtn" title="Switch light/dark" type="button">
     <svg class="icon-sun" viewBox="0 0 24 24" fill="none" width="18" height="18"><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="2"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="2.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="21.5"/><line x1="2.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="21.5" y2="12"/><line x1="5.1" y1="5.1" x2="6.9" y2="6.9"/><line x1="17.1" y1="17.1" x2="18.9" y2="18.9"/><line x1="5.1" y1="18.9" x2="6.9" y2="17.1"/><line x1="17.1" y1="6.9" x2="18.9" y2="5.1"/></g></svg>
     <svg class="icon-moon" viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
@@ -304,7 +307,7 @@
   <button data-tab="browse" class="active">Browse catalog</button>
 </div>
 
-<div class="scan-bar">
+<div class="scan-bar" id="scanBarRow" style="display:none;">
   <svg class="icon-svg" viewBox="0 0 24 24" fill="none" width="18" height="18" style="flex-shrink:0;"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/><line x1="7" y1="8" x2="7" y2="16" stroke="currentColor" stroke-width="2"/><line x1="10" y1="8" x2="10" y2="16" stroke="currentColor" stroke-width="1"/><line x1="12.5" y1="8" x2="12.5" y2="16" stroke="currentColor" stroke-width="2"/><line x1="15" y1="8" x2="15" y2="16" stroke="currentColor" stroke-width="1"/><line x1="17.5" y1="8" x2="17.5" y2="16" stroke="currentColor" stroke-width="2"/></svg>
   <input id="barcodeInput" placeholder="Scan or type a barcode, then press Enter — works with a USB scanner too" />
   <div id="scanLoginArea"></div>
@@ -338,18 +341,9 @@
 
 <div id="movieModal" class="modal-overlay"></div>
 <div id="pendingReturnOverlay" class="pending-return-overlay"></div>
-<div id="adminPinOverlay" class="modal-overlay">
-  <div class="modal-card" style="width:320px;">
-    <div class="modal-body" style="padding:28px 22px;">
-      <div class="t" style="font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:20px;font-weight:700;color:var(--white);margin-bottom:14px;">Admin Console</div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Enter an admin PIN to continue</div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <input id="adminPinInput" class="pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" />
-        <button class="primary" id="adminPinSubmitBtn">Enter</button>
-      </div>
-      <div id="adminPinMsg" style="font-size:12px;color:#E87C03;margin-top:8px;min-height:16px;"></div>
-      <button class="secondary" id="adminPinCancelBtn" style="margin-top:14px;width:100%;">Cancel</button>
-    </div>
+<div id="returnFlowOverlay" class="modal-overlay">
+  <div class="modal-card" style="width:360px;">
+    <div class="modal-body" id="returnFlowBody" style="padding:28px 22px;"></div>
   </div>
 </div>
 
@@ -838,6 +832,8 @@
     // console is open, drop back to the customer view automatically.
     const isAdmin = !!(loggedInUser && loggedInUser.isAdmin);
     if(adminMode && !isAdmin) exitAdminConsole();
+    const consoleBtn = $("#adminConsoleBtn");
+    if(consoleBtn) consoleBtn.style.display = isAdmin ? "inline-flex" : "none";
     const bar = $("#adminModeBar");
     if(bar){
       const nameEl = $("#adminModeBarName");
@@ -859,40 +855,91 @@
     setTab("browse");
   }
 
-  function openAdminPinPrompt(){
-    const overlay = $("#adminPinOverlay");
+  // ---------- Return flow: PIN -> show what's checked out -> pending ----------
+  function openReturnFlow(){
+    const overlay = $("#returnFlowOverlay");
     overlay.style.display = "flex";
-    const input = $("#adminPinInput");
-    input.value = "";
-    $("#adminPinMsg").textContent = "";
+    renderReturnFlowPinStep();
+  }
+
+  function closeReturnFlow(){
+    $("#returnFlowOverlay").style.display = "none";
+  }
+
+  function renderReturnFlowPinStep(){
+    const body = $("#returnFlowBody");
+    body.innerHTML = `
+      <div class="t" style="font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:20px;font-weight:700;color:var(--white);margin-bottom:14px;">Return a disc</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Enter your 4-digit PIN</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="returnFlowPinInput" class="pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" />
+        <button class="primary" id="returnFlowPinSubmitBtn">Enter</button>
+      </div>
+      <div id="returnFlowPinMsg" style="font-size:12px;color:#E87C03;margin-top:8px;min-height:16px;"></div>
+      <button class="secondary" id="returnFlowCancelBtn" style="margin-top:14px;width:100%;">Cancel</button>
+    `;
+    const input = $("#returnFlowPinInput");
     input.focus();
+    $("#returnFlowPinSubmitBtn").onclick = submitReturnFlowPin;
+    input.addEventListener("keydown", e => { if(e.key==="Enter") submitReturnFlowPin(); });
+    $("#returnFlowCancelBtn").onclick = closeReturnFlow;
   }
 
-  function closeAdminPinPrompt(){
-    $("#adminPinOverlay").style.display = "none";
-  }
-
-  function submitAdminPin(){
-    const input = $("#adminPinInput");
+  function submitReturnFlowPin(){
+    const input = $("#returnFlowPinInput");
     const pin = (input.value||"").trim();
-    const msgEl = $("#adminPinMsg");
-    const shakeInputs = () => {
-      input.style.animation = "none";
-      void input.offsetWidth;
-      input.style.animation = "shakeX 0.4s ease";
-    };
-    if(pin.length!==4){ msgEl.textContent = "Enter all 4 digits."; shakeInputs(); return; }
+    const msgEl = $("#returnFlowPinMsg");
+    const shake = () => { input.style.animation="none"; void input.offsetWidth; input.style.animation="shakeX 0.4s ease"; };
+    if(pin.length!==4){ msgEl.textContent = "Enter all 4 digits."; shake(); return; }
     const u = users.find(x => x.pin === pin);
-    if(!u){ msgEl.textContent = "PIN not recognized."; shakeInputs(); return; }
-    if(!u.isAdmin){ msgEl.textContent = "That PIN isn't an admin account."; shakeInputs(); return; }
-    loggedInUser = { id: u.id, name: u.name, isAdmin: true };
-    renderLoginArea();
-    renderModal();
-    clearTimeout(autoLogoutTimer); // admins never auto-logout
-    api.send("PUT", "/api/active-session", { userId: u.id, name: u.name }).catch(()=>{});
-    closeAdminPinPrompt();
-    toast(`Welcome, ${u.name} (admin)`);
-    enterAdminConsole();
+    if(!u){ msgEl.textContent = "PIN not recognized."; shake(); return; }
+    const theirRentals = rentals.filter(r => r.renterName === u.name);
+    renderReturnFlowCheckedOutStep(u, theirRentals);
+  }
+
+  function renderReturnFlowCheckedOutStep(user, theirRentals){
+    const body = $("#returnFlowBody");
+    if(theirRentals.length === 0){
+      body.innerHTML = `
+        <div class="t" style="font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:20px;font-weight:700;color:var(--white);margin-bottom:10px;">Nothing checked out</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">${user.name} doesn't have anything rented right now.</div>
+        <button class="secondary" id="returnFlowCancelBtn" style="width:100%;">Close</button>
+      `;
+      $("#returnFlowCancelBtn").onclick = closeReturnFlow;
+      return;
+    }
+
+    const rowsHtml = theirRentals.map(r => `<div class="row" data-returnflowpick="${r.id}" style="cursor:pointer;">
+      <div class="display" style="font-size:15px;">${r.title}</div>
+    </div>`).join("");
+
+    body.innerHTML = `
+      <div class="t" style="font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:20px;font-weight:700;color:var(--white);margin-bottom:6px;">Hi, ${user.name}</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">
+        ${theirRentals.length===1 ? "Here's what you've got checked out:" : "Tap the one you're returning:"}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">${rowsHtml}</div>
+      <button class="secondary" id="returnFlowCancelBtn" style="margin-top:16px;width:100%;">Cancel</button>
+    `;
+    $("#returnFlowCancelBtn").onclick = closeReturnFlow;
+
+    if(theirRentals.length === 1){
+      // exactly one thing out — show it, pause a beat, then move on automatically
+      setTimeout(() => {
+        if($("#returnFlowOverlay").style.display !== "none") proceedReturnFlow(theirRentals[0]);
+      }, 2500);
+    } else {
+      // more than one — a deliberate tap picks which one, no need to also wait
+      body.querySelectorAll("[data-returnflowpick]").forEach(row => {
+        row.onclick = () => proceedReturnFlow(theirRentals.find(r => r.id === row.dataset.returnflowpick));
+      });
+    }
+  }
+
+  function proceedReturnFlow(rental){
+    if(!rental) return;
+    closeReturnFlow();
+    startReturn(rental);
   }
 
   // ---------- Browse: hero + genre rows ----------
@@ -2134,7 +2181,11 @@
     if(banner) banner.innerHTML = returnMode
       ? `<div class="return-mode-banner">Return mode on — scan the disc you're returning. Once it's found, place it in a bay slot (or scan its bay barcode) to log the return.</div>`
       : "";
-    if(returnMode) $("#barcodeInput").focus();
+    if(returnMode){
+      const row = $("#scanBarRow");
+      if(row && row.style.display === "none"){ row.style.display = "flex"; $("#scanBarToggleBtn").classList.add("active"); }
+      $("#barcodeInput").focus();
+    }
   }
 
   async function handleReturnModeScan(code){
@@ -2330,15 +2381,16 @@
   document.addEventListener("DOMContentLoaded", async () => {
     setTheme(getTheme()); // sync the button's icon to whatever the inline head script already applied
     $("#themeToggleBtn").onclick = toggleTheme;
-    $("#topBarReturnBtn").onclick = () => toggleReturnMode();
-    $("#adminConsoleBtn").onclick = () => {
-      if(loggedInUser && loggedInUser.isAdmin) enterAdminConsole();
-      else openAdminPinPrompt();
+    $("#scanBarToggleBtn").onclick = () => {
+      const row = $("#scanBarRow");
+      const hidden = row.style.display === "none";
+      row.style.display = hidden ? "flex" : "none";
+      $("#scanBarToggleBtn").classList.toggle("active", hidden);
+      if(hidden) $("#barcodeInput").focus();
     };
+    $("#topBarReturnBtn").onclick = () => openReturnFlow();
+    $("#adminConsoleBtn").onclick = () => enterAdminConsole();
     $("#exitAdminConsoleBtn").onclick = exitAdminConsole;
-    $("#adminPinSubmitBtn").onclick = submitAdminPin;
-    $("#adminPinCancelBtn").onclick = closeAdminPinPrompt;
-    $("#adminPinInput").addEventListener("keydown", e => { if(e.key==="Enter") submitAdminPin(); });
 
     if(isTvMode()){
       $("#appRoot").style.display = "none";

@@ -76,6 +76,8 @@ a short-lived, browser-session-only token that a script can't reuse, so
 
 There's no camera-based scanning in this version — every barcode goes
 through the search-bar-style **barcode bar** at the top of every page
+(hidden by default now — tap the barcode icon next to the theme toggle
+in the top bar to show or hide it)
 (type it, or use a cheap USB barcode scanner, which just types the code
 and hits Enter for you). That's a deliberate simplification: it means no
 camera permissions, no secure-context requirement, and it works exactly
@@ -343,14 +345,18 @@ logged in where, with one caveat covered next.
 
 ### Every return waits for the disc to actually be back
 
-"Return disc" in **My Rentals**, the checkout modal, or the top-bar
-**Return** button no longer completes a return instantly. Clicking one
-flags that title as **pending**: the row shows "⏳ Return pending — place
-it in a bay to finish" with a Cancel option, and the return only actually
+"Return disc" in **My Rentals** or the checkout modal flags that title as
+**pending** right away: the row shows "⏳ Return pending — place it in a
+bay to finish" with a Cancel option, and the return only actually
 completes once that disc lands in a bay (the microswitch firing, or a
-scanned bay barcode as a manual/testing fallback). The top-bar button
-switches return mode on and focuses the barcode bar, so
-you can scan the disc and place it without extra clicks.
+scanned bay barcode as a manual/testing fallback).
+
+The top-bar **Return** button walks through a small guided flow instead
+of jumping straight to pending: it asks for your PIN, then shows what
+you've got checked out. With one thing out, it shows it and moves on to
+pending automatically after a couple of seconds; with more than one, tap
+the one you're actually returning — that tap is itself the confirmation,
+so it skips the wait and goes straight to pending.
 
 **All rentals**, under the Admin panel, is the one exception — that
 Return button still completes instantly. It's the staff/admin override:
@@ -527,8 +533,12 @@ opens as its own fully separate view (own top bar, own nav: All rentals,
 Print labels, Manage inventory, Manage users, TV Display) rather than
 extra tabs mixed into the customer-facing nav.
 
-- If you're not already logged in as an admin, clicking it asks for an
-  admin PIN before letting you in.
+- The **Admin Console** button itself is only visible once you're
+  already logged in with an admin PIN (via the login widget in the
+  barcode bar) — there's no button for a non-admin to even find, let
+  alone click. Log in as an admin, and the button appears in the top bar;
+  log out (or an inactivity timeout logs a non-admin out), and it's gone
+  again.
 - A **red bar** across the top of the console at all times is the "you
   are in admin mode" indicator — it names who's logged in and has an
   **Exit to customer view** button.
