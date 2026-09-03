@@ -358,6 +358,22 @@ pending automatically after a couple of seconds; with more than one, tap
 the one you're actually returning — that tap is itself the confirmation,
 so it skips the wait and goes straight to pending.
 
+### Rentals wait too — same idea, orange instead of green
+
+Renting works the mirror image of returning: click "Rent" anywhere —
+the checkout modal, a series' disc picker, or Scan a disc — and it
+doesn't finish immediately either. It flags that title as pending
+checkout and shows a full-screen "Rental pending" overlay (the same
+design as the return one, just orange) until that disc actually leaves
+its bay — the microswitch firing, or a scanned bay barcode as the same
+manual/testing fallback.
+
+One difference from returns: a checkout's pending state is tied to a
+*specific* bay (whichever one holds that title), not "any bay" — so an
+unrelated bay firing while your rental is pending doesn't accidentally
+complete it. That unrelated bay's own event still processes normally
+through the same active-session/assigned-title logic returns use.
+
 **All rentals**, under the Admin panel, is the one exception — that
 Return button still completes instantly. It's the staff/admin override:
 if you're standing there processing a return directly, there's no need to

@@ -361,6 +361,7 @@ function loadDb(){
       tvSelection: null,
       activeSession: null,
       pendingReturn: null,
+      pendingCheckout: null,
       bays: []
     };
     fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -385,6 +386,7 @@ function loadDb(){
   if(parsed.tvSelection === undefined) parsed.tvSelection = null;
   if(parsed.activeSession === undefined) parsed.activeSession = null;
   if(parsed.pendingReturn === undefined) parsed.pendingReturn = null;
+  if(parsed.pendingCheckout === undefined) parsed.pendingCheckout = null;
 
   // bays: {number, ledIndex, titleId} — a bay's LED position is fixed
   // wiring and shouldn't move just because a different title gets
@@ -427,7 +429,29 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // ---------- read endpoints ----------
 app.get("/api/state", (req, res) => {
-  res.json({ titles: db.titles, rentals: db.rentals, users: db.users, settings: db.settings, tvSelection: db.tvSelection, bays: db.bays, pendingReturn: db.pendingReturn });
+  res.json({ titles: db.titles, rentals: db.rentals, users: db.users, settings: db.settings, tvSelection: db.tvSelection, bays: db.bays, pendingReturn: db.pendingReturn, pendingCheckout: db.pendingCheckout });
+});
+app.get("/api/pending-checkout", (req, res) => {
+  if(db.pendingCheckout && db.pendingCheckout.expiresAt > Date.now()) res.json(db.pendingCheckout);
+  else res.json(null);
+});
+app.put("/api/pending-checkout", (req, res) => {
+  const { titleId, renterName } = req.body;
+  const title = db.titles.find(t => t.id === titleId);
+  if(!title) return res.status(404).json({ error: "title not found" });
+  if(!renterName) return res.status(400).json({ error: "renterName is required" });
+  if(title.stock <= 0) return res.status(409).json({ error: `"${title.title}" shows no stock.` });
+  const windowSeconds = (db.settings && db.settings.bayWindowSeconds) || 90;
+  db.pendingCheckout = { titleId, title: title.title, renterName, expiresAt: Date.now() + windowSeconds * 1000 };
+  saveDb();
+  broadcast("pending-checkout");
+  res.json(db.pendingCheckout);
+});
+app.delete("/api/pending-checkout", (req, res) => {
+  db.pendingCheckout = null;
+  saveDb();
+  broadcast("pending-checkout");
+  res.json({ ok: true });
 });
 app.get("/api/pending-return", (req, res) => {
   if(db.pendingReturn && db.pendingReturn.expiresAt > Date.now()) res.json(db.pendingReturn);
@@ -715,6 +739,32 @@ app.post("/api/door-closed", (req, res) => {
 app.post("/api/bay-checkout", (req, res) => {
   const bayNumber = req.body.bay;
   if(bayNumber === undefined || bayNumber === null) return res.status(400).json({ error: "bay is required" });
+
+  // Case 0: a "Rent" click already told us exactly which title this bay
+  // pull is for — completes it using the renter name captured at click
+  // time, but only if this is actually the bay holding that title (a
+  // different bay firing is a separate, unrelated pull).
+  if(db.pendingCheckout && db.pendingCheckout.expiresAt > Date.now()){
+    const pendingBay = db.bays.find(b => b.titleId === db.pendingCheckout.titleId);
+    if(pendingBay && String(pendingBay.number) === String(bayNumber)){
+      const title = db.titles.find(t => t.id === db.pendingCheckout.titleId);
+      if(title && title.stock > 0){
+        const renterName = db.pendingCheckout.renterName;
+        title.stock -= 1;
+        const now = Date.now();
+        const rental = { id: newId("r"), movieId: title.id, title: title.title, genre: title.genre, renterName, rentedOn: now, dueOn: now + RENTAL_DAYS_MS };
+        db.rentals.push(rental);
+        db.pendingCheckout = null;
+        saveDb();
+        broadcast("titles");
+        broadcast("rentals");
+        broadcast("pending-checkout");
+        updateBayLedForTitle(title);
+        return res.json({ ok: true, title: title.title, renterName, rental });
+      }
+    }
+  }
+
   const bay = db.bays.find(b => String(b.number) === String(bayNumber));
   if(!bay || !bay.titleId) return res.status(404).json({ error: `No title assigned to bay ${bayNumber}` });
   const title = db.titles.find(t => t.id === bay.titleId);

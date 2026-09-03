@@ -233,6 +233,7 @@
   .modal-overlay{position:fixed;inset:0;background:rgba(5,6,9,0.75);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;animation:fadeIn 0.2s ease;}
   .pending-return-overlay{position:fixed;inset:0;background:var(--bg);z-index:70;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;animation:fadeIn 0.25s ease;}
   .pending-return-overlay .spinner{width:64px;height:64px;border-radius:50%;border:5px solid var(--surf3);border-top-color:var(--green);animation:spin 1s linear infinite;margin-bottom:24px;}
+  #pendingCheckoutOverlay .spinner{border-top-color:#E87C03;}
   .pending-return-overlay .t{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:28px;font-weight:700;color:var(--white);margin-bottom:8px;}
   .pending-return-overlay .g{font-size:15px;color:var(--muted);max-width:420px;margin-bottom:28px;}
   @keyframes spin{to{transform:rotate(360deg);}}
@@ -341,6 +342,7 @@
 
 <div id="movieModal" class="modal-overlay"></div>
 <div id="pendingReturnOverlay" class="pending-return-overlay"></div>
+<div id="pendingCheckoutOverlay" class="pending-return-overlay"></div>
 <div id="returnFlowOverlay" class="modal-overlay">
   <div class="modal-card" style="width:360px;">
     <div class="modal-body" id="returnFlowBody" style="padding:28px 22px;"></div>
@@ -723,6 +725,7 @@
   let doorCloseDelaySeconds = 60;
   let bays = []; // [{number, ledIndex, titleId}]
   let pendingReturn = null; // {titleId, title, expiresAt} — set until the disc lands back in a bay
+  let pendingCheckout = null; // {titleId, title, renterName, expiresAt} — set until the disc leaves its bay
 
   const $ = sel => document.querySelector(sel);
   const $$ = sel => Array.from(document.querySelectorAll(sel));
@@ -746,6 +749,7 @@
       else if(resource==="tv-selection") tvSelection = data && data.movieId ? data : null;
       else if(resource==="bays") bays = data;
       else if(resource==="pending-return") pendingReturn = data;
+      else if(resource==="pending-checkout") pendingCheckout = data;
       render();
     }catch(e){ toast("Couldn't reach the local server"); }
   }
@@ -768,6 +772,7 @@
       tvSelection = state.tvSelection && state.tvSelection.movieId ? state.tvSelection : null;
       bays = state.bays || [];
       pendingReturn = state.pendingReturn && state.pendingReturn.expiresAt > Date.now() ? state.pendingReturn : null;
+      pendingCheckout = state.pendingCheckout && state.pendingCheckout.expiresAt > Date.now() ? state.pendingCheckout : null;
       apiReady = true;
       render();
     }catch(e){
@@ -804,6 +809,7 @@
     renderKioskTvBanner();
     renderBayDashboard();
     renderPendingReturnOverlay();
+    renderPendingCheckoutOverlay();
     if(isTvMode()) renderTv();
     const mcInput = $("#maxCheckoutInput");
     if(mcInput && document.activeElement !== mcInput) mcInput.value = maxCheckouts;
@@ -1403,7 +1409,7 @@
     if(trailerBtn) trailerBtn.onclick = () => { playTrailerInline(trailerBtn.dataset.slot, trailerBtn.dataset.trailerkey); trailerBtn.remove(); };
 
     if(!out && loggedInUser){
-      $("#modalRentBtn").onclick = async () => { await rentByMovie(m, loggedInUser.name); closeModal(); };
+      $("#modalRentBtn").onclick = async () => { await startRentByMovie(m, loggedInUser.name); closeModal(); };
       $("#modalLogoutBtn").onclick = () => { pinLogout(); };
     } else if(!out){
       const pinInput = $("#modalPinInput");
@@ -1488,7 +1494,7 @@
         if(!loggedInUser){ toast("Log in with your PIN first"); return; }
         const disc = catalog.find(x => x.id === b.dataset.rentdisc);
         if(!disc) return;
-        await rentByMovie(disc, loggedInUser.name);
+        await startRentByMovie(disc, loggedInUser.name);
         renderModal(); // stay open — picking another disc from the same series is a normal thing to want
       };
     });
@@ -1794,9 +1800,19 @@
       return;
     }
 
-    // No pending assignment — try completing a return in progress (same
-    // endpoint the physical microswitch calls), useful for testing the
-    // Return flow before the hardware side is fully wired up.
+    // No pending assignment — try completing a checkout in progress first
+    // (same endpoint the physical microswitch calls), then a return.
+    // Useful for testing either flow before the hardware side is wired up.
+    try{
+      const result = await api.send("POST", "/api/bay-checkout", { bay: bayNumber });
+      await refetch("titles"); await refetch("rentals");
+      box.innerHTML = `<div class="match-card">
+        <div class="t">Checked out</div>
+        <div class="g">"${result.title}" logged as rented to ${result.renterName} from Bay ${bayNumber}.</div>
+      </div>`;
+      return;
+    }catch(e){ /* nothing pending to check out here — try a return next */ }
+
     try{
       const result = await api.send("POST", "/api/bay-return", { bay: bayNumber });
       await refetch("titles"); await refetch("rentals"); await refetch("bays");
@@ -1890,6 +1906,30 @@
   }
 
   // ---------- catalog actions ----------
+  // The button-facing rent action everywhere in the app now: flags the
+  // title as awaiting physical confirmation instead of completing the
+  // checkout immediately — it only actually finishes once that disc
+  // leaves its bay (microswitch, or a scanned bay barcode as a manual
+  // fallback), mirroring how returns work.
+  async function startRentByMovie(movie, renterName){
+    if(movie.stock<=0) return;
+    renterName = (renterName||"").trim();
+    if(!renterName){ toast("Enter a renter name first"); return; }
+    const currentCount = rentals.filter(r => r.renterName===renterName).length;
+    if(currentCount >= maxCheckouts){
+      toast(`${renterName} already has ${currentCount} disc${currentCount===1?'':'s'} out — the limit is ${maxCheckouts}`);
+      return;
+    }
+    try{
+      await api.send("PUT", "/api/pending-checkout", { titleId: movie.id, renterName });
+      await refetch("pending-checkout");
+    }catch(e){
+      toast(e.message || `Couldn't start the rental for "${movie.title}"`);
+      return;
+    }
+    toast(`Waiting on "${movie.title}" — take it out of its bay to finish.`);
+  }
+
   async function rentByMovie(movie, renterName){
     if(movie.stock<=0) return;
     renterName = (renterName||"").trim();
@@ -1961,6 +2001,25 @@
       <button class="secondary" id="cancelPendingReturnBtn">Cancel</button>
     `;
     $("#cancelPendingReturnBtn").onclick = cancelPendingReturn;
+  }
+
+  function renderPendingCheckoutOverlay(){
+    const el = $("#pendingCheckoutOverlay");
+    if(!el) return;
+    if(!pendingCheckout){ el.style.display = "none"; el.innerHTML = ""; return; }
+    el.style.display = "flex";
+    el.innerHTML = `
+      <div class="spinner"></div>
+      <div class="t">Rental pending</div>
+      <div class="g">Take "${pendingCheckout.title}" out of its bay to finish checking it out — or scan that bay's barcode if you're testing this without hardware wired up yet.</div>
+      <button class="secondary" id="cancelPendingCheckoutBtn">Cancel</button>
+    `;
+    $("#cancelPendingCheckoutBtn").onclick = cancelPendingCheckout;
+  }
+
+  async function cancelPendingCheckout(){
+    try{ await api.send("DELETE", "/api/pending-checkout"); await refetch("pending-checkout"); }
+    catch(e){}
   }
 
   async function adjustStock(id, delta){
@@ -2261,7 +2320,7 @@
       </div>`;
       if(!out){ $("#scanRentBtn").onclick = () => {
         if(!loggedInUser){ toast("Log in with your PIN first"); return; }
-        rentByMovie(match, loggedInUser.name);
+        startRentByMovie(match, loggedInUser.name);
       }; }
       box.querySelectorAll("[data-return-scan]").forEach(b => b.onclick = () => {
         startReturn(rentals.find(r=>r.id===b.dataset.returnScan));
