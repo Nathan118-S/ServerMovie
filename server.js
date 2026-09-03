@@ -425,30 +425,6 @@ const app = express();
 app.use(express.json({ limit: "20mb" })); // poster/logo images and short theme-song clips are all small data URLs, but give room
 app.use(express.static(path.join(__dirname, "public")));
 
-// vendor libraries, served locally so nothing needs internet at runtime.
-// Run `npm install` once (with internet) and these resolve from node_modules.
-function serveVendorFile(urlPath, candidatePaths){
-  app.get(urlPath, (req, res) => {
-    for(const p of candidatePaths){
-      try{
-        const resolved = require.resolve(p);
-        return res.sendFile(resolved);
-      }catch(e){ /* try next candidate */ }
-    }
-    res.status(500).send(
-      "// Couldn't find this library under node_modules.\n" +
-      "// Run `npm install` in this project folder, then restart the server.\n" +
-      "// If it still fails, check node_modules/html5-qrcode for the actual\n" +
-      "// filename and adjust the candidatePaths list in server.js."
-    );
-  });
-}
-serveVendorFile("/vendor/html5-qrcode.min.js", [
-  "html5-qrcode/html5-qrcode.min.js",
-  "html5-qrcode/minified/html5-qrcode.min.js",
-  "html5-qrcode/dist/html5-qrcode.min.js"
-]);
-
 // ---------- read endpoints ----------
 app.get("/api/state", (req, res) => {
   res.json({ titles: db.titles, rentals: db.rentals, users: db.users, settings: db.settings, tvSelection: db.tvSelection, bays: db.bays, pendingReturn: db.pendingReturn });

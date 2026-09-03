@@ -3,7 +3,7 @@
 This is the fully self-contained version of Sandy Server: a small Node.js
 server (`server.js`) stores everything in a plain JSON file on disk
 (`data/db.json`), and serves the same app you've been using — Browse,
-Scan a disc, All rentals, Print labels, Manage inventory, Manage users,
+the barcode bar, All rentals, Print labels, Manage inventory, Manage users,
 and the hidden TV page — as a normal local website.
 
 Nothing here talks to the internet or to Anthropic at runtime. The **only**
@@ -72,23 +72,15 @@ This only works if the repo is public — a private repo's raw URLs require
 a short-lived, browser-session-only token that a script can't reuse, so
 `curl` won't be able to fetch anything on its own.
 
-## 3. Camera scanning and HTTPS
+## 3. Scanning discs — no camera, no HTTPS needed
 
-Browsers only allow camera access (`getUserMedia`, used by "Scan a disc")
-on a **secure context** — either `https://` or `http://localhost`. That
-means:
-
-- On the Pi itself, opening `http://localhost:3000` → camera works fine.
-- From another device on your network using the Pi's IP address
-  (`http://192.168.x.x:3000`) → most browsers will **block** the camera
-  over plain HTTP, even on your own LAN.
-
-The manual code-entry field on the Scan tab is the reliable fallback either
-way, and it doubles as input for a cheap USB barcode scanner (those just
-type the code and hit Enter). If you want camera scanning from other
-devices too, the straightforward fix is putting a self-signed certificate
-in front of the server (e.g. with `mkcert`) — that's an optional next step,
-not required to use the app.
+There's no camera-based scanning in this version — every barcode goes
+through the search-bar-style **barcode bar** at the top of every page
+(type it, or use a cheap USB barcode scanner, which just types the code
+and hits Enter for you). That's a deliberate simplification: it means no
+camera permissions, no secure-context requirement, and it works exactly
+the same whether you're on the Pi itself or another device on the network
+over plain HTTP — nothing to configure either way.
 
 ## 4. Run it automatically on boot (systemd)
 
@@ -351,15 +343,19 @@ logged in where, with one caveat covered next.
 
 ### Every return waits for the disc to actually be back
 
-No "Return disc" button anywhere in the app — All rentals, My Rentals, or
-the checkout modal — completes a return instantly anymore. Clicking one
+"Return disc" in **My Rentals**, the checkout modal, or the top-bar
+**Return** button no longer completes a return instantly. Clicking one
 flags that title as **pending**: the row shows "⏳ Return pending — place
 it in a bay to finish" with a Cancel option, and the return only actually
 completes once that disc lands in a bay (the microswitch firing, or a
-scanned bay barcode as a manual/testing fallback). There's also a
-standalone **Return** button in the top bar, next to the theme toggle —
-it jumps straight to Scan a disc with return mode already switched on, so
+scanned bay barcode as a manual/testing fallback). The top-bar button
+switches return mode on and focuses the barcode bar, so
 you can scan the disc and place it without extra clicks.
+
+**All rentals**, under the Admin panel, is the one exception — that
+Return button still completes instantly. It's the staff/admin override:
+if you're standing there processing a return directly, there's no need to
+wait on a bay placement to confirm what you already know.
 
 A switch can only tell you *that* something was placed in a bay, not
 *which* disc — so once a return is pending, the next switch trigger for
@@ -376,7 +372,8 @@ Sandy Server falls back to the older heuristics:
   what's returned — and that title's bay assignment moves to wherever it
   actually got placed.
 - If neither applies, nothing happens automatically — start a return from
-  the app (top bar, Scan tab, My Rentals, or All rentals) instead.
+  the app (top bar, the barcode bar, or My Rentals) instead, or use All rentals
+  for an instant admin override.
 
 ### Who a bay checkout gets attributed to
 
@@ -407,7 +404,7 @@ doesn't mean re-wiring or re-numbering anything.
 
 **Print bay barcodes** generates one barcode label per existing bay
 (add the bays first) — stick each one on the physical shelf, not on a
-disc. From **Scan a disc**, scan a disc that isn't assigned to a bay yet,
+disc. Scan a disc that isn't assigned to a bay yet in the barcode bar,
 then scan that bay's barcode, and it links automatically — no need to
 touch the dropdowns above by hand. Scanning a bay barcode with nothing
 pending just tells you what's currently in that bay instead.
@@ -522,6 +519,26 @@ token like the one from step 2 above — but it's why this isn't the default
 recommendation, and why a token scoped to just this one repo matters if
 you go this route.
 
+### The Admin Console
+
+The nav bar now only shows **Browse catalog** — everything staff-only
+lives behind a separate **Admin Console** button in the top bar, which
+opens as its own fully separate view (own top bar, own nav: All rentals,
+Print labels, Manage inventory, Manage users, TV Display) rather than
+extra tabs mixed into the customer-facing nav.
+
+- If you're not already logged in as an admin, clicking it asks for an
+  admin PIN before letting you in.
+- A **red bar** across the top of the console at all times is the "you
+  are in admin mode" indicator — it names who's logged in and has an
+  **Exit to customer view** button.
+- Admins don't get the 30-second inactivity auto-logout that regular
+  checkout PINs get — that timeout exists for a kiosk sitting in a
+  hallway, not for someone actively working in the console.
+- **My Rentals** no longer has its own nav tab either — a logged-in
+  customer sees a **My Rentals** button right in the login widget (in
+  the barcode bar) instead.
+
 ## What changed from the hosted version
 
 - Storage moved from Claude's `db` capability to a JSON file managed by
@@ -531,8 +548,6 @@ you go this route.
 - Printed labels are plain rectangular barcode stickers for the disc
   case, generated server-side with `bwip-js` — cut around the dashed line
   and stick it on.
-- The camera/barcode scanner library (`html5-qrcode`) is served locally
-  from `node_modules` instead of a CDN.
 - Google Fonts was dropped — the app now uses your system's fonts. It looks
   slightly different but needs zero internet to render correctly.
 - Everything else — the UI, the PIN login, admin gating, checkout limits,

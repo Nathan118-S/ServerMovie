@@ -63,6 +63,9 @@
   @keyframes successPulse{ 0%{box-shadow:0 0 0 0 var(--glow);} 70%{box-shadow:0 0 0 14px rgba(0,0,0,0);} 100%{box-shadow:0 0 0 0 rgba(0,0,0,0);} }
 
   .topbar{position:sticky;top:0;z-index:40;background:var(--glass);backdrop-filter:blur(20px) saturate(1.8);-webkit-backdrop-filter:blur(20px) saturate(1.8);padding:14px 40px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;border-bottom:1px solid var(--line);}
+  .admin-mode-bar{position:sticky;top:0;z-index:41;background:#B3261E;color:#fff;padding:9px 40px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px;font-weight:600;}
+  .admin-mode-bar button{background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.4);color:#fff;padding:6px 12px;border-radius:999px;font-size:12px;cursor:pointer;}
+  .admin-mode-bar button:hover{background:rgba(255,255,255,0.28);}
   .logo{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:700;font-size:21px;letter-spacing:-0.02em;color:var(--white);cursor:pointer;flex-shrink:0;transition:opacity 0.15s ease;}
   .logo:hover{opacity:0.6;}
   .search-wrap{flex:1;min-width:180px;max-width:340px;display:flex;align-items:center;background:var(--surf2);border:none;border-radius:10px;padding:7px 12px;gap:8px;transition:background 0.18s ease,box-shadow 0.18s ease;}
@@ -78,6 +81,13 @@
   :root[data-theme="light"] .theme-toggle .icon-moon{display:block;}
 
   .nav{padding:8px 40px;display:flex;gap:2px;flex-wrap:wrap;align-items:center;background:var(--glass);backdrop-filter:blur(20px);border-bottom:1px solid var(--line);}
+  .scan-bar{padding:12px 40px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--panel);border-bottom:1px solid var(--line);}
+  .scan-bar .icon-svg{color:var(--muted);}
+  .scan-bar input{flex:1;background:var(--surf2);border:1px solid var(--line);border-radius:999px;padding:10px 16px;}
+  .scan-bar-under{padding:0 40px;}
+  .scan-bar-under:empty{display:none;}
+  #scanResult:not(:empty){padding:14px 40px 0;}
+  #kioskTvBanner:not(:empty){padding-top:14px;}
   .nav button{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;font-weight:590;letter-spacing:-0.01em;padding:7px 14px;background:transparent;color:var(--muted);border:none;border-radius:8px;cursor:pointer;transition:background 0.15s ease,color 0.15s ease,transform 0.1s ease;}
   .nav button:hover{color:var(--white);background:var(--surf3);}
   .nav button.active{background:var(--red);color:#fff;}
@@ -221,13 +231,21 @@
   .login-box .who{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;}
 
   .modal-overlay{position:fixed;inset:0;background:rgba(5,6,9,0.75);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;animation:fadeIn 0.2s ease;}
+  .pending-return-overlay{position:fixed;inset:0;background:var(--bg);z-index:70;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;animation:fadeIn 0.25s ease;}
+  .pending-return-overlay .spinner{width:64px;height:64px;border-radius:50%;border:5px solid var(--surf3);border-top-color:var(--green);animation:spin 1s linear infinite;margin-bottom:24px;}
+  .pending-return-overlay .t{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:28px;font-weight:700;color:var(--white);margin-bottom:8px;}
+  .pending-return-overlay .g{font-size:15px;color:var(--muted);max-width:420px;margin-bottom:28px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
   .modal-card{background:var(--glass);backdrop-filter:blur(24px) saturate(1.4);color:var(--white);border:1px solid var(--line);width:400px;max-width:100%;border-radius:20px;overflow:hidden;box-shadow:0 30px 80px var(--shadow);animation:modalIn 0.25s cubic-bezier(.25,.8,.35,1) both;}
-  .modal-header{padding:26px 20px;position:relative;min-height:120px;display:flex;flex-direction:column;justify-content:flex-end;background-size:cover;background-position:center;}
+  .modal-header{padding:26px 20px;position:relative;min-height:260px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;}
+  .modal-header-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:brightness(0.5) blur(2px);transform:scale(1.08);}
+  .modal-header-poster{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:1;}
+  .modal-header > .eyebrow, .modal-header > .t, .modal-header > .title-logo{position:relative;z-index:2;}
   .modal-header .eyebrow{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.8);}
   .modal-header .t{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:26px;font-weight:600;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.6);}
   .title-logo{max-width:70%;max-height:80px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6));}
   .hero-logo{max-height:130px;max-width:420px;margin-bottom:6px;}
-  .modal-close{position:absolute;top:10px;right:12px;background:rgba(0,0,0,0.4);backdrop-filter:blur(8px);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;transition:background 0.18s ease,transform 0.18s ease;}
+  .modal-close{position:absolute;top:10px;right:12px;z-index:3;background:rgba(0,0,0,0.4);backdrop-filter:blur(8px);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;transition:background 0.18s ease,transform 0.18s ease;}
   .modal-close:hover{background:rgba(0,0,0,0.6);transform:rotate(90deg);}
   .modal-body{padding:20px;}
 
@@ -275,6 +293,7 @@
     <input id="searchBox" placeholder="Search titles..." />
   </div>
   <button class="secondary" id="topBarReturnBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 1 1 2.3 5.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 17v-5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Return</button>
+  <button class="secondary" id="adminConsoleBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Admin Console</button>
   <button class="theme-toggle" id="themeToggleBtn" title="Switch light/dark" type="button">
     <svg class="icon-sun" viewBox="0 0 24 24" fill="none" width="18" height="18"><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="2"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="2.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="21.5"/><line x1="2.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="21.5" y2="12"/><line x1="5.1" y1="5.1" x2="6.9" y2="6.9"/><line x1="17.1" y1="17.1" x2="18.9" y2="18.9"/><line x1="5.1" y1="18.9" x2="6.9" y2="17.1"/><line x1="17.1" y1="6.9" x2="18.9" y2="5.1"/></g></svg>
     <svg class="icon-moon" viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
@@ -283,56 +302,25 @@
 
 <div class="nav">
   <button data-tab="browse" class="active">Browse catalog</button>
-  <button data-tab="scan">Scan a disc</button>
-  <button data-tab="myrentals" id="myRentalsNavBtn" style="display:none;">My Rentals</button>
-  <span id="adminNavGroup" class="admin-nav-group" style="display:none;">
-    <span class="nav-label">Admin panel</span>
-    <button data-tab="rentals">All rentals</button>
-    <button data-tab="labels">Print labels</button>
-    <button data-tab="admin">Manage inventory</button>
-    <button data-tab="users">Manage users</button>
-    <button id="openTvBtn" type="button"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg> TV Display</button>
-  </span>
 </div>
+
+<div class="scan-bar">
+  <svg class="icon-svg" viewBox="0 0 24 24" fill="none" width="18" height="18" style="flex-shrink:0;"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/><line x1="7" y1="8" x2="7" y2="16" stroke="currentColor" stroke-width="2"/><line x1="10" y1="8" x2="10" y2="16" stroke="currentColor" stroke-width="1"/><line x1="12.5" y1="8" x2="12.5" y2="16" stroke="currentColor" stroke-width="2"/><line x1="15" y1="8" x2="15" y2="16" stroke="currentColor" stroke-width="1"/><line x1="17.5" y1="8" x2="17.5" y2="16" stroke="currentColor" stroke-width="2"/></svg>
+  <input id="barcodeInput" placeholder="Scan or type a barcode, then press Enter — works with a USB scanner too" />
+  <div id="scanLoginArea"></div>
+</div>
+<div id="returnModeBanner"></div>
+<div id="kioskTvBanner" class="scan-bar-under"></div>
+<div id="scanResult" class="scan-bar-under"></div>
 
 <div class="banner" id="dbBanner" style="display:none;"></div>
 <div class="toast" id="toast"></div>
 
 <div class="content">
 
-  <div class="panel" data-panel="scan">
-    <div class="panel-inner">
-      <div id="kioskTvBanner"></div>
-      <div class="scan-box">
-        <div class="display" style="font-size:16px;margin-bottom:8px;">Scan a disc case</div>
-        <div class="scan-msg">Point a camera at the barcode on an existing case, or at a printed Sandy Server label. If camera access isn't available here, type or wedge-scan the code below — this also works with a USB barcode scanner.</div>
-        <div id="loginArea"></div>
-        <div id="reader"></div>
-        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-          <button class="primary" id="startScanBtn">Start camera</button>
-          <button class="secondary" id="stopScanBtn" style="display:none;">Stop camera</button>
-          <button class="secondary" id="returnModeBtn"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 1 1 2.3 5.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 17v-5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Return a disc</button>
-        </div>
-        <div id="returnModeBanner"></div>
-        <div class="manual-entry">
-          <input id="manualCode" placeholder="Or type / scan a code, then press Enter" />
-          <button class="secondary" id="manualSubmit">Look up</button>
-        </div>
-        <div id="scanResult"></div>
-      </div>
-    </div>
-  </div>
-
   <div class="panel active" data-panel="browse">
     <div id="browseHero"></div>
     <div id="browseRows"></div>
-  </div>
-
-  <div class="panel" data-panel="rentals">
-    <div class="panel-inner">
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;" id="renterChips"></div>
-      <div id="rentalsList"></div>
-    </div>
   </div>
 
   <div class="panel" data-panel="myrentals">
@@ -341,6 +329,55 @@
       <div id="myRentalsList"></div>
     </div>
   </div>
+
+</div>
+
+<div id="label-sheet">
+  <div class="label-sheet-grid" id="labelSheetGrid"></div>
+</div>
+
+<div id="movieModal" class="modal-overlay"></div>
+<div id="pendingReturnOverlay" class="pending-return-overlay"></div>
+<div id="adminPinOverlay" class="modal-overlay">
+  <div class="modal-card" style="width:320px;">
+    <div class="modal-body" style="padding:28px 22px;">
+      <div class="t" style="font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:20px;font-weight:700;color:var(--white);margin-bottom:14px;">Admin Console</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Enter an admin PIN to continue</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="adminPinInput" class="pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" />
+        <button class="primary" id="adminPinSubmitBtn">Enter</button>
+      </div>
+      <div id="adminPinMsg" style="font-size:12px;color:#E87C03;margin-top:8px;min-height:16px;"></div>
+      <button class="secondary" id="adminPinCancelBtn" style="margin-top:14px;width:100%;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /appRoot -->
+<div id="adminConsole" style="display:none;">
+  <div class="admin-mode-bar" id="adminModeBar">
+    <span>🔴 Admin mode — logged in as <strong id="adminModeBarName"></strong></span>
+    <button class="secondary" id="exitAdminConsoleBtn">Exit to customer view</button>
+  </div>
+  <div class="topbar">
+    <div class="logo">SANDY SERVER <span style="color:var(--muted);font-weight:400;">— Admin Console</span></div>
+  </div>
+  <div class="nav">
+    <button data-tab="rentals" class="active">All rentals</button>
+    <button data-tab="labels">Print labels</button>
+    <button data-tab="admin">Manage inventory</button>
+    <button data-tab="users">Manage users</button>
+    <button id="openTvBtn" type="button"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg> TV Display</button>
+  </div>
+  <div class="content">
+  <div class="panel" data-panel="rentals">
+    <div class="panel-inner">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;" id="renterChips"></div>
+      <div id="rentalsList"></div>
+    </div>
+  </div>
+
+
 
   <div class="panel" data-panel="labels">
     <div class="panel-inner">
@@ -534,7 +571,7 @@
             <input id="newUserName" placeholder="Name" />
             <input id="newUserPin" class="pin-input" placeholder="0000" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
             <label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;">
-              <input type="checkbox" id="newUserIsAdmin" style="width:auto;" /> Admin (can see the Admin panel)
+              <input type="checkbox" id="newUserIsAdmin" style="width:auto;" /> Admin (can open the Admin Console)
             </label>
             <button class="primary" id="addUserBtn">Add user</button>
           </div>
@@ -547,16 +584,9 @@
       </div>
     </div>
   </div>
+  </div>
+</div><!-- /adminConsole -->
 
-</div>
-
-<div id="label-sheet">
-  <div class="label-sheet-grid" id="labelSheetGrid"></div>
-</div>
-
-<div id="movieModal" class="modal-overlay"></div>
-
-</div><!-- /appRoot -->
 
 <div id="tvRoot" style="display:none;">
   <div class="tv-header">
@@ -567,8 +597,6 @@
 </div>
 
 <div id="tvSendBox" class="modal-overlay"></div>
-
-<script src="/vendor/html5-qrcode.min.js"></script>
 
 <script>
 (function(){
@@ -686,8 +714,6 @@
   let query = "";
   let featuredBrowseId = null;
   let featuredTvId = null;
-  let html5QrCode = null;
-  let scanning = false;
   let pendingAdminPoster = "";
   let pendingScanPoster = "";
   let pendingSeriesTheme = "";
@@ -783,6 +809,7 @@
     renderNavVisibility();
     renderKioskTvBanner();
     renderBayDashboard();
+    renderPendingReturnOverlay();
     if(isTvMode()) renderTv();
     const mcInput = $("#maxCheckoutInput");
     if(mcInput && document.activeElement !== mcInput) mcInput.value = maxCheckouts;
@@ -804,21 +831,68 @@
     if(dcInput && document.activeElement !== dcInput) dcInput.value = doorCloseDelaySeconds;
   }
 
-  function renderNavVisibility(){
-    const group = $("#adminNavGroup");
-    if(!group) return;
-    const isAdmin = !!(loggedInUser && loggedInUser.isAdmin);
-    group.style.display = isAdmin ? "flex" : "none";
-    if(!isAdmin){
-      const activeAdminTab = $$(".nav button.active").some(b => group.contains(b));
-      if(activeAdminTab) setTab("browse");
-    }
+  let adminMode = false;
 
-    const myRentalsBtn = $("#myRentalsNavBtn");
-    if(myRentalsBtn){
-      myRentalsBtn.style.display = loggedInUser ? "inline-block" : "none";
-      if(!loggedInUser && myRentalsBtn.classList.contains("active")) setTab("browse");
+  function renderNavVisibility(){
+    // If the logged-in user stops being an admin (or logs out) while the
+    // console is open, drop back to the customer view automatically.
+    const isAdmin = !!(loggedInUser && loggedInUser.isAdmin);
+    if(adminMode && !isAdmin) exitAdminConsole();
+    const bar = $("#adminModeBar");
+    if(bar){
+      const nameEl = $("#adminModeBarName");
+      if(nameEl && loggedInUser) nameEl.textContent = loggedInUser.name;
     }
+  }
+
+  function enterAdminConsole(){
+    adminMode = true;
+    $("#appRoot").style.display = "none";
+    $("#adminConsole").style.display = "block";
+    setTab("rentals");
+  }
+
+  function exitAdminConsole(){
+    adminMode = false;
+    $("#adminConsole").style.display = "none";
+    $("#appRoot").style.display = "block";
+    setTab("browse");
+  }
+
+  function openAdminPinPrompt(){
+    const overlay = $("#adminPinOverlay");
+    overlay.style.display = "flex";
+    const input = $("#adminPinInput");
+    input.value = "";
+    $("#adminPinMsg").textContent = "";
+    input.focus();
+  }
+
+  function closeAdminPinPrompt(){
+    $("#adminPinOverlay").style.display = "none";
+  }
+
+  function submitAdminPin(){
+    const input = $("#adminPinInput");
+    const pin = (input.value||"").trim();
+    const msgEl = $("#adminPinMsg");
+    const shakeInputs = () => {
+      input.style.animation = "none";
+      void input.offsetWidth;
+      input.style.animation = "shakeX 0.4s ease";
+    };
+    if(pin.length!==4){ msgEl.textContent = "Enter all 4 digits."; shakeInputs(); return; }
+    const u = users.find(x => x.pin === pin);
+    if(!u){ msgEl.textContent = "PIN not recognized."; shakeInputs(); return; }
+    if(!u.isAdmin){ msgEl.textContent = "That PIN isn't an admin account."; shakeInputs(); return; }
+    loggedInUser = { id: u.id, name: u.name, isAdmin: true };
+    renderLoginArea();
+    renderModal();
+    clearTimeout(autoLogoutTimer); // admins never auto-logout
+    api.send("PUT", "/api/active-session", { userId: u.id, name: u.name }).catch(()=>{});
+    closeAdminPinPrompt();
+    toast(`Welcome, ${u.name} (admin)`);
+    enterAdminConsole();
   }
 
   // ---------- Browse: hero + genre rows ----------
@@ -912,9 +986,7 @@
 
   function heroHtml(m, mode){
     const color = GENRE_COLORS[m.genre] || "#333";
-    const bg = m.poster
-      ? `background-image:linear-gradient(90deg, rgba(20,20,20,0.95) 0%, rgba(20,20,20,0.55) 45%, rgba(20,20,20,0.15) 75%), linear-gradient(180deg, rgba(20,20,20,0) 55%, #141414 100%), url('${m.poster}');`
-      : `background-image:linear-gradient(120deg, ${color}, #141414 80%);`;
+    const bg = `background-image:linear-gradient(120deg, ${color}, #141414 80%);`;
     const out = m.stock<=0;
     const blurb = m.description
       ? (m.description.length > 200 ? m.description.slice(0, 197) + "…" : m.description)
@@ -1013,7 +1085,6 @@
     el.innerHTML = `<div class="list-group">` + list.map(r => {
       const daysLeft = Math.ceil((r.dueOn - Date.now()) / 86400000);
       const overdue = daysLeft < 0;
-      const isPending = pendingReturn && pendingReturn.titleId === r.movieId;
       return `<div class="row">
         <div>
           <div class="display" style="font-size:16px;">${r.title}</div>
@@ -1022,11 +1093,10 @@
             ${overdue ? `${Math.abs(daysLeft)} day(s) overdue — $${(Math.abs(daysLeft)*LATE_FEE_PER_DAY).toFixed(2)} fee accruing` : `Due in ${daysLeft} day(s)`}
           </div>
         </div>
-        ${isPending ? pendingReturnBadgeHtml() : `<button class="teal" data-return="${r.id}">Return disc</button>`}
+        <button class="teal" data-return="${r.id}">Return disc</button>
       </div>`;
     }).join("") + `</div>`;
-    el.querySelectorAll("[data-return]").forEach(b => b.onclick = () => startReturn(rentals.find(r=>r.id===b.dataset.return)));
-    el.querySelectorAll("[data-cancelpending]").forEach(b => b.onclick = cancelPendingReturn);
+    el.querySelectorAll("[data-return]").forEach(b => b.onclick = () => returnRental(b.dataset.return));
   }
 
   function renderMyRentalsPanel(){
@@ -1041,7 +1111,6 @@
     el.innerHTML = `<div class="list-group" style="margin-top:14px;">` + list.map(r => {
       const daysLeft = Math.ceil((r.dueOn - Date.now()) / 86400000);
       const overdue = daysLeft < 0;
-      const isPending = pendingReturn && pendingReturn.titleId === r.movieId;
       return `<div class="row">
         <div>
           <div class="display" style="font-size:16px;">${r.title}</div>
@@ -1049,11 +1118,10 @@
             ${overdue ? `${Math.abs(daysLeft)} day(s) overdue — $${(Math.abs(daysLeft)*LATE_FEE_PER_DAY).toFixed(2)} fee accruing` : `Due in ${daysLeft} day(s)`}
           </div>
         </div>
-        ${isPending ? pendingReturnBadgeHtml() : `<button class="teal" data-myreturn="${r.id}">Return disc</button>`}
+        <button class="teal" data-myreturn="${r.id}">Return disc</button>
       </div>`;
     }).join("") + `</div>`;
     el.querySelectorAll("[data-myreturn]").forEach(b => b.onclick = () => startReturn(rentals.find(r=>r.id===b.dataset.myreturn)));
-    el.querySelectorAll("[data-cancelpending]").forEach(b => b.onclick = cancelPendingReturn);
   }
 
   function renderAdminList(){
@@ -1119,20 +1187,24 @@
   }
 
   function renderLoginArea(){
-    renderLoginWidget("#loginArea");
+    renderLoginWidget("#scanLoginArea");
     renderLoginWidget("#myRentalsLoginArea");
   }
 
   function renderLoginWidget(selector){
     const el = $(selector);
     if(!el) return;
+    const showMyRentalsLink = selector === "#scanLoginArea";
     if(loggedInUser){
       const count = rentals.filter(r => r.renterName===loggedInUser.name).length;
       el.innerHTML = `<div class="login-box">
         <span class="who">Checking out as ${loggedInUser.name} <span style="font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:12px;color:var(--muted);">(${count}/${maxCheckouts} discs out)</span></span>
+        ${showMyRentalsLink ? `<button class="secondary" data-viewmyrentals>My Rentals</button>` : ""}
         <button class="secondary" data-logout>Not you? Log out</button>
       </div>`;
       el.querySelector("[data-logout]").onclick = pinLogout;
+      const myRentalsBtn = el.querySelector("[data-viewmyrentals]");
+      if(myRentalsBtn) myRentalsBtn.onclick = () => setTab("myrentals");
     } else {
       el.innerHTML = `<div style="margin-bottom:14px;">
         <div style="font-size:13px;color:var(--muted);margin-bottom:6px;">Enter your 4-digit PIN to check out a disc</div>
@@ -1232,9 +1304,8 @@
     const color = GENRE_COLORS[m.genre] || "#333";
     const out = m.stock<=0;
     const headerBg = m.poster
-      ? `background-image:linear-gradient(180deg, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.85) 100%), url('${m.poster}');`
+      ? `background-image:url('${m.poster}');`
       : `background-image:linear-gradient(160deg, ${color}, #141414 85%);`;
-
     let actionHtml;
     if(out){
       actionHtml = `<div style="font-size:13px;color:#E87C03;">Out of stock</div>`;
@@ -1256,7 +1327,9 @@
     }
 
     overlay.innerHTML = `<div class="modal-card">
-      <div class="modal-header" style="${headerBg}">
+      <div class="modal-header">
+        <div class="modal-header-bg" style="${headerBg}"></div>
+        ${m.poster ? `<img class="modal-header-poster" src="${m.poster}" alt="${m.title}" />` : ''}
         <button class="modal-close" id="modalCloseBtn">×</button>
         <div class="eyebrow">${m.genre} · ${m.year}${seriesTag(m) ? ' · '+seriesTag(m) : ''}</div>
         ${m.logo ? `<img src="${m.logo}" alt="${m.title}" class="title-logo" />` : `<div class="t">${m.title}</div>`}
@@ -1300,7 +1373,7 @@
     const rep = discs.find(d=>d.poster) || discs.find(d=>d.logo) || discs[0];
     const color = GENRE_COLORS[rep.genre] || "#333";
     const headerBg = rep.poster
-      ? `background-image:linear-gradient(180deg, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.85) 100%), url('${rep.poster}');`
+      ? `background-image:url('${rep.poster}');`
       : `background-image:linear-gradient(160deg, ${color}, #141414 85%);`;
     const totalStock = discs.reduce((s,d) => s+(d.stock||0), 0);
     const descDisc = discs.find(d => d.description);
@@ -1332,7 +1405,9 @@
     }).join("");
 
     overlay.innerHTML = `<div class="modal-card">
-      <div class="modal-header" style="${headerBg}">
+      <div class="modal-header">
+        <div class="modal-header-bg" style="${headerBg}"></div>
+        ${rep.poster ? `<img class="modal-header-poster" src="${rep.poster}" alt="${modalSeriesName}" />` : ''}
         <button class="modal-close" id="modalCloseBtn">×</button>
         <div class="eyebrow">${discs.length} disc${discs.length===1?'':'s'} · ${totalStock} in stock</div>
         ${rep.logo ? `<img src="${rep.logo}" alt="${modalSeriesName}" class="title-logo" />` : `<div class="t">${modalSeriesName}</div>`}
@@ -1429,11 +1504,13 @@
     if(!m){ closeTvSendBox(); return; }
     const color = GENRE_COLORS[m.genre] || "#333";
     const headerBg = m.poster
-      ? `background-image:linear-gradient(180deg, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.85) 100%), url('${m.poster}');`
+      ? `background-image:url('${m.poster}');`
       : `background-image:linear-gradient(160deg, ${color}, #141414 85%);`;
 
     box.innerHTML = `<div class="modal-card">
-      <div class="modal-header" style="${headerBg}">
+      <div class="modal-header">
+        <div class="modal-header-bg" style="${headerBg}"></div>
+        ${m.poster ? `<img class="modal-header-poster" src="${m.poster}" alt="${m.title}" />` : ''}
         <button class="modal-close" id="tvSendCloseBtn">×</button>
         <div class="eyebrow">${m.genre} · ${m.year}</div>
         ${m.logo ? `<img src="${m.logo}" alt="${m.title}" class="title-logo" />` : `<div class="t">${m.title}</div>`}
@@ -1492,7 +1569,7 @@
 
   function resetAutoLogoutTimer(){
     clearTimeout(autoLogoutTimer);
-    if(!loggedInUser) return;
+    if(!loggedInUser || loggedInUser.isAdmin) return; // admins stay logged in — no 30s kiosk timeout
     autoLogoutTimer = setTimeout(() => {
       if(!loggedInUser) return;
       const name = loggedInUser.name;
@@ -1825,11 +1902,18 @@
     catch(e){}
   }
 
-  function pendingReturnBadgeHtml(){
-    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--green);background:var(--surf3);border:1px solid var(--green);border-radius:8px;padding:8px 10px;">
-      <span>⏳ Return pending — place it in a bay to finish</span>
-      <button class="secondary" data-cancelpending style="padding:5px 10px;font-size:11px;">Cancel</button>
-    </div>`;
+  function renderPendingReturnOverlay(){
+    const el = $("#pendingReturnOverlay");
+    if(!el) return;
+    if(!pendingReturn){ el.style.display = "none"; el.innerHTML = ""; return; }
+    el.style.display = "flex";
+    el.innerHTML = `
+      <div class="spinner"></div>
+      <div class="t">Return pending</div>
+      <div class="g">Place "${pendingReturn.title}" in a bay to finish the return — or scan that bay's barcode if you're testing this without hardware wired up yet.</div>
+      <button class="secondary" id="cancelPendingReturnBtn">Cancel</button>
+    `;
+    $("#cancelPendingReturnBtn").onclick = cancelPendingReturn;
   }
 
   async function adjustStock(id, delta){
@@ -2044,12 +2128,13 @@
 
   function toggleReturnMode(){
     returnMode = !returnMode;
-    const btn = $("#returnModeBtn");
+    const btn = $("#topBarReturnBtn");
     if(btn) btn.classList.toggle("active", returnMode);
     const banner = $("#returnModeBanner");
     if(banner) banner.innerHTML = returnMode
       ? `<div class="return-mode-banner">Return mode on — scan the disc you're returning. Once it's found, place it in a bay slot (or scan its bay barcode) to log the return.</div>`
       : "";
+    if(returnMode) $("#barcodeInput").focus();
   }
 
   async function handleReturnModeScan(code){
@@ -2103,10 +2188,9 @@
       const out = match.stock<=0;
       const activeRentals = rentals.filter(r => r.movieId === match.id);
       const hasBay = bays.some(b => b.titleId === match.id);
-      const isPending = pendingReturn && pendingReturn.titleId === match.id;
       const returnHtml = activeRentals.length > 0 ? `<div style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px;">
         <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">This title is currently checked out${activeRentals.length>1?` (${activeRentals.length} copies)`:''}:</div>
-        ${isPending ? pendingReturnBadgeHtml() : activeRentals.map(r => `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;">
+        ${activeRentals.map(r => `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;">
           <span style="font-size:13px;">Rented by ${r.renterName}</span>
           <button class="teal" data-return-scan="${r.id}" style="padding:7px 12px;font-size:12px;flex-shrink:0;">Mark as returned</button>
         </div>`).join("")}
@@ -2131,7 +2215,6 @@
       box.querySelectorAll("[data-return-scan]").forEach(b => b.onclick = () => {
         startReturn(rentals.find(r=>r.id===b.dataset.returnScan));
       });
-      box.querySelectorAll("[data-cancelpending]").forEach(b => b.onclick = cancelPendingReturn);
       pendingAssignTitleId = hasBay ? null : match.id;
     } else {
       pendingAssignTitleId = null;
@@ -2174,42 +2257,6 @@
         box.innerHTML = "";
       };
     }
-  }
-
-  async function startScanner(){
-    const readerEl = $("#reader");
-    readerEl.innerHTML = "";
-    try{
-      if(typeof Html5Qrcode === "undefined") throw new Error("scanner library failed to load");
-      html5QrCode = new Html5Qrcode("reader");
-      const formats = window.Html5QrcodeSupportedFormats ? [
-        Html5QrcodeSupportedFormats.QR_CODE,
-        Html5QrcodeSupportedFormats.EAN_13,
-        Html5QrcodeSupportedFormats.UPC_A,
-        Html5QrcodeSupportedFormats.UPC_E,
-        Html5QrcodeSupportedFormats.CODE_128
-      ] : undefined;
-      await html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: 220, formatsToSupport: formats },
-        (decodedText) => { handleScannedCode(decodedText); },
-        () => {}
-      );
-      scanning = true;
-      $("#startScanBtn").style.display = "none";
-      $("#stopScanBtn").style.display = "inline-block";
-    }catch(err){
-      readerEl.innerHTML = `<div style="padding:16px;color:#fff;font-size:13px;">Camera isn't available in this preview (${err && err.message ? err.message : "permission denied"}). Use the manual code field below instead — it works the same way, including with a USB barcode scanner.</div>`;
-    }
-  }
-
-  async function stopScanner(){
-    if(html5QrCode && scanning){
-      try{ await html5QrCode.stop(); html5QrCode.clear(); }catch(e){}
-    }
-    scanning = false;
-    $("#startScanBtn").style.display = "inline-block";
-    $("#stopScanBtn").style.display = "none";
   }
 
   // ---------- labels ----------
@@ -2256,7 +2303,6 @@
       if(isActive){ b.style.animation="none"; void b.offsetWidth; b.style.animation="tabPop 0.25s ease"; }
     });
     $$(".panel").forEach(p => p.classList.toggle("active", p.dataset.panel===tab));
-    if(tab !== "scan" && scanning) stopScanner();
   }
 
   function setAdminSubtab(tab){
@@ -2284,7 +2330,15 @@
   document.addEventListener("DOMContentLoaded", async () => {
     setTheme(getTheme()); // sync the button's icon to whatever the inline head script already applied
     $("#themeToggleBtn").onclick = toggleTheme;
-    $("#topBarReturnBtn").onclick = () => { setTab("scan"); if(!returnMode) toggleReturnMode(); };
+    $("#topBarReturnBtn").onclick = () => toggleReturnMode();
+    $("#adminConsoleBtn").onclick = () => {
+      if(loggedInUser && loggedInUser.isAdmin) enterAdminConsole();
+      else openAdminPinPrompt();
+    };
+    $("#exitAdminConsoleBtn").onclick = exitAdminConsole;
+    $("#adminPinSubmitBtn").onclick = submitAdminPin;
+    $("#adminPinCancelBtn").onclick = closeAdminPinPrompt;
+    $("#adminPinInput").addEventListener("keydown", e => { if(e.key==="Enter") submitAdminPin(); });
 
     if(isTvMode()){
       $("#appRoot").style.display = "none";
@@ -2311,12 +2365,8 @@
 
     $("#searchBox").oninput = e => { query = e.target.value; renderBrowse(); };
 
-    $("#startScanBtn").onclick = startScanner;
-    $("#returnModeBtn").onclick = toggleReturnMode;
-    $("#stopScanBtn").onclick = stopScanner;
-    $("#manualSubmit").onclick = () => { handleScannedCode($("#manualCode").value); $("#manualCode").value=""; };
-    $("#manualCode").addEventListener("keydown", e => {
-      if(e.key==="Enter"){ handleScannedCode($("#manualCode").value); $("#manualCode").value=""; }
+    $("#barcodeInput").addEventListener("keydown", e => {
+      if(e.key==="Enter"){ handleScannedCode($("#barcodeInput").value); $("#barcodeInput").value=""; }
     });
 
     $("#addTitleBtn").onclick = async () => {
