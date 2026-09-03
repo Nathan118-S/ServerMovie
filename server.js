@@ -453,6 +453,60 @@ app.delete("/api/pending-checkout", (req, res) => {
   broadcast("pending-checkout");
   res.json({ ok: true });
 });
+
+// Scan-confirmed checkout/return — the completion path for titles with no
+// bay assigned, since there's no microswitch to confirm physical
+// possession for them. Scanning the disc's own barcode substitutes for
+// that: only valid when it's the exact title a pending checkout/return
+// is already waiting on (set via the normal Rent/Return buttons), so this
+// isn't a way to bypass the pending step, just to finish it without a bay.
+app.post("/api/scan-checkout", (req, res) => {
+  const { titleId } = req.body;
+  if(!db.pendingCheckout || db.pendingCheckout.expiresAt <= Date.now()){
+    return res.status(404).json({ error: "No checkout is currently pending." });
+  }
+  if(db.pendingCheckout.titleId !== titleId){
+    return res.status(409).json({ error: "That's not the disc waiting to be checked out." });
+  }
+  const title = db.titles.find(t => t.id === titleId);
+  if(!title) return res.status(404).json({ error: "Title not found." });
+  if(title.stock <= 0) return res.status(409).json({ error: `"${title.title}" shows no stock.` });
+  const renterName = db.pendingCheckout.renterName;
+  title.stock -= 1;
+  const now = Date.now();
+  const rental = { id: newId("r"), movieId: title.id, title: title.title, genre: title.genre, renterName, rentedOn: now, dueOn: now + RENTAL_DAYS_MS };
+  db.rentals.push(rental);
+  db.pendingCheckout = null;
+  saveDb();
+  broadcast("titles");
+  broadcast("rentals");
+  broadcast("pending-checkout");
+  updateBayLedForTitle(title);
+  res.json({ ok: true, title: title.title, renterName, rental });
+});
+
+app.post("/api/scan-return", (req, res) => {
+  const { titleId } = req.body;
+  if(!db.pendingReturn || db.pendingReturn.expiresAt <= Date.now()){
+    return res.status(404).json({ error: "No return is currently pending." });
+  }
+  if(db.pendingReturn.titleId !== titleId){
+    return res.status(409).json({ error: "That's not the disc waiting to be returned." });
+  }
+  const title = db.titles.find(t => t.id === titleId);
+  const rental = title ? db.rentals.find(r => r.movieId === title.id) : null;
+  if(!title || !rental) return res.status(404).json({ error: "Nothing to return for that title." });
+  title.stock += 1;
+  db.rentals = db.rentals.filter(r => r.id !== rental.id);
+  db.pendingReturn = null;
+  saveDb();
+  broadcast("titles");
+  broadcast("rentals");
+  broadcast("pending-return");
+  updateBayLedForTitle(title);
+  res.json({ ok: true, title: title.title });
+});
+
 app.get("/api/pending-return", (req, res) => {
   if(db.pendingReturn && db.pendingReturn.expiresAt > Date.now()) res.json(db.pendingReturn);
   else res.json(null);

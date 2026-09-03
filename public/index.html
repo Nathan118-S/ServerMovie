@@ -119,10 +119,12 @@
   button.teal:active{transform:scale(0.97);}
 
   /* ---- Hero ---- */
-  .hero{position:relative;min-height:64vh;display:flex;align-items:flex-end;padding:60px 40px;margin-bottom:8px;background-size:cover;background-position:center top;background-repeat:no-repeat;}
-  .hero-content{max-width:560px;animation:fadeInUp 0.7s ease both;}
+  .hero{position:relative;min-height:64vh;display:flex;align-items:center;gap:44px;padding:60px 40px;margin-bottom:8px;}
+  .hero-poster-img{max-width:300px;width:100%;max-height:65vh;object-fit:contain;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,0.55);flex-shrink:0;}
+  .hero-poster-placeholder{width:300px;max-width:100%;height:65vh;max-height:440px;border-radius:14px;flex-shrink:0;box-shadow:0 24px 60px rgba(0,0,0,0.55);}
+  .hero-content{flex:1;min-width:0;max-width:560px;animation:fadeInUp 0.7s ease both;}
   .hero-eyebrow{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:1px;color:var(--muted);margin-bottom:8px;}
-  .hero-title{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:700;font-size:44px;line-height:1.05;color:#fff;text-shadow:0 2px 20px rgba(0,0,0,0.5);margin-bottom:10px;}
+  .hero-title{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:700;font-size:44px;line-height:1.05;color:var(--white);margin-bottom:10px;}
   .hero-meta{font-size:14px;color:var(--muted);margin-bottom:20px;}
   .hero-actions{display:flex;gap:12px;}
   .hero-btn{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;letter-spacing:0.3px;padding:13px 26px;border-radius:999px;border:none;cursor:pointer;transition:background 0.18s ease,transform 0.1s ease,box-shadow 0.18s ease;}
@@ -130,8 +132,8 @@
   .hero-btn.primary:hover{background:#e8ecf2;}
   .hero-btn.primary:active{transform:scale(0.97);}
   .hero-btn.primary:disabled{background:#555;color:#999;cursor:not-allowed;transform:none;box-shadow:none;}
-  .hero-btn.secondary{background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);color:#fff;border:1px solid rgba(255,255,255,0.15);}
-  .hero-btn.secondary:hover{background:rgba(255,255,255,0.18);}
+  .hero-btn.secondary{background:var(--surf3);backdrop-filter:blur(8px);color:var(--white);border:1px solid var(--line);}
+  .hero-btn.secondary:hover{background:var(--surf5);}
   .hero-btn.secondary:active{transform:scale(0.97);}
 
   /* ---- Rows ---- */
@@ -155,6 +157,7 @@
   .poster-card:hover{transform:scale(1.08) translateY(-6px);box-shadow:0 16px 40px rgba(0,0,0,0.6),0 0 0 2px var(--red),0 0 24px var(--glow);z-index:2;}
   .poster-title{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.15;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.7);}
   .poster-dot{position:absolute;top:8px;right:8px;width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 2px rgba(0,0,0,0.4);}
+  .nobay-dot{position:absolute;top:8px;right:22px;width:9px;height:9px;border-radius:50%;background:#E8B800;box-shadow:0 0 0 2px rgba(0,0,0,0.4);}
   .poster-dot.in-stock{animation:breathe 2.4s ease-in-out infinite;}
 
   .row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surf1);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:8px;transition:border-color 0.18s ease,background 0.18s ease;}
@@ -369,6 +372,15 @@
   <div class="content">
   <div class="panel" data-panel="rentals">
     <div class="panel-inner">
+      <div class="bulk-box" style="margin-top:0;max-width:520px;">
+        <div class="display" style="font-size:15px;margin-bottom:6px;">Check out a disc manually</div>
+        <div class="scan-msg" style="margin-top:0;">Skips the pending/bay-confirmation flow entirely and completes right away — same idea as the instant Return button here, for when you're standing at the counter handling it directly.</div>
+        <div class="new-form">
+          <select id="manualCheckoutTitle"></select>
+          <input id="manualCheckoutRenter" placeholder="Renter name" />
+          <button class="primary" id="manualCheckoutBtn">Check out</button>
+        </div>
+      </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;" id="renterChips"></div>
       <div id="rentalsList"></div>
     </div>
@@ -962,12 +974,14 @@
   function posterTileHtml(m){
     const color = GENRE_COLORS[m.genre] || "#333";
     const out = m.stock<=0;
+    const hasBay = bays.some(b => b.titleId === m.id);
     const bg = m.poster
       ? `background-image:linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,0.85) 100%), url('${m.poster}');`
       : `background-image:linear-gradient(160deg, ${color}, #141414 85%);`;
     const tag = seriesTag(m);
     return `<div class="poster-card" data-openmovie="${m.id}" style="${bg}">
       <span class="poster-dot${out?'':' in-stock'}" style="background:${out?'#737373':'#46D369'};" title="${out?'Out of stock':'In stock'}"></span>
+      ${!hasBay ? `<span class="nobay-dot" title="Not assigned to a bay"></span>` : ""}
       ${tag ? `<span style="position:absolute;top:8px;left:8px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,0.55);padding:2px 7px;border-radius:6px;">${tag}</span>` : ""}
       <span class="poster-title">${m.title}</span>
     </div>`;
@@ -982,8 +996,10 @@
       ? `background-image:linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,0.85) 100%), url('${rep.poster}');`
       : `background-image:linear-gradient(160deg, ${color}, #141414 85%);`;
     const totalStock = discs.reduce((s,d) => s+(d.stock||0), 0);
+    const anyMissingBay = discs.some(d => !bays.some(b => b.titleId === d.id));
     return `<div class="poster-card" data-openseries="${encodeURIComponent(seriesName)}" style="${bg}">
       <span class="poster-dot${totalStock>0?' in-stock':''}" style="background:${totalStock>0?'#46D369':'#737373'};" title="${totalStock>0?'In stock':'Out of stock'}"></span>
+      ${anyMissingBay ? `<span class="nobay-dot" title="At least one disc isn't assigned to a bay"></span>` : ""}
       <span style="position:absolute;top:8px;left:8px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,0.55);padding:2px 7px;border-radius:6px;">${discs.length} disc${discs.length===1?'':'s'}</span>
       <span class="poster-title">${seriesName}</span>
     </div>`;
@@ -1041,7 +1057,6 @@
 
   function heroHtml(m, mode){
     const color = GENRE_COLORS[m.genre] || "#333";
-    const bg = `background-image:linear-gradient(120deg, ${color}, #141414 80%);`;
     const out = m.stock<=0;
     const blurb = m.description
       ? (m.description.length > 200 ? m.description.slice(0, 197) + "…" : m.description)
@@ -1050,12 +1065,16 @@
       ? `<button class="hero-btn primary" data-hero-action><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg> Send to Kiosk</button>`
       : `<button class="hero-btn primary" data-hero-action ${out?'disabled':''}>▶ ${out?'Unavailable':'Rent Now'}</button>
          <button class="hero-btn secondary" data-hero-info>ℹ More Info</button>`;
-    return `<div class="hero" style="${bg}">
+    const posterHtml = m.poster
+      ? `<img src="${m.poster}" alt="${m.title}" class="hero-poster-img" />`
+      : `<div class="hero-poster-placeholder" style="background-image:linear-gradient(160deg, ${color}, #141414 85%);"></div>`;
+    return `<div class="hero">
+      ${posterHtml}
       <div class="hero-content">
         <div class="hero-eyebrow">${m.genre} · ${m.year}</div>
         ${m.logo ? `<img src="${m.logo}" alt="${m.title}" class="title-logo hero-logo" />` : `<div class="hero-title">${m.title}</div>`}
         <div class="hero-meta">${m.rating} &nbsp;·&nbsp; ${out?'Out of stock':m.stock+' disc'+(m.stock===1?'':'s')+' available'}</div>
-        ${blurb ? `<div style="font-size:14px;color:#D8D4CC;line-height:1.5;margin-bottom:16px;max-width:520px;">${blurb}</div>` : ''}
+        ${blurb ? `<div style="font-size:14px;color:var(--muted);line-height:1.5;margin-bottom:16px;max-width:520px;">${blurb}</div>` : ''}
         <div class="hero-actions">${actions}</div>
       </div>
     </div>`;
@@ -1131,6 +1150,17 @@
   function renderRentals(){
     const el = $("#rentalsList");
     const chipsEl = $("#renterChips");
+
+    const titleSelect = $("#manualCheckoutTitle");
+    if(titleSelect){
+      const inStock = catalog.filter(m => m.stock > 0).sort((a,b) => a.title.localeCompare(b.title));
+      const prevValue = titleSelect.value;
+      titleSelect.innerHTML = inStock.length
+        ? inStock.map(m => `<option value="${m.id}">${m.title}${seriesTag(m) ? ' ('+seriesTag(m)+')' : ''} — ${m.stock} in stock</option>`).join("")
+        : `<option value="">Nothing in stock right now</option>`;
+      if(inStock.some(m => m.id === prevValue)) titleSelect.value = prevValue;
+    }
+
     const names = ["All", ...Array.from(new Set(rentals.map(r=>r.renterName||"Unknown"))).sort()];
     chipsEl.innerHTML = names.map(n => `<button data-renter="${n}" style="font-size:12px;padding:7px 12px;border-radius:20px;border:1px solid ${renterFilter===n?'var(--red)':'var(--line)'};background:${renterFilter===n?'var(--red)':'transparent'};color:${renterFilter===n?'#fff':'var(--muted)'};cursor:pointer;">${n}</button>`).join("");
     chipsEl.querySelectorAll("button").forEach(b => b.onclick = () => { renterFilter = b.dataset.renter; renderRentals(); });
@@ -2015,10 +2045,14 @@
     if(!el) return;
     if(!pendingReturn){ el.style.display = "none"; el.innerHTML = ""; return; }
     el.style.display = "flex";
+    const hasBay = bays.some(b => b.titleId === pendingReturn.titleId);
+    const instructions = hasBay
+      ? `Place "${pendingReturn.title}" in a bay to finish the return — or scan that bay's barcode if you're testing this without hardware wired up yet.`
+      : `"${pendingReturn.title}" isn't assigned to a bay — scan its own barcode in the scanner bar to confirm it's back.`;
     el.innerHTML = `
       <div class="spinner"></div>
       <div class="t">Return pending</div>
-      <div class="g">Place "${pendingReturn.title}" in a bay to finish the return — or scan that bay's barcode if you're testing this without hardware wired up yet.</div>
+      <div class="g">${instructions}</div>
       <button class="secondary" id="cancelPendingReturnBtn">Cancel</button>
     `;
     $("#cancelPendingReturnBtn").onclick = cancelPendingReturn;
@@ -2029,10 +2063,14 @@
     if(!el) return;
     if(!pendingCheckout){ el.style.display = "none"; el.innerHTML = ""; return; }
     el.style.display = "flex";
+    const hasBay = bays.some(b => b.titleId === pendingCheckout.titleId);
+    const instructions = hasBay
+      ? `Take "${pendingCheckout.title}" out of its bay to finish checking it out — or scan that bay's barcode if you're testing this without hardware wired up yet.`
+      : `"${pendingCheckout.title}" isn't assigned to a bay — scan its own barcode in the scanner bar to confirm you're taking it.`;
     el.innerHTML = `
       <div class="spinner"></div>
       <div class="t">Rental pending</div>
-      <div class="g">Take "${pendingCheckout.title}" out of its bay to finish checking it out — or scan that bay's barcode if you're testing this without hardware wired up yet.</div>
+      <div class="g">${instructions}</div>
       <button class="secondary" id="cancelPendingCheckoutBtn">Cancel</button>
     `;
     $("#cancelPendingCheckoutBtn").onclick = cancelPendingCheckout;
@@ -2041,6 +2079,28 @@
   async function cancelPendingCheckout(){
     try{ await api.send("DELETE", "/api/pending-checkout"); await refetch("pending-checkout"); }
     catch(e){}
+  }
+
+  async function confirmScanCheckout(match){
+    const box = $("#scanResult");
+    try{
+      const result = await api.send("POST", "/api/scan-checkout", { titleId: match.id });
+      await refetch("titles"); await refetch("rentals");
+      box.innerHTML = `<div class="match-card"><div class="t">Checked out</div><div class="g">"${result.title}" confirmed to ${result.renterName}.</div></div>`;
+    }catch(e){
+      box.innerHTML = `<div class="match-card"><div class="t">Couldn't confirm</div><div class="g">${e.message||"Try again."}</div></div>`;
+    }
+  }
+
+  async function confirmScanReturn(match){
+    const box = $("#scanResult");
+    try{
+      const result = await api.send("POST", "/api/scan-return", { titleId: match.id });
+      await refetch("titles"); await refetch("rentals");
+      box.innerHTML = `<div class="match-card"><div class="t">Returned</div><div class="g">"${result.title}" confirmed back.</div></div>`;
+    }catch(e){
+      box.innerHTML = `<div class="match-card"><div class="t">Couldn't confirm</div><div class="g">${e.message||"Try again."}</div></div>`;
+    }
   }
 
   async function adjustStock(id, delta){
@@ -2315,6 +2375,19 @@
     else if(code.indexOf("REELBOX:")===0) code = code.slice(8);
     const match = catalog.find(m => m.code === code);
     const box = $("#scanResult");
+
+    // Scanning the exact disc a checkout/return is already waiting on
+    // confirms it directly — the only completion path for titles with no
+    // bay assigned, since there's no switch to do it automatically.
+    if(match && pendingCheckout && pendingCheckout.titleId === match.id){
+      confirmScanCheckout(match);
+      return;
+    }
+    if(match && pendingReturn && pendingReturn.titleId === match.id){
+      confirmScanReturn(match);
+      return;
+    }
+
     if(match){
       const out = match.stock<=0;
       const activeRentals = rentals.filter(r => r.movieId === match.id);
@@ -2470,6 +2543,14 @@
     $("#topBarReturnBtn").onclick = () => openReturnFlow();
     $("#adminConsoleBtn").onclick = () => enterAdminConsole();
     $("#exitAdminConsoleBtn").onclick = exitAdminConsole;
+    $("#manualCheckoutBtn").onclick = () => {
+      const titleId = $("#manualCheckoutTitle").value;
+      const renterName = $("#manualCheckoutRenter").value;
+      const movie = catalog.find(m => m.id === titleId);
+      if(!movie){ toast("Pick a title first"); return; }
+      rentByMovie(movie, renterName);
+      $("#manualCheckoutRenter").value = "";
+    };
 
     if(isTvMode()){
       $("#appRoot").style.display = "none";

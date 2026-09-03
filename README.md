@@ -358,6 +358,24 @@ pending automatically after a couple of seconds; with more than one, tap
 the one you're actually returning — that tap is itself the confirmation,
 so it skips the wait and goes straight to pending.
 
+### Titles with no bay: a yellow dot, and scanning takes the place of the switch
+
+A poster with a **yellow dot** (next to the usual green/gray stock dot)
+means that title isn't assigned to any bay yet — worth knowing, since it
+changes how checkout and return actually get confirmed for it. On a
+series tile, the yellow dot means at least one disc in that series is
+missing a bay assignment.
+
+Everything still starts the same way — the Rent button, or the top-bar
+Return flow — and still goes through the same pending state. The only
+difference is how it *finishes*: with no bay to trigger a switch, Sandy
+Server can't auto-detect the physical handoff, so it falls back to
+requiring you to **scan that exact disc's own barcode** in the scanner
+bar — once to confirm you're taking it, once to confirm it's back. The
+pending overlay tells you which one applies to what you're holding.
+Scanning any *other* disc while a checkout/return like this is pending
+doesn't complete it — has to be the one actually waiting.
+
 ### Rentals wait too — same idea, orange instead of green
 
 Renting works the mirror image of returning: click "Rent" anywhere —
@@ -373,6 +391,12 @@ One difference from returns: a checkout's pending state is tied to a
 unrelated bay firing while your rental is pending doesn't accidentally
 complete it. That unrelated bay's own event still processes normally
 through the same active-session/assigned-title logic returns use.
+
+**Check out a disc manually**, at the top of All rentals, is the
+checkout-side counterpart to that override — pick a title still in
+stock, type a renter name, and it completes instantly too, same
+reasoning: you're handling it directly, no need to wait on a bay
+placement to confirm it.
 
 **All rentals**, under the Admin panel, is the one exception — that
 Return button still completes instantly. It's the staff/admin override:
