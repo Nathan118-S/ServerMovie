@@ -348,6 +348,7 @@
     <div class="modal-body" id="returnFlowBody" style="padding:28px 22px;"></div>
   </div>
 </div>
+<div id="loginGateOverlay" class="modal-overlay"></div>
 
 </div><!-- /appRoot -->
 <div id="adminConsole" style="display:none;">
@@ -775,6 +776,7 @@
       pendingCheckout = state.pendingCheckout && state.pendingCheckout.expiresAt > Date.now() ? state.pendingCheckout : null;
       apiReady = true;
       render();
+      if(!loggedInUser && !isTvMode()) openLoginGate();
     }catch(e){
       const b = $("#dbBanner");
       b.style.display = "block";
@@ -1244,6 +1246,9 @@
     renderLoginWidget("#myRentalsLoginArea");
   }
 
+  // The barcode bar and My Rentals no longer have their own PIN entry —
+  // logging in only ever happens through the one login gate (openLoginGate).
+  // These widgets just show who's checked in, or a button that opens it.
   function renderLoginWidget(selector){
     const el = $(selector);
     if(!el) return;
@@ -1259,19 +1264,45 @@
       const myRentalsBtn = el.querySelector("[data-viewmyrentals]");
       if(myRentalsBtn) myRentalsBtn.onclick = () => setTab("myrentals");
     } else {
-      el.innerHTML = `<div style="margin-bottom:14px;">
-        <div style="font-size:13px;color:var(--muted);margin-bottom:6px;">Enter your 4-digit PIN to check out a disc</div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input class="pinInputField pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" />
-          <button class="primary" data-pinlogin>Log in</button>
-        </div>
-        <div class="pinMsgField" style="font-size:12px;color:#E87C03;margin-top:6px;"></div>
-      </div>`;
-      const pinInput = el.querySelector(".pinInputField");
-      el.querySelector("[data-pinlogin]").onclick = () => pinLogin(pinInput.value);
-      pinInput.addEventListener("keydown", e => { if(e.key==="Enter") pinLogin(pinInput.value); });
-      pinInput.addEventListener("input", () => { if(pinInput.value.length===4) pinLogin(pinInput.value); });
+      el.innerHTML = `<button class="primary" data-openlogin style="width:100%;">Log in to rent</button>`;
+      el.querySelector("[data-openlogin]").onclick = openLoginGate;
     }
+  }
+
+  // ---------- the one login gate ----------
+  // The only place a PIN is ever entered to log in. Shown automatically
+  // when the site first loads and whenever the inactivity timer logs
+  // someone out; also reachable from any of the "Log in to rent" buttons.
+  function openLoginGate(){
+    const overlay = $("#loginGateOverlay");
+    if(!overlay) return;
+    overlay.innerHTML = `<div class="modal-card" style="width:340px;">
+      <div class="modal-body" style="padding:28px 22px;">
+        <div class="t" style="margin-bottom:4px;">Who's this?</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">Enter your 4-digit PIN to log in</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input id="gatePinInput" class="pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" />
+          <button class="primary" id="gatePinLoginBtn">Log in</button>
+        </div>
+        <div id="gatePinMsg" style="font-size:12px;color:#E87C03;margin-top:6px;"></div>
+        <button class="secondary" id="gateBrowseBtn" style="width:100%;margin-top:16px;">Just browse for now</button>
+      </div>
+    </div>`;
+    overlay.style.display = "flex";
+    const pinInput = $("#gatePinInput");
+    pinInput.focus();
+    $("#gatePinLoginBtn").onclick = () => pinLogin(pinInput.value);
+    pinInput.addEventListener("keydown", e => { if(e.key==="Enter") pinLogin(pinInput.value); });
+    pinInput.addEventListener("input", () => { if(pinInput.value.length===4) pinLogin(pinInput.value); });
+    $("#gateBrowseBtn").onclick = closeLoginGate;
+    overlay.onclick = (e) => { if(e.target===overlay) closeLoginGate(); };
+  }
+
+  function closeLoginGate(){
+    const overlay = $("#loginGateOverlay");
+    if(!overlay) return;
+    overlay.style.display = "none";
+    overlay.innerHTML = "";
   }
 
   function renderUsersList(){
@@ -1371,12 +1402,7 @@
       </div>
       <button class="primary" id="modalRentBtn" style="width:100%;margin-top:12px;" ${atLimit?'disabled':''}>${atLimit?'Checkout limit reached':'Rent this disc'}</button>`;
     } else {
-      actionHtml = `<div style="font-size:13px;color:var(--muted);margin-bottom:6px;">Enter your 4-digit PIN to check out</div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <input id="modalPinInput" class="pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" />
-        <button class="primary" id="modalPinLoginBtn">Log in</button>
-      </div>
-      <div id="modalPinMsg" style="font-size:12px;color:#E87C03;margin-top:6px;"></div>`;
+      actionHtml = `<button class="primary" id="modalOpenLoginBtn" style="width:100%;">Log in to rent</button>`;
     }
 
     overlay.innerHTML = `<div class="modal-card">
@@ -1412,10 +1438,7 @@
       $("#modalRentBtn").onclick = async () => { await startRentByMovie(m, loggedInUser.name); closeModal(); };
       $("#modalLogoutBtn").onclick = () => { pinLogout(); };
     } else if(!out){
-      const pinInput = $("#modalPinInput");
-      $("#modalPinLoginBtn").onclick = () => pinLogin(pinInput.value);
-      pinInput.addEventListener("keydown", e => { if(e.key==="Enter") pinLogin(pinInput.value); });
-      pinInput.addEventListener("input", () => { if(pinInput.value.length===4) pinLogin(pinInput.value); });
+      $("#modalOpenLoginBtn").onclick = openLoginGate;
     }
   }
 
@@ -1438,22 +1461,20 @@
         <button class="secondary" id="modalLogoutBtn">Not you?</button>
       </div>`;
     } else {
-      loginHtml = `<div style="font-size:13px;color:var(--muted);margin-bottom:6px;">Enter your 4-digit PIN to check out a disc</div>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
-        <input id="modalPinInput" class="pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" />
-        <button class="primary" id="modalPinLoginBtn">Log in</button>
-      </div>
-      <div id="modalPinMsg" style="font-size:12px;color:#E87C03;margin-bottom:10px;"></div>`;
+      loginHtml = `<button class="primary" id="modalOpenLoginBtn" style="width:100%;margin-bottom:10px;">Log in to rent</button>`;
     }
 
     const discRows = discs.map(d => {
       const dOut = d.stock<=0;
+      const action = dOut
+        ? `<span style="font-size:12px;color:#E87C03;">Unavailable</span>`
+        : (loggedInUser ? `<button class="teal" data-rentdisc="${d.id}">Rent</button>` : "");
       return `<div class="row" style="padding:10px 12px;">
         <div>
           <div style="font-size:14px;">${seriesTag(d) || d.title}</div>
           <div style="font-size:11px;color:${dOut?'#E87C03':'var(--muted)'};margin-top:2px;">${dOut?'Out of stock':d.stock+' in stock'}</div>
         </div>
-        <button class="teal" data-rentdisc="${d.id}" ${(dOut||!loggedInUser)?'disabled':''}>${dOut?'Unavailable':'Rent'}</button>
+        ${action}
       </div>`;
     }).join("");
 
@@ -1483,15 +1504,12 @@
     if(loggedInUser){
       $("#modalLogoutBtn").onclick = () => { pinLogout(); };
     } else {
-      const pinInput = $("#modalPinInput");
-      $("#modalPinLoginBtn").onclick = () => pinLogin(pinInput.value);
-      pinInput.addEventListener("keydown", e => { if(e.key==="Enter") pinLogin(pinInput.value); });
-      pinInput.addEventListener("input", () => { if(pinInput.value.length===4) pinLogin(pinInput.value); });
+      $("#modalOpenLoginBtn").onclick = openLoginGate;
     }
 
     overlay.querySelectorAll("[data-rentdisc]").forEach(b => {
       b.onclick = async () => {
-        if(!loggedInUser){ toast("Log in with your PIN first"); return; }
+        if(!loggedInUser){ openLoginGate(); return; }
         const disc = catalog.find(x => x.id === b.dataset.rentdisc);
         if(!disc) return;
         await startRentByMovie(disc, loggedInUser.name);
@@ -1628,6 +1646,7 @@
       const name = loggedInUser.name;
       pinLogout();
       toast(`${name} logged out after 30 seconds of inactivity`);
+      openLoginGate();
     }, AUTO_LOGOUT_MS);
   }
 
@@ -1635,6 +1654,7 @@
     pin = (pin||"").trim();
     const setMsg = (text) => {
       const m2 = $("#modalPinMsg"); if(m2) m2.textContent = text;
+      const gm = $("#gatePinMsg"); if(gm) gm.textContent = text;
       $$(".pinMsgField").forEach(m => m.textContent = text);
     };
     const shakeInputs = () => {
@@ -1648,6 +1668,7 @@
     const u = users.find(x => x.pin === pin);
     if(!u){ setMsg("PIN not recognized. Ask an admin to add you under Manage users."); shakeInputs(); return; }
     loggedInUser = { id: u.id, name: u.name, isAdmin: !!u.isAdmin };
+    closeLoginGate();
     renderLoginArea();
     renderModal();
     renderNavVisibility();
@@ -2313,15 +2334,14 @@
         <div class="g">${match.genre} · ${match.year} · ${match.rating} · ${match.stock} in stock</div>
         <div style="margin-top:8px;">${imdbLinkHtml(match)}</div>
         <div style="margin-top:12px;display:flex;gap:8px;">
-          ${!out ? `<button class="primary" id="scanRentBtn">Rent this disc</button>` : `<span style="font-size:12px;color:#E87C03;">Out of stock</span>`}
+          ${out ? `<span style="font-size:12px;color:#E87C03;">Out of stock</span>`
+            : (loggedInUser ? `<button class="primary" id="scanRentBtn">Rent this disc</button>` : `<button class="primary" id="scanOpenLoginBtn">Log in to rent</button>`)}
         </div>
         ${returnHtml}
         ${assignHtml}
       </div>`;
-      if(!out){ $("#scanRentBtn").onclick = () => {
-        if(!loggedInUser){ toast("Log in with your PIN first"); return; }
-        startRentByMovie(match, loggedInUser.name);
-      }; }
+      if(!out && loggedInUser){ $("#scanRentBtn").onclick = () => startRentByMovie(match, loggedInUser.name); }
+      else if(!out){ $("#scanOpenLoginBtn").onclick = openLoginGate; }
       box.querySelectorAll("[data-return-scan]").forEach(b => b.onclick = () => {
         startReturn(rentals.find(r=>r.id===b.dataset.returnScan));
       });
