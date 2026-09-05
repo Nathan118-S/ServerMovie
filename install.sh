@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -e
 
-REPO_URL="https://github.com/Nathan118-S/SandyServerMovie.git"
-REPO_DIR="SandyServerMovie"
+REPO_URL="https://github.com/Nathan118-S/ServerMovie.git"
+REPO_DIR="ServerMovie"
 
 # If GITHUB_TOKEN is set in the environment (private repo), use it for the
 # clone. It's never written into this file — only ever passed in at
 # run time, e.g. GITHUB_TOKEN=ghp_xxx bash install.sh
 if [ -n "$GITHUB_TOKEN" ]; then
-  CLONE_URL="https://${GITHUB_TOKEN}@github.com/Nathan118-S/SandyServerMovie.git"
+  CLONE_URL="https://${GITHUB_TOKEN}@github.com/Nathan118-S/ServerMovie.git"
 else
   CLONE_URL="$REPO_URL"
 fi

@@ -65,7 +65,7 @@ next to it — so on a bare Pi with nothing copied over yet, this one line
 does everything:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Nathan118-S/SandyServerMovie/main/install.sh -o install.sh && bash install.sh
+curl -fsSL https://raw.githubusercontent.com/Nathan118-S/ServerMovie/main/install.sh -o install.sh && bash install.sh
 ```
 
 This only works if the repo is public — a private repo's raw URLs require
@@ -140,7 +140,7 @@ recreate the seed catalog and the default `0000` admin on next start.
 
 ## Making the repo public and using the one-liner
 
-Your repo (`Nathan118-S/SandyServerMovie`) needs to be **public** for the
+Your repo (`Nathan118-S/ServerMovie`) needs to be **public** for the
 one-line install to work — `curl` has no way to log into GitHub, so it can
 only fetch from public repos.
 
@@ -151,7 +151,7 @@ only fetch from public repos.
 3. From then on, this is the full setup for a bare Pi:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Nathan118-S/SandyServerMovie/main/install.sh -o install.sh && bash install.sh
+curl -fsSL https://raw.githubusercontent.com/Nathan118-S/ServerMovie/main/install.sh -o install.sh && bash install.sh
 ```
 
 That's genuinely everything — it clones the repo, installs Node.js if
@@ -166,7 +166,7 @@ Whenever you (or I) change the code and push it to the GitHub repo, get
 those changes onto the Pi with:
 
 ```bash
-cd SandyServerMovie
+cd ServerMovie
 bash install.sh
 ```
 
@@ -179,7 +179,7 @@ it drops you back into `npm start`.
 If you'd rather do it by hand instead of the interactive script:
 
 ```bash
-cd SandyServerMovie
+cd ServerMovie
 git pull
 npm install
 sudo systemctl restart sandy-server   # only if you set up autostart —
@@ -560,7 +560,7 @@ This works, but read the caveat below before using it. Fill in your own
 token — never paste a real token into a chat with anyone, me included:
 
 ```bash
-GITHUB_TOKEN=<your_token_here>; curl -fsSL -H "Authorization: token $GITHUB_TOKEN" https://raw.githubusercontent.com/Nathan118-S/SandyServerMovie/main/install.sh -o install.sh && bash install.sh
+GITHUB_TOKEN=<your_token_here>; curl -fsSL -H "Authorization: token $GITHUB_TOKEN" https://raw.githubusercontent.com/Nathan118-S/ServerMovie/main/install.sh -o install.sh && bash install.sh
 ```
 
 `install.sh` picks up `$GITHUB_TOKEN` from the environment and uses it to
