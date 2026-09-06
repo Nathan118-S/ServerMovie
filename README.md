@@ -222,6 +222,33 @@ single year.
 environment-variable method still works for OMDb — see below — and the
 app checks the saved key first, falling back to the environment variable.)
 
+### When auto-fill picks the wrong movie
+
+Title-name collisions happen — a low-budget movie sharing its name with
+something more famous, a remake, a foreign film with the same English
+title. Each title in **Manage inventory** now has a **Wrong match?**
+button right next to Look up: it shows up to 8 real TMDb candidates for
+that title's name, each with its actual poster thumbnail and a short
+description, so you can visually confirm which one is actually yours
+before picking it. Selecting one replaces the poster, backdrop,
+description, logo, and trailer with that specific match's details — the
+same fields the normal auto-fill sets, just from the exact title you
+picked instead of TMDb's top guess. Needs a TMDb key, same as the logo
+and backdrop features.
+
+### A landscape image where the poster used to be
+
+Clicking a movie no longer reuses the same portrait poster you already
+see on its Browse tile — the modal header now pulls TMDb's separate
+landscape "backdrop" image instead (a wide still, distinct from the
+poster), which actually fits that wide header shape without the
+letterboxing a tall poster needed. Needs a TMDb key (same one as
+everything else TMDb-sourced) and gets filled in by the same lookup/
+auto-fill buttons — nothing new to click. Titles that only have a poster
+(no backdrop found, or OMDb-only) fall back to the poster with the same
+uncropped treatment as before; titles with neither just show the genre
+color, like always.
+
 ### Trailers
 
 Every title also gets a **▶ Watch trailer** button when TMDb has an
@@ -257,6 +284,59 @@ A note on the source: this fetches publicly available metadata for titles
 you already own, for your own personal cataloging — the same idea as how
 Plex or Jellyfin pull cover art for a home media library, not for
 redistributing anything.
+
+## Browsing games separately from movies
+
+Two top-level tabs now — **Browse Movies** and **Browse Games** — each
+with its own hero banner and grid. A customer in Games never sees a
+movie mixed in, and vice versa; search only searches whichever tab
+you're currently on.
+
+**Design choice worth understanding**: games don't get an entirely
+separate rental/checkout/bay system running in parallel — they flow
+through the exact same rental, pending-checkout, bay-assignment, and
+admin machinery movies already use, since none of that logic actually
+cares what kind of disc it is. Building a fully independent second
+system would mean maintaining two copies of every fix from here on.
+What *is* fully separate: the browsing experience itself (nav, hero,
+grid, search), the genre list, the platform field, and the rating scale.
+
+Adding a game (**Manage inventory → Add a title**, Media type: Game):
+
+- **Genre** switches to a game-specific list (Action, Adventure, Sports,
+  Racing, Fighting, Party, RPG, Shooter, Platformer, Puzzle) — separate
+  color palette from the movie genres too, so a poster card is
+  recognizable as a game at a glance even before checking the badge.
+- **Rating** switches to ESRB (E, E10+, T, M, AO) instead of MPAA.
+- **Platform** — Xbox One or Wii — shows up on the poster card as a
+  small badge, same spot the Blu-ray badge uses for movies (a title is
+  never both, so there's no conflict).
+- The Blu-ray/DVD format field and the TV-series fields both disappear
+  for games — neither applies.
+
+**No auto-fill for games.** OMDb and TMDb are movie/TV databases —
+there's no game metadata source wired up, so the "Look up on OMDb" and
+"Wrong match?" buttons don't appear for games in Manage inventory. Add
+the poster the same way as everything else here: a photo of the case.
+[IGDB](https://www.igdb.com/) is a real API that covers games
+specifically, if this is worth wiring up later — it wasn't in scope for
+this pass.
+
+**Also scoped out of this pass**: the admin's manual-checkout dropdown
+(All rentals) lists movies and games together rather than being split
+too, and TV kiosk mode ("Send to Kiosk") stays movie-only, consistent
+with what that feature was already for.
+
+## Marking a disc as Blu-ray
+
+Every "Add a title" and "Add a TV series" form has a DVD/Blu-ray dropdown
+(defaults to DVD, since that's the common case) — and for titles already
+in your catalog, the same dropdown shows up right in **Manage inventory**'s
+list, so you can flip one after the fact without re-adding it. Blu-ray
+titles get a small blue badge on their poster card in Browse, and it
+shows up in the checkout modal too. Doesn't affect anything else — stock,
+bays, rentals all work exactly the same regardless of format, this is
+purely informational.
 
 ## TV series with multiple discs
 
@@ -342,6 +422,49 @@ returns automatically — including if it goes back in a *different* bay
 than it came from (see the next section), which real-world tidiness
 never quite guarantees. Both attribute correctly regardless of who's
 logged in where, with one caveat covered next.
+
+### Activity — what's popular, and who's got what
+
+A new **Activity** tab in the Admin Console, next to All rentals:
+
+- **Most popular titles** — every checkout ever, active or already
+  returned, tallied up and ranked. Nothing new to track for this — it's
+  just counting what's already being recorded.
+- **Who's checked out what** — a straight chronological log, newest
+  first, of every checkout: title, renter, when it went out, and once
+  it's back, when it was returned. Capped to the most recent 60 so it
+  doesn't grow forever on screen; the underlying data isn't capped, just
+  the display.
+
+Both pull from the same two sources everything else here already uses —
+the active `rentals` list and the `rentalHistory` archive that gets
+written the moment any return completes (see the disc-condition feature
+above) — so there's no separate logging system to keep in sync, just a
+place that actually shows what was already being tracked.
+
+### A condition check right when a disc comes back
+
+The moment any return actually completes — a physical bay pull, a
+scanned barcode, or a manual admin return, doesn't matter which — a
+small "How was the disc?" prompt appears with three choices: Good,
+Damaged, or Missing. It fires while it's fresh instead of relying on
+someone remembering to flag it later.
+
+- **Damaged** just flags it — a small red dot shows up on that title's
+  poster card everywhere in Browse, but stock isn't touched, since a
+  scratch doesn't always mean unrentable. Pull it from rotation manually
+  with the usual +/- stock buttons if it warrants that.
+- **Missing** actually reduces stock by one, undoing the bump the return
+  itself just gave it — since a missing copy genuinely isn't available
+  to rent again.
+- Either flag can also be set or cleared by hand anytime, from a
+  dropdown right in **Manage inventory**'s list, independent of the
+  return prompt.
+
+This works for every return path automatically, without hooking each one
+individually — it's detected by comparing the active rental list right
+before and after it changes, so however a return happens to complete,
+the prompt still fires.
 
 ### Every return waits for the disc to actually be back
 

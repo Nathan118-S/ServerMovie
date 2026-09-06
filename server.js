@@ -278,15 +278,29 @@ async function lookupTmdb(title, year, type){
   }catch(e){ return null; }
   const best = searchData && searchData.results && searchData.results[0];
   if(!best) return null;
+  return fetchTmdbDetailsById(best.id, kind, title, year);
+}
 
+// The actual detail fetch, split out so a specific TMDb id can be pulled
+// directly — used both by the normal "best guess" lookup above, and by
+// the "pick which match is right" flow when the guess is wrong.
+async function fetchTmdbDetailsById(tmdbId, kind, fallbackTitle, fallbackYear){
+  const key = getTmdbKey();
+  if(!key) return null;
   let detail;
   try{
-    detail = await httpsGetJson(`https://api.themoviedb.org/3/${kind}/${best.id}?api_key=${encodeURIComponent(key)}&append_to_response=images,videos&include_image_language=en,null`);
+    detail = await httpsGetJson(`https://api.themoviedb.org/3/${kind}/${tmdbId}?api_key=${encodeURIComponent(key)}&append_to_response=images,videos&include_image_language=en,null`);
   }catch(e){ return null; }
 
   let poster = "";
   if(detail.poster_path){
     try{ poster = await httpsGetImageAsDataUri("https://image.tmdb.org/t/p/w500" + detail.poster_path); }catch(e){}
+  }
+  // a landscape still, distinct from the portrait poster — used for the
+  // wide checkout-modal header instead of stretching/cropping the poster
+  let backdrop = "";
+  if(detail.backdrop_path){
+    try{ backdrop = await httpsGetImageAsDataUri("https://image.tmdb.org/t/p/w780" + detail.backdrop_path); }catch(e){}
   }
   let logo = "";
   const logos = (detail.images && detail.images.logos) || [];
@@ -307,7 +321,7 @@ async function lookupTmdb(title, year, type){
   let imdbId = "";
   if(kind === "tv"){
     try{
-      const ext = await httpsGetJson(`https://api.themoviedb.org/3/tv/${best.id}/external_ids?api_key=${encodeURIComponent(key)}`);
+      const ext = await httpsGetJson(`https://api.themoviedb.org/3/tv/${tmdbId}/external_ids?api_key=${encodeURIComponent(key)}`);
       imdbId = ext.imdb_id || "";
     }catch(e){}
   } else {
@@ -315,17 +329,18 @@ async function lookupTmdb(title, year, type){
   }
 
   const releaseDate = detail.release_date || detail.first_air_date || "";
-  const releaseYear = releaseDate ? parseInt(releaseDate.slice(0,4), 10) : (year || new Date().getFullYear());
+  const releaseYear = releaseDate ? parseInt(releaseDate.slice(0,4), 10) : (fallbackYear || new Date().getFullYear());
   const genreNames = (detail.genres || []).map(g => g.name).join(",");
 
   return {
-    title: detail.title || detail.name || title,
+    title: detail.title || detail.name || fallbackTitle,
     year: releaseYear,
     genre: mapGenre(genreNames),
     rating: "PG-13", // TMDb doesn't expose a simple MPAA/TV rating on this endpoint
     description: detail.overview || "",
     imdbId,
     poster,
+    backdrop,
     logo,
     trailerKey
   };
@@ -376,6 +391,7 @@ async function lookupMetadata(title, year, type){
     description: (omdb && omdb.description) || (tmdb && tmdb.description) || "",
     imdbId: (omdb && omdb.imdbId) || (tmdb && tmdb.imdbId) || "",
     poster: (omdb && omdb.poster) || (tmdb && tmdb.poster) || "",
+    backdrop: (tmdb && tmdb.backdrop) || "",
     logo: (tmdb && tmdb.logo) || "",
     trailerKey: (tmdb && tmdb.trailerKey) || ""
   };
@@ -640,6 +656,50 @@ app.get("/api/lookup", async (req, res) => {
   }
 });
 
+// Returns several candidate matches (instead of just the best guess) so a
+// mismatched auto-fill can be corrected — e.g. a title that shares its
+// name with a more famous, unrelated movie/show. TMDb only (it's the
+// source with posters to visually tell candidates apart; OMDb's search
+// endpoint returns far less to go on).
+app.get("/api/search-candidates", async (req, res) => {
+  const { title, type } = req.query;
+  if(!title) return res.status(400).json({ error: "title is required" });
+  const key = getTmdbKey();
+  if(!key) return res.status(500).json({ error: "Needs a TMDb key to show alternate matches — paste one under Manage inventory.", code: "NO_API_KEY" });
+  const kind = type === "series" ? "tv" : "movie";
+  let searchData;
+  try{
+    searchData = await httpsGetJson(`https://api.themoviedb.org/3/search/${kind}?api_key=${encodeURIComponent(key)}&query=${encodeURIComponent(title)}`);
+  }catch(e){ return res.status(500).json({ error: "Couldn't reach TMDb." }); }
+  const results = (searchData && searchData.results || []).slice(0, 8);
+  const candidates = await Promise.all(results.map(async r => {
+    let thumb = "";
+    if(r.poster_path){
+      try{ thumb = await httpsGetImageAsDataUri("https://image.tmdb.org/t/p/w154" + r.poster_path); }catch(e){}
+    }
+    const releaseDate = r.release_date || r.first_air_date || "";
+    return {
+      id: r.id,
+      kind,
+      title: r.title || r.name || title,
+      year: releaseDate ? releaseDate.slice(0, 4) : "",
+      overview: (r.overview || "").slice(0, 150),
+      thumb
+    };
+  }));
+  res.json({ candidates });
+});
+
+// Fetches full details for one specific TMDb id/kind directly — the
+// completion step once the person has picked the right candidate above.
+app.get("/api/lookup-by-id", async (req, res) => {
+  const { id, kind, title, year } = req.query;
+  if(!id || !kind) return res.status(400).json({ error: "id and kind are required" });
+  const result = await fetchTmdbDetailsById(id, kind, title || "", year);
+  if(!result) return res.status(404).json({ error: "Couldn't fetch details for that title." });
+  res.json(result);
+});
+
 // Real episode list for a season — how those episodes are actually split
 // across physical discs is publisher-specific and not tracked anywhere,
 // so the caller (client) splits this evenly as an estimate.
@@ -663,7 +723,7 @@ app.post("/api/autofill", async (req, res) => {
   if(!getOmdbKey() && !getTmdbKey()){
     return res.status(500).json({ error: "No OMDb or TMDb API key configured — paste one under Manage inventory.", code: "NO_API_KEY" });
   }
-  const targets = db.titles.filter(t => !t.poster || !t.description || !t.trailerKey || (t.seriesName && !t.logo));
+  const targets = db.titles.filter(t => !t.poster || !t.backdrop || !t.description || !t.trailerKey || (t.seriesName && !t.logo));
   let updated = 0, notFound = 0, failed = 0;
   const cache = new Map();
   for(const t of targets){
@@ -678,6 +738,7 @@ app.post("/api/autofill", async (req, res) => {
         cache.set(cacheKey, result);
       }
       if(!t.poster && result.poster) t.poster = result.poster;
+      if(!t.backdrop && result.backdrop) t.backdrop = result.backdrop;
       if(!t.description && result.description) t.description = result.description;
       if(!t.imdbId && result.imdbId) t.imdbId = result.imdbId;
       if(!t.logo && result.logo) t.logo = result.logo;

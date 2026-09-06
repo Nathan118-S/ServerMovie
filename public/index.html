@@ -160,6 +160,8 @@
   .poster-title{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.15;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.7);}
   .poster-dot{position:absolute;top:8px;right:8px;width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 2px rgba(0,0,0,0.4);}
   .nobay-dot{position:absolute;top:8px;right:22px;width:9px;height:9px;border-radius:50%;background:#E8B800;box-shadow:0 0 0 2px rgba(0,0,0,0.4);}
+  .damaged-dot{position:absolute;top:8px;right:36px;width:9px;height:9px;border-radius:50%;background:#E03C3C;box-shadow:0 0 0 2px rgba(0,0,0,0.4);}
+  .bluray-badge{position:absolute;bottom:34px;left:8px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.4px;color:#0A0C10;background:linear-gradient(135deg,#4FC3F7,#0288D1);padding:2px 7px;border-radius:4px;}
   .poster-dot.in-stock{animation:breathe 2.4s ease-in-out infinite;}
 
   .row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surf1);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:8px;transition:border-color 0.18s ease,background 0.18s ease;}
@@ -251,6 +253,7 @@
   .modal-card{background:var(--glass);backdrop-filter:blur(24px) saturate(1.4);color:var(--white);border:1px solid var(--line);width:400px;max-width:100%;border-radius:20px;overflow:hidden;box-shadow:0 30px 80px var(--shadow);animation:modalIn 0.25s cubic-bezier(.25,.8,.35,1) both;}
   .modal-header{padding:26px 20px;position:relative;min-height:260px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;}
   .modal-header-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:brightness(0.5) blur(2px);transform:scale(1.08);}
+  .modal-header-bg.sharp{filter:brightness(0.72);transform:scale(1);}
   .modal-header-poster{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:1;}
   .modal-header > .eyebrow, .modal-header > .t, .modal-header > .title-logo{position:relative;z-index:2;}
   .modal-header .eyebrow{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.8);}
@@ -322,7 +325,8 @@
 </div>
 
 <div class="nav">
-  <button data-tab="browse" class="active">Browse catalog</button>
+  <button data-tab="browse" class="active">Browse Movies</button>
+  <button data-tab="browsegames">Browse Games</button>
 </div>
 
 <div class="scan-bar" id="scanBarRow" style="display:none;">
@@ -342,6 +346,11 @@
   <div class="panel active" data-panel="browse">
     <div id="browseHero"></div>
     <div id="browseRows"></div>
+  </div>
+
+  <div class="panel" data-panel="browsegames">
+    <div id="gamesHero"></div>
+    <div id="gamesRows"></div>
   </div>
 
   <div class="panel" data-panel="myrentals">
@@ -366,6 +375,16 @@
   </div>
 </div>
 <div id="loginGateOverlay" class="modal-overlay"></div>
+<div id="matchPickerOverlay" class="modal-overlay">
+  <div class="modal-card" style="width:440px;max-height:80vh;overflow-y:auto;">
+    <div class="modal-body" id="matchPickerBody" style="padding:22px;"></div>
+  </div>
+</div>
+<div id="conditionOverlay" class="modal-overlay">
+  <div class="modal-card" style="width:380px;">
+    <div class="modal-body" id="conditionBody" style="padding:26px 22px;text-align:center;"></div>
+  </div>
+</div>
 
 </div><!-- /appRoot -->
 <div id="adminConsole" style="display:none;">
@@ -378,6 +397,7 @@
   </div>
   <div class="nav">
     <button data-tab="rentals" class="active">All rentals</button>
+    <button data-tab="activity">Activity</button>
     <button data-tab="labels">Print labels</button>
     <button data-tab="admin">Manage inventory</button>
     <button data-tab="users">Manage users</button>
@@ -400,7 +420,19 @@
     </div>
   </div>
 
-
+  <div class="panel" data-panel="activity">
+    <div class="panel-inner">
+      <div class="bulk-box" style="margin-top:0;">
+        <div class="display" style="font-size:15px;margin-bottom:10px;">Most popular titles</div>
+        <div id="popularList"></div>
+      </div>
+      <div class="bulk-box">
+        <div class="display" style="font-size:15px;margin-bottom:10px;">Who's checked out what</div>
+        <div class="scan-msg" style="margin-top:0;">Every checkout, active or already returned, newest first — who rented it, when, and (once it's back) when it was returned.</div>
+        <div id="checkoutLog"></div>
+      </div>
+    </div>
+  </div>
 
   <div class="panel" data-panel="labels">
     <div class="panel-inner">
@@ -436,20 +468,34 @@
         <div style="max-width:400px;">
           <div class="display" style="font-size:16px;margin-bottom:10px;">Add a title</div>
           <div class="new-form">
+            <select id="newMediaTypeInput">
+              <option value="movie" selected>Movie / TV</option>
+              <option value="game">Game</option>
+            </select>
             <input id="newTitleInput" placeholder="Title" />
             <select id="newGenreInput"></select>
             <input id="newYearInput" placeholder="Year" />
             <select id="newRatingInput">
               <option>G</option><option>PG</option><option selected>PG-13</option><option>R</option>
             </select>
+            <select id="newFormatInput">
+              <option value="DVD" selected>DVD</option>
+              <option value="Blu-ray">Blu-ray</option>
+            </select>
+            <select id="newPlatformInput" style="display:none;">
+              <option value="Xbox One" selected>Xbox One</option>
+              <option value="Wii">Wii</option>
+            </select>
             <input id="newStockInput" type="number" min="0" placeholder="Starting stock" value="1" />
             <input id="newCodeInput" placeholder="Existing barcode (optional — scan or type)" />
             <input id="newImdbInput" placeholder="IMDb id, e.g. tt1234567 (optional)" />
-            <div style="border-top:1px solid var(--line);margin:4px 0;padding-top:8px;font-size:11px;color:var(--muted);">TV series disc? (optional)</div>
-            <input id="newSeriesInput" placeholder="Series name, e.g. Breaking Bad" />
-            <div style="display:flex;gap:8px;">
-              <input id="newSeasonInput" type="number" min="1" placeholder="Season #" style="flex:1;" />
-              <input id="newDiscInput" type="number" min="1" placeholder="Disc #" style="flex:1;" />
+            <div id="newSeriesSection">
+              <div style="border-top:1px solid var(--line);margin:4px 0;padding-top:8px;font-size:11px;color:var(--muted);">TV series disc? (optional)</div>
+              <input id="newSeriesInput" placeholder="Series name, e.g. Breaking Bad" />
+              <div style="display:flex;gap:8px;">
+                <input id="newSeasonInput" type="number" min="1" placeholder="Season #" style="flex:1;" />
+                <input id="newDiscInput" type="number" min="1" placeholder="Disc #" style="flex:1;" />
+              </div>
             </div>
             <label class="file-label"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12.5" r="3.5" stroke="currentColor" stroke-width="2"/></svg> Attach a photo of the case
               <input type="file" accept="image/*" capture="environment" id="newPosterInput" />
@@ -473,6 +519,10 @@
             <select id="seriesGenreInput"></select>
             <select id="seriesRatingInput">
               <option>G</option><option>PG</option><option selected>PG-13</option><option>R</option>
+            </select>
+            <select id="seriesFormatInput">
+              <option value="DVD" selected>DVD</option>
+              <option value="Blu-ray">Blu-ray</option>
             </select>
             <div style="display:flex;gap:8px;">
               <input id="seriesDiscCountInput" type="number" min="1" placeholder="Number of discs" value="3" style="flex:1;" />
@@ -642,6 +692,16 @@
     Action:"#8B1E1E", Comedy:"#8A6A16", Drama:"#2E3E63", Horror:"#3E1420",
     "Sci-Fi":"#175349", Animation:"#8C4A1F", Thriller:"#3E2F63"
   };
+  // Games get their own genre set and color palette, kept visually
+  // distinct from the movie genres above — reused in Browse Games,
+  // Add Title's game fields, and poster tiles.
+  const GAME_GENRE_COLORS = {
+    Action:"#7A2E2E", Adventure:"#2E6B4F", Sports:"#1F5C8A", Racing:"#8A4E1F",
+    Fighting:"#5C1F3E", Party:"#7A5C1F", RPG:"#3E2E6B", Shooter:"#4A1F1F",
+    Platformer:"#1F6B5C", Puzzle:"#5C4A8A"
+  };
+  const GAME_PLATFORMS = ["Xbox One", "Wii"];
+  const GAME_RATINGS = ["E", "E10+", "T", "M", "AO"]; // ESRB, not MPAA
   const RENTAL_DAYS = 3, LATE_FEE_PER_DAY = 1.0;
 
   // An IMDb id (tt1234567) links straight to the title's real page.
@@ -751,6 +811,7 @@
   let tvSelection = null; // {movieId, title, genre, year, poster, sentAt} — last thing sent from the TV page
   let query = "";
   let featuredBrowseId = null;
+  let featuredGamesId = null;
   let featuredTvId = null;
   let pendingAdminPoster = "";
   let pendingScanPoster = "";
@@ -787,7 +848,7 @@
     try{
       const data = await api.get("/api/"+resource);
       if(resource==="titles") catalog = data;
-      else if(resource==="rentals") rentals = data;
+      else if(resource==="rentals") updateRentalsAndDetectReturns(data);
       else if(resource==="users") users = data;
       else if(resource==="settings"){ maxCheckouts = data.maxCheckouts || 3; omdbApiKey = data.omdbApiKey || ""; tmdbApiKey = data.tmdbApiKey || ""; wledUrl = data.wledUrl || ""; bayWindowSeconds = data.bayWindowSeconds || 90; wledOpenEffect = data.wledOpenEffect ?? 9; wledCloseEffect = data.wledCloseEffect ?? 2; wledEffectSeconds = data.wledEffectSeconds || 6; doorCloseDelaySeconds = data.doorCloseDelaySeconds || 60; maxRenewals = data.maxRenewals ?? 2; }
       else if(resource==="tv-selection") tvSelection = data && data.movieId ? data : null;
@@ -797,6 +858,22 @@
       else if(resource==="rental-history") rentalHistory = data;
       render();
     }catch(e){ toast("Couldn't reach the local server"); }
+  }
+
+  // Catches a return the instant it completes, no matter which path did
+  // it (a physical bay pull, a scanned barcode, or a manual admin
+  // return) — comparing the rental list before/after this fetch is the
+  // one place all of those paths funnel through, so it's more reliable
+  // than hooking every individual completion function.
+  let knownRentalIds = null; // null until the very first load, so that doesn't trigger a prompt
+  function updateRentalsAndDetectReturns(newRentals){
+    const newIds = new Set(newRentals.map(r => r.id));
+    if(knownRentalIds){
+      const disappeared = rentals.filter(r => knownRentalIds.has(r.id) && !newIds.has(r.id));
+      if(disappeared.length === 1) promptDiscCondition(disappeared[0]);
+    }
+    rentals = newRentals;
+    knownRentalIds = newIds;
   }
 
   async function initApi(){
@@ -850,6 +927,7 @@
   // ---------- rendering ----------
   function render(){
     renderBrowse();
+    renderBrowseGames();
     renderMyRentalsPanel();
     renderLoginArea();
     renderModal();
@@ -865,6 +943,7 @@
     // once on the way in instead.
     if(adminMode){
       renderRentals();
+      renderActivityPanel();
       renderAdminList();
       renderLabelList();
       renderUsersList();
@@ -913,6 +992,7 @@
     console_.style.display = "block";
     requestAnimationFrame(() => console_.classList.add("visible"));
     renderRentals();
+    renderActivityPanel();
     renderAdminList();
     renderLabelList();
     renderUsersList();
@@ -1026,7 +1106,8 @@
   }
 
   function posterTileHtml(m){
-    const color = GENRE_COLORS[m.genre] || "#333";
+    const isGame = m.mediaType === 'game';
+    const color = (isGame ? GAME_GENRE_COLORS[m.genre] : GENRE_COLORS[m.genre]) || "#333";
     const out = m.stock<=0;
     const hasBay = bays.some(b => b.titleId === m.id);
     const bg = m.poster
@@ -1036,7 +1117,10 @@
     return `<div class="poster-card" data-openmovie="${m.id}" style="${bg}">
       <span class="poster-dot${out?'':' in-stock'}" style="background:${out?'#737373':'#46D369'};" title="${out?'Out of stock':'In stock'}"></span>
       ${!hasBay ? `<span class="nobay-dot" title="Not assigned to a bay"></span>` : ""}
+      ${m.condition==='damaged' ? `<span class="damaged-dot" title="Flagged as damaged"></span>` : ""}
       ${tag ? `<span style="position:absolute;top:8px;left:8px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,0.55);padding:2px 7px;border-radius:6px;">${tag}</span>` : ""}
+      ${isGame && m.platform ? `<span class="bluray-badge" style="background:linear-gradient(135deg,#66BB6A,#2E7D32);">${m.platform}</span>` : ""}
+      ${!isGame && m.format==='Blu-ray' ? `<span class="bluray-badge">Blu-ray</span>` : ""}
       <span class="poster-title">${m.title}</span>
     </div>`;
   }
@@ -1051,10 +1135,12 @@
       : `background-image:linear-gradient(160deg, ${color}, #141414 85%);`;
     const totalStock = discs.reduce((s,d) => s+(d.stock||0), 0);
     const anyMissingBay = discs.some(d => !bays.some(b => b.titleId === d.id));
+    const allBluray = discs.every(d => d.format==='Blu-ray');
     return `<div class="poster-card" data-openseries="${encodeURIComponent(seriesName)}" style="${bg}">
       <span class="poster-dot${totalStock>0?' in-stock':''}" style="background:${totalStock>0?'#46D369':'#737373'};" title="${totalStock>0?'In stock':'Out of stock'}"></span>
       ${anyMissingBay ? `<span class="nobay-dot" title="At least one disc isn't assigned to a bay"></span>` : ""}
       <span style="position:absolute;top:8px;left:8px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,0.55);padding:2px 7px;border-radius:6px;">${discs.length} disc${discs.length===1?'':'s'}</span>
+      ${allBluray ? `<span class="bluray-badge">Blu-ray</span>` : ""}
       <span class="poster-title">${seriesName}</span>
     </div>`;
   }
@@ -1110,7 +1196,7 @@
   }
 
   function heroHtml(m, mode){
-    const color = GENRE_COLORS[m.genre] || "#333";
+    const color = (m.mediaType === 'game' ? GAME_GENRE_COLORS[m.genre] : GENRE_COLORS[m.genre]) || "#333";
     const out = m.stock<=0;
     const blurb = m.description
       ? (m.description.length > 200 ? m.description.slice(0, 197) + "…" : m.description)
@@ -1151,14 +1237,14 @@
   // session — re-randomizing on every data refresh would make the hero
   // jump around while someone's just browsing. currentId/setId let Browse
   // and the TV page each remember their own independent pick.
-  function pickFeatured(currentId, setId){
+  function pickFeatured(items, currentId, setId){
     if(currentId){
-      const existing = catalog.find(m => m.id === currentId);
+      const existing = items.find(m => m.id === currentId);
       if(existing) return existing;
     }
-    if(catalog.length === 0) return null;
-    const withPoster = catalog.filter(m => m.poster);
-    const pool = withPoster.length > 0 ? withPoster : catalog;
+    if(items.length === 0) return null;
+    const withPoster = items.filter(m => m.poster);
+    const pool = withPoster.length > 0 ? withPoster : items;
     const pick = pool[Math.floor(Math.random() * pool.length)];
     setId(pick.id);
     return pick;
@@ -1168,11 +1254,12 @@
     const heroEl = $("#browseHero");
     const rowsEl = $("#browseRows");
     if(!heroEl || !rowsEl) return;
+    const movieItems = catalog.filter(m => m.mediaType !== 'game');
     const q = query.trim().toLowerCase();
 
     if(q){
       heroEl.innerHTML = "";
-      const matches = catalog.filter(m => (m.title||"").toLowerCase().includes(q));
+      const matches = movieItems.filter(m => (m.title||"").toLowerCase().includes(q));
       rowsEl.innerHTML = matches.length
         ? gridHtml(`Results for "${query}"`, matches)
         : `<div style="color:var(--muted);font-size:14px;padding:24px 40px;">No titles match "${query}".</div>`;
@@ -1182,22 +1269,61 @@
       return;
     }
 
-    if(catalog.length===0){
+    if(movieItems.length===0){
       heroEl.innerHTML = "";
-      rowsEl.innerHTML = `<div style="color:var(--muted);font-size:14px;padding:24px 40px;">No titles yet — add some under Manage inventory.</div>`;
+      rowsEl.innerHTML = `<div style="color:var(--muted);font-size:14px;padding:24px 40px;">No movies yet — add some under Manage inventory.</div>`;
       return;
     }
 
-    const featured = pickFeatured(featuredBrowseId, id => { featuredBrowseId = id; });
+    const featured = pickFeatured(movieItems, featuredBrowseId, id => { featuredBrowseId = id; });
     heroEl.innerHTML = heroHtml(featured, "browse");
     const infoBtn = heroEl.querySelector("[data-hero-info]");
     if(infoBtn) infoBtn.onclick = () => openMovieModal(featured.id);
     const actionBtn = heroEl.querySelector("[data-hero-action]");
     if(actionBtn && !actionBtn.disabled) actionBtn.onclick = () => openMovieModal(featured.id);
 
-    rowsEl.innerHTML = gridHtml("", catalog);
+    rowsEl.innerHTML = gridHtml("", movieItems);
     wireBrowseCards(rowsEl, openMovieModal);
     wireSeriesCards(rowsEl);
+    setupScrollReveal(rowsEl);
+  }
+
+  // Games get their own, fully parallel browse render — same structure
+  // as movies, just a different filtered slice of the same catalog and a
+  // different set of DOM targets, so the two never mix on screen.
+  function renderBrowseGames(){
+    const heroEl = $("#gamesHero");
+    const rowsEl = $("#gamesRows");
+    if(!heroEl || !rowsEl) return;
+    const gameItems = catalog.filter(m => m.mediaType === 'game');
+    const q = query.trim().toLowerCase();
+
+    if(q){
+      heroEl.innerHTML = "";
+      const matches = gameItems.filter(m => (m.title||"").toLowerCase().includes(q));
+      rowsEl.innerHTML = matches.length
+        ? gridHtml(`Results for "${query}"`, matches)
+        : `<div style="color:var(--muted);font-size:14px;padding:24px 40px;">No games match "${query}".</div>`;
+      wireBrowseCards(rowsEl, openMovieModal);
+      setupScrollReveal(rowsEl);
+      return;
+    }
+
+    if(gameItems.length===0){
+      heroEl.innerHTML = "";
+      rowsEl.innerHTML = `<div style="color:var(--muted);font-size:14px;padding:24px 40px;">No games yet — add some under Manage inventory, Media type: Game.</div>`;
+      return;
+    }
+
+    const featured = pickFeatured(gameItems, featuredGamesId, id => { featuredGamesId = id; });
+    heroEl.innerHTML = heroHtml(featured, "browse");
+    const infoBtn = heroEl.querySelector("[data-hero-info]");
+    if(infoBtn) infoBtn.onclick = () => openMovieModal(featured.id);
+    const actionBtn = heroEl.querySelector("[data-hero-action]");
+    if(actionBtn && !actionBtn.disabled) actionBtn.onclick = () => openMovieModal(featured.id);
+
+    rowsEl.innerHTML = gridHtml("", gameItems);
+    wireBrowseCards(rowsEl, openMovieModal);
     setupScrollReveal(rowsEl);
   }
 
@@ -1236,6 +1362,50 @@
       </div>`;
     }).join("") + `</div>`;
     el.querySelectorAll("[data-return]").forEach(b => b.onclick = () => returnRental(b.dataset.return));
+  }
+
+  function renderActivityPanel(){
+    const popEl = $("#popularList");
+    const logEl = $("#checkoutLog");
+    if(!popEl || !logEl) return;
+
+    // Popularity: every checkout ever, active or already returned, tallied
+    // by title. Counts don't change once a rental's created, so this is
+    // cheap to recompute on every render.
+    const allCheckouts = [...rentals, ...rentalHistory];
+    const counts = new Map();
+    allCheckouts.forEach(r => {
+      const key = r.movieId;
+      const entry = counts.get(key) || { title: r.title, count: 0 };
+      entry.count++;
+      counts.set(key, entry);
+    });
+    const ranked = Array.from(counts.values()).sort((a,b) => b.count - a.count).slice(0, 10);
+    const maxCount = ranked.length ? ranked[0].count : 1;
+    popEl.innerHTML = ranked.length === 0
+      ? `<div style="color:var(--muted);font-size:14px;">Nothing rented yet.</div>`
+      : ranked.map((r,i) => `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <span style="font-size:12px;color:var(--muted);width:16px;text-align:right;flex-shrink:0;">${i+1}</span>
+          <span style="font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.title}</span>
+          <div style="flex:1;max-width:140px;height:6px;background:var(--surf2);border-radius:3px;overflow:hidden;">
+            <div style="width:${(r.count/maxCount*100).toFixed(0)}%;height:100%;background:var(--red);"></div>
+          </div>
+          <span style="font-size:12px;color:var(--muted);width:60px;text-align:right;flex-shrink:0;">${r.count} rental${r.count===1?'':'s'}</span>
+        </div>`).join("");
+
+    // The log: active rentals (no return yet) plus history, newest first,
+    // capped so this doesn't grow unbounded on screen.
+    const activeEntries = rentals.map(r => ({ ...r, returnedOn: null }));
+    const combined = [...activeEntries, ...rentalHistory].sort((a,b) => b.rentedOn - a.rentedOn).slice(0, 60);
+    logEl.innerHTML = combined.length === 0
+      ? `<div style="color:var(--muted);font-size:14px;">Nothing checked out yet.</div>`
+      : `<div class="list-group">` + combined.map(r => `<div class="row">
+          <div>
+            <div style="font-size:14px;">${r.title}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px;">${r.renterName || "Unknown"} · checked out ${new Date(r.rentedOn).toLocaleDateString()}</div>
+          </div>
+          <span style="font-size:12px;color:${r.returnedOn?'var(--muted2)':'var(--green)'};flex-shrink:0;">${r.returnedOn ? 'Returned '+new Date(r.returnedOn).toLocaleDateString() : 'Active'}</span>
+        </div>`).join("") + `</div>`;
   }
 
   function renderMyRentalsPanel(){
@@ -1286,18 +1456,32 @@
 
   function renderAdminList(){
     const el = $("#adminList");
-    el.innerHTML = `<div class="list-group">` + catalog.map(m => `<div class="row">
+    el.innerHTML = `<div class="list-group">` + catalog.map(m => {
+      const isGame = m.mediaType === 'game';
+      return `<div class="row">
       <img class="poster-thumb" src="${m.poster || ''}" style="${m.poster?'':'visibility:hidden;'}" />
       <div style="flex:1;">
-        <span style="font-size:14px;">${m.title}</span>
+        <span style="font-size:14px;">${isGame ? '🎮 ' : ''}${m.title}</span>
         <span style="font-size:12px;color:var(--muted);margin-left:8px;">${m.genre} · ${m.year} · code: ${m.code}${seriesTag(m) ? ' · '+seriesTag(m) : ''}</span>
         <div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-          <input class="imdbInput" data-imdb="${m.id}" placeholder="tt1234567" value="${m.imdbId||''}" style="font-size:11px;padding:4px 8px;width:110px;" />
-          ${imdbLinkHtml(m)}
+          ${isGame ? `<select class="platformInput" data-platform="${m.id}" style="font-size:11px;padding:4px 8px;width:auto;">
+            ${GAME_PLATFORMS.map(p => `<option value="${p}" ${m.platform===p?'selected':''}>${p}</option>`).join("")}
+          </select>` : `<select class="formatInput" data-format="${m.id}" style="font-size:11px;padding:4px 8px;width:auto;">
+            <option value="DVD" ${m.format!=='Blu-ray'?'selected':''}>DVD</option>
+            <option value="Blu-ray" ${m.format==='Blu-ray'?'selected':''}>Blu-ray</option>
+          </select>`}
+          <select class="conditionInput" data-condition="${m.id}" style="font-size:11px;padding:4px 8px;width:auto;">
+            <option value="" ${!m.condition?'selected':''}>Good condition</option>
+            <option value="damaged" ${m.condition==='damaged'?'selected':''}>⚠️ Damaged</option>
+            <option value="missing" ${m.condition==='missing'?'selected':''}>❌ Missing</option>
+          </select>
+          ${!isGame ? `<input class="imdbInput" data-imdb="${m.id}" placeholder="tt1234567" value="${m.imdbId||''}" style="font-size:11px;padding:4px 8px;width:110px;" />
+          ${imdbLinkHtml(m)}` : ''}
           <label class="file-label"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12.5" r="3.5" stroke="currentColor" stroke-width="2"/></svg> ${m.poster?'Replace photo':'Add photo'}
             <input type="file" accept="image/*" capture="environment" class="posterInput" data-poster="${m.id}" />
           </label>
-          <button class="secondary" data-lookup="${m.id}" style="padding:5px 9px;font-size:11px;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Look up on OMDb</button>
+          ${!isGame ? `<button class="secondary" data-lookup="${m.id}" style="padding:5px 9px;font-size:11px;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Look up on OMDb</button>
+          <button class="secondary" data-pickmatch="${m.id}" style="padding:5px 9px;font-size:11px;" title="Picked the wrong movie/show? Choose a different match.">Wrong match?</button>` : ''}
           ${m.seriesName ? `<label class="file-label"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M9 18V5l11-2v13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" stroke="currentColor" stroke-width="2"/><circle cx="17.5" cy="16" r="2.5" stroke="currentColor" stroke-width="2"/></svg> ${m.themeSong?'Replace theme':'Add theme'}
             <input type="file" accept="audio/*" class="themeInput" data-theme="${m.id}" />
           </label>` : ''}
@@ -1309,15 +1493,26 @@
         <button class="adjbtn" data-adj="1|${m.id}">+</button>
         <button class="adjbtn" style="color:#E87C03;border-color:#5A3A20;" data-remove="${m.id}">×</button>
       </div>
-    </div>`).join("") + `</div>`;
+    </div>`;
+    }).join("") + `</div>`;
     el.querySelectorAll("[data-adj]").forEach(b => b.onclick = () => {
       const [delta,id] = b.dataset.adj.split("|");
       adjustStock(id, parseInt(delta,10));
     });
     el.querySelectorAll("[data-remove]").forEach(b => b.onclick = () => removeTitle(b.dataset.remove));
     el.querySelectorAll("[data-lookup]").forEach(b => b.onclick = () => lookupTitle(b.dataset.lookup));
+    el.querySelectorAll("[data-pickmatch]").forEach(b => b.onclick = () => openMatchPicker(b.dataset.pickmatch));
     el.querySelectorAll(".imdbInput").forEach(inp => {
       inp.onchange = () => setImdbId(inp.dataset.imdb, inp.value);
+    });
+    el.querySelectorAll(".formatInput").forEach(sel => {
+      sel.onchange = () => setFormat(sel.dataset.format, sel.value);
+    });
+    el.querySelectorAll(".platformInput").forEach(sel => {
+      sel.onchange = () => setPlatform(sel.dataset.platform, sel.value);
+    });
+    el.querySelectorAll(".conditionInput").forEach(sel => {
+      sel.onchange = () => setCondition(sel.dataset.condition, sel.value);
     });
     el.querySelectorAll(".posterInput").forEach(inp => {
       inp.onchange = async () => {
@@ -1490,11 +1685,11 @@
     if(!modalMovieId){ overlay.style.display = "none"; return; }
     const m = catalog.find(x => x.id === modalMovieId);
     if(!m){ closeModal(); return; }
-    const color = GENRE_COLORS[m.genre] || "#333";
+    const color = (m.mediaType === 'game' ? GAME_GENRE_COLORS[m.genre] : GENRE_COLORS[m.genre]) || "#333";
     const out = m.stock<=0;
-    const headerBg = m.poster
-      ? `background-image:url('${m.poster}');`
-      : `background-image:linear-gradient(160deg, ${color}, #141414 85%);`;
+    const headerBg = m.backdrop
+      ? `background-image:url('${m.backdrop}');`
+      : (m.poster ? `background-image:url('${m.poster}');` : `background-image:linear-gradient(160deg, ${color}, #141414 85%);`);
     let actionHtml;
     if(out){
       actionHtml = `<div style="font-size:13px;color:#E87C03;">Out of stock</div>`;
@@ -1512,10 +1707,10 @@
 
     overlay.innerHTML = `<div class="modal-card">
       <div class="modal-header">
-        <div class="modal-header-bg" style="${headerBg}"></div>
-        ${m.poster ? `<img class="modal-header-poster" src="${m.poster}" alt="${m.title}" />` : ''}
+        <div class="modal-header-bg${m.backdrop?' sharp':''}" style="${headerBg}"></div>
+        ${(!m.backdrop && m.poster) ? `<img class="modal-header-poster" src="${m.poster}" alt="${m.title}" />` : ''}
         <button class="modal-close" id="modalCloseBtn">×</button>
-        <div class="eyebrow">${m.genre} · ${m.year}${seriesTag(m) ? ' · '+seriesTag(m) : ''}</div>
+        <div class="eyebrow">${m.genre} · ${m.year}${m.mediaType==='game' ? (m.platform ? ' · '+m.platform : '') : (m.format==='Blu-ray' ? ' · Blu-ray' : '')}${seriesTag(m) ? ' · '+seriesTag(m) : ''}</div>
         ${m.logo ? `<img src="${m.logo}" alt="${m.title}" class="title-logo" />` : `<div class="t">${m.title}</div>`}
       </div>
       <div class="modal-body">
@@ -1551,11 +1746,11 @@
     const discs = catalog.filter(m => m.seriesName === modalSeriesName)
       .sort((a,b) => (a.season||0)-(b.season||0) || (a.discNumber||0)-(b.discNumber||0));
     if(discs.length === 0){ closeModal(); return; }
-    const rep = discs.find(d=>d.poster) || discs.find(d=>d.logo) || discs[0];
+    const rep = discs.find(d=>d.backdrop) || discs.find(d=>d.poster) || discs.find(d=>d.logo) || discs[0];
     const color = GENRE_COLORS[rep.genre] || "#333";
-    const headerBg = rep.poster
-      ? `background-image:url('${rep.poster}');`
-      : `background-image:linear-gradient(160deg, ${color}, #141414 85%);`;
+    const headerBg = rep.backdrop
+      ? `background-image:url('${rep.backdrop}');`
+      : (rep.poster ? `background-image:url('${rep.poster}');` : `background-image:linear-gradient(160deg, ${color}, #141414 85%);`);
     const totalStock = discs.reduce((s,d) => s+(d.stock||0), 0);
     const descDisc = discs.find(d => d.description);
 
@@ -1576,7 +1771,7 @@
         : (loggedInUser ? `<button class="teal" data-rentdisc="${d.id}">Rent</button>` : "");
       return `<div class="row" style="padding:10px 12px;">
         <div>
-          <div style="font-size:14px;">${seriesTag(d) || d.title}</div>
+          <div style="font-size:14px;">${seriesTag(d) || d.title}${d.format==='Blu-ray' ? ' <span class="bluray-badge" style="position:static;display:inline-block;vertical-align:middle;">Blu-ray</span>' : ''}</div>
           <div style="font-size:11px;color:${dOut?'#E87C03':'var(--muted)'};margin-top:2px;">${dOut?'Out of stock':d.stock+' in stock'}</div>
         </div>
         ${action}
@@ -1585,8 +1780,8 @@
 
     overlay.innerHTML = `<div class="modal-card">
       <div class="modal-header">
-        <div class="modal-header-bg" style="${headerBg}"></div>
-        ${rep.poster ? `<img class="modal-header-poster" src="${rep.poster}" alt="${modalSeriesName}" />` : ''}
+        <div class="modal-header-bg${rep.backdrop?' sharp':''}" style="${headerBg}"></div>
+        ${(!rep.backdrop && rep.poster) ? `<img class="modal-header-poster" src="${rep.poster}" alt="${modalSeriesName}" />` : ''}
         <button class="modal-close" id="modalCloseBtn">×</button>
         <div class="eyebrow">${discs.length} disc${discs.length===1?'':'s'} · ${totalStock} in stock</div>
         ${rep.logo ? `<img src="${rep.logo}" alt="${modalSeriesName}" class="title-logo" />` : `<div class="t">${modalSeriesName}</div>`}
@@ -1636,13 +1831,14 @@
     const rowsEl = $("#tvRows");
     if(!heroEl || !rowsEl) return;
 
-    if(catalog.length===0){
+    const tvItems = catalog.filter(m => m.mediaType !== 'game');
+    if(tvItems.length===0){
       heroEl.innerHTML = "";
       rowsEl.innerHTML = `<div style="color:var(--muted);font-size:20px;padding:24px 56px;">No titles yet.</div>`;
       return;
     }
 
-    const featured = pickFeatured(featuredTvId, id => { featuredTvId = id; });
+    const featured = pickFeatured(tvItems, featuredTvId, id => { featuredTvId = id; });
     heroEl.innerHTML = heroHtml(featured, "tv");
     const actionBtn = heroEl.querySelector("[data-hero-action]");
     if(actionBtn) actionBtn.onclick = () => openTvSendBox(featured.id);
@@ -1650,7 +1846,7 @@
     let rowsOut = "";
     let rowIndex = 0;
     Object.keys(GENRE_COLORS).forEach(g => {
-      const items = catalog.filter(m => m.genre===g);
+      const items = tvItems.filter(m => m.genre===g);
       if(items.length===0) return;
       rowsOut += rowHtml(g, items, rowIndex);
       rowIndex++;
@@ -1679,16 +1875,16 @@
     const m = catalog.find(x => x.id === tvSendMovieId);
     if(!m){ closeTvSendBox(); return; }
     const color = GENRE_COLORS[m.genre] || "#333";
-    const headerBg = m.poster
-      ? `background-image:url('${m.poster}');`
-      : `background-image:linear-gradient(160deg, ${color}, #141414 85%);`;
+    const headerBg = m.backdrop
+      ? `background-image:url('${m.backdrop}');`
+      : (m.poster ? `background-image:url('${m.poster}');` : `background-image:linear-gradient(160deg, ${color}, #141414 85%);`);
 
     box.innerHTML = `<div class="modal-card">
       <div class="modal-header">
-        <div class="modal-header-bg" style="${headerBg}"></div>
-        ${m.poster ? `<img class="modal-header-poster" src="${m.poster}" alt="${m.title}" />` : ''}
+        <div class="modal-header-bg${m.backdrop?' sharp':''}" style="${headerBg}"></div>
+        ${(!m.backdrop && m.poster) ? `<img class="modal-header-poster" src="${m.poster}" alt="${m.title}" />` : ''}
         <button class="modal-close" id="tvSendCloseBtn">×</button>
-        <div class="eyebrow">${m.genre} · ${m.year}</div>
+        <div class="eyebrow">${m.genre} · ${m.year}${m.format==='Blu-ray' ? ' · Blu-ray' : ''}</div>
         ${m.logo ? `<img src="${m.logo}" alt="${m.title}" class="title-logo" />` : `<div class="t">${m.title}</div>`}
       </div>
       <div class="modal-body">
@@ -2229,11 +2425,17 @@
     toast("Title removed from catalog");
   }
 
-  async function addTitle({title,genre,year,rating,stock,code,imdbId,poster,seriesName,season,discNumber,skipToast,description,themeSong}){
+  async function addTitle({title,genre,year,rating,stock,code,imdbId,poster,seriesName,season,discNumber,skipToast,description,themeSong,format,mediaType,platform}){
     if(!title || !title.trim()) return null;
     const id = "t"+Date.now()+Math.floor(Math.random()*1000)+Math.floor(Math.random()*1000);
     const finalCode = (code && code.trim()) ? code.trim() : id;
     const data = { code: finalCode, title: title.trim(), genre, year: Number(year)||new Date().getFullYear(), rating, stock: Number(stock)||0, imdbId: (imdbId||"").trim() };
+    data.mediaType = mediaType || "movie";
+    if(data.mediaType === "game"){
+      if(platform) data.platform = platform;
+    } else {
+      data.format = format || "DVD";
+    }
     if(poster) data.poster = poster;
     if(description) data.description = description;
     if(themeSong) data.themeSong = themeSong;
@@ -2270,7 +2472,7 @@
     return groups;
   }
 
-  async function addSeriesDiscs({seriesName, season, year, genre, rating, discCount, stockPerDisc, themeSong}){
+  async function addSeriesDiscs({seriesName, season, year, genre, rating, discCount, stockPerDisc, themeSong, format}){
     seriesName = (seriesName||"").trim();
     if(!seriesName){ toast("Enter a series name"); return; }
     const count = parseInt(discCount, 10);
@@ -2293,7 +2495,7 @@
       }
       const id = await addTitle({
         title: seriesName, genre, year, rating, stock: stockPerDisc,
-        seriesName, season, discNumber: d, themeSong, description, skipToast: true
+        seriesName, season, discNumber: d, themeSong, description, format, skipToast: true
       });
       if(id && group && group.length){
         try{ await api.send("PATCH", "/api/titles/"+id, { episodes: group }); }catch(e){}
@@ -2377,6 +2579,27 @@
     catch(e){ toast("Couldn't save IMDb id"); }
   }
 
+  async function setFormat(id, format){
+    const m = catalog.find(x=>x.id===id);
+    if(!m) return;
+    try{ await api.send("PATCH", "/api/titles/"+id, { format }); await refetch("titles"); }
+    catch(e){ toast("Couldn't save format"); }
+  }
+
+  async function setPlatform(id, platform){
+    const m = catalog.find(x=>x.id===id);
+    if(!m) return;
+    try{ await api.send("PATCH", "/api/titles/"+id, { platform }); await refetch("titles"); }
+    catch(e){ toast("Couldn't save platform"); }
+  }
+
+  async function setCondition(id, condition){
+    const m = catalog.find(x=>x.id===id);
+    if(!m) return;
+    try{ await api.send("PATCH", "/api/titles/"+id, { condition }); await refetch("titles"); }
+    catch(e){ toast("Couldn't save condition"); }
+  }
+
   // ---------- OMDb auto-import (posters + descriptions) ----------
   async function lookupTitle(id){
     const m = catalog.find(x=>x.id===id);
@@ -2388,6 +2611,7 @@
       const result = await api.get(url);
       const patch = {};
       if(result.poster) patch.poster = result.poster;
+      if(result.backdrop) patch.backdrop = result.backdrop;
       if(result.logo) patch.logo = result.logo;
       if(result.description) patch.description = result.description;
       if(result.imdbId) patch.imdbId = result.imdbId;
@@ -2398,6 +2622,139 @@
       toast(`Updated "${m.title}"`);
     }catch(e){
       toast(e.message.indexOf("404")!==-1 ? `"${m.title}" wasn't found` : "Couldn't reach OMDb/TMDb — check the server has a key and internet access");
+    }
+  }
+
+  // Lets an admin correct a wrong auto-fill — shows several TMDb
+  // candidates (with posters, so title-name collisions with an unrelated
+  // movie/show are easy to spot) instead of silently trusting the top
+  // search result.
+  async function openMatchPicker(titleId){
+    const m = catalog.find(x=>x.id===titleId);
+    if(!m) return;
+    const overlay = $("#matchPickerOverlay");
+    const body = $("#matchPickerBody");
+    overlay.style.display = "flex";
+    body.innerHTML = `
+      <div class="t" style="font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:18px;font-weight:700;color:var(--white);margin-bottom:4px;">Which one is "${m.title}"?</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Picking one replaces the poster, backdrop, description, logo, and trailer with that match's real details.</div>
+      <div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">Searching…</div>
+      <button class="secondary" id="matchPickerCloseBtn" style="width:100%;margin-top:10px;">Cancel</button>
+    `;
+    $("#matchPickerCloseBtn").onclick = closeMatchPicker;
+    overlay.onclick = (e) => { if(e.target===overlay) closeMatchPicker(); };
+
+    try{
+      const type = m.seriesName ? "series" : "";
+      let url = "/api/search-candidates?title="+encodeURIComponent(m.title);
+      if(type) url += "&type="+type;
+      const { candidates } = await api.get(url);
+      if(!candidates || candidates.length===0){
+        body.innerHTML = `<div style="font-size:13px;color:var(--muted);padding:10px 0;">No matches found on TMDb for "${m.title}".</div>
+          <button class="secondary" id="matchPickerCloseBtn2" style="width:100%;margin-top:10px;">Close</button>`;
+        $("#matchPickerCloseBtn2").onclick = closeMatchPicker;
+        return;
+      }
+      const rowsHtml = candidates.map((c,i) => `<div class="row" data-pick="${i}" style="cursor:pointer;gap:12px;">
+        <img src="${c.thumb||''}" style="width:42px;height:63px;object-fit:cover;border-radius:4px;background:var(--surf3);flex-shrink:0;${c.thumb?'':'visibility:hidden;'}" />
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;">${c.title}${c.year?` (${c.year})`:''}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${c.overview||'No description available.'}</div>
+        </div>
+      </div>`).join("");
+      body.innerHTML = `
+        <div class="t" style="font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:18px;font-weight:700;color:var(--white);margin-bottom:4px;">Which one is "${m.title}"?</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Picking one replaces the poster, backdrop, description, logo, and trailer with that match's real details.</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">${rowsHtml}</div>
+        <button class="secondary" id="matchPickerCloseBtn2" style="width:100%;margin-top:14px;">Cancel</button>
+      `;
+      $("#matchPickerCloseBtn2").onclick = closeMatchPicker;
+      body.querySelectorAll("[data-pick]").forEach(row => {
+        row.onclick = () => applyMatchPick(titleId, candidates[parseInt(row.dataset.pick,10)]);
+      });
+    }catch(e){
+      body.innerHTML = `<div style="font-size:13px;color:var(--muted);padding:10px 0;">${e.message || "Couldn't search TMDb."}</div>
+        <button class="secondary" id="matchPickerCloseBtn2" style="width:100%;margin-top:10px;">Close</button>`;
+      $("#matchPickerCloseBtn2").onclick = closeMatchPicker;
+    }
+  }
+
+  function closeMatchPicker(){
+    $("#matchPickerOverlay").style.display = "none";
+  }
+
+  async function applyMatchPick(titleId, candidate){
+    const m = catalog.find(x=>x.id===titleId);
+    if(!m) return;
+    toast(`Applying "${candidate.title}"…`);
+    try{
+      const url = "/api/lookup-by-id?id="+candidate.id+"&kind="+candidate.kind+"&title="+encodeURIComponent(candidate.title)+"&year="+encodeURIComponent(candidate.year||"");
+      const result = await api.get(url);
+      const patch = {};
+      if(result.poster) patch.poster = result.poster;
+      if(result.backdrop) patch.backdrop = result.backdrop;
+      if(result.logo) patch.logo = result.logo;
+      if(result.description) patch.description = result.description;
+      if(result.imdbId) patch.imdbId = result.imdbId;
+      if(result.trailerKey) patch.trailerKey = result.trailerKey;
+      await api.send("PATCH", "/api/titles/"+titleId, patch);
+      await refetch("titles");
+      closeMatchPicker();
+      toast(`Updated "${m.title}" with "${candidate.title}"'s details.`);
+    }catch(e){
+      toast(e.message || "Couldn't apply that match");
+    }
+  }
+
+  // Fires automatically right after any return completes (see
+  // updateRentalsAndDetectReturns above) — a quick condition check while
+  // it's still fresh, rather than relying on someone noticing damage
+  // later and remembering to flag it.
+  function promptDiscCondition(rental){
+    const overlay = $("#conditionOverlay");
+    const body = $("#conditionBody");
+    overlay.style.display = "flex";
+    body.innerHTML = `
+      <div class="t" style="font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:19px;font-weight:700;color:var(--white);margin-bottom:6px;">How was the disc?</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">"${rental.title}" — just returned</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button class="primary" data-cond="good" style="width:100%;">✅ Good — ready to rent again</button>
+        <button class="secondary" data-cond="damaged" style="width:100%;">⚠️ Damaged — scratched, won't play right</button>
+        <button class="secondary" data-cond="missing" style="width:100%;">❌ Missing — case was empty / lost</button>
+      </div>
+    `;
+    body.querySelectorAll("[data-cond]").forEach(b => {
+      b.onclick = () => setDiscCondition(rental, b.dataset.cond);
+    });
+  }
+
+  function closeConditionPrompt(){
+    $("#conditionOverlay").style.display = "none";
+  }
+
+  async function setDiscCondition(rental, condition){
+    closeConditionPrompt();
+    if(condition === "good"){
+      // nothing to flag — just clear any old flag this copy might have had
+      try{ await api.send("PATCH", "/api/titles/"+rental.movieId, { condition: "" }); await refetch("titles"); }
+      catch(e){}
+      return;
+    }
+    const m = catalog.find(x => x.id === rental.movieId);
+    try{
+      const patch = { condition };
+      // "Missing" means this copy isn't actually usable — undo the stock
+      // bump the return just gave it. "Damaged" leaves stock alone since
+      // a scratch doesn't always mean unrentable; admin can pull it from
+      // rotation manually with the usual +/- buttons if it warrants that.
+      if(condition === "missing" && m) patch.stock = Math.max(0, m.stock - 1);
+      await api.send("PATCH", "/api/titles/"+rental.movieId, patch);
+      await refetch("titles");
+      toast(condition === "missing"
+        ? `"${rental.title}" marked missing — pulled from available stock.`
+        : `"${rental.title}" flagged as damaged.`);
+    }catch(e){
+      toast("Couldn't save that");
     }
   }
 
@@ -2698,6 +3055,30 @@
     $("#newGenreInput").innerHTML = Object.keys(GENRE_COLORS).map(g=>`<option>${g}</option>`).join("");
     $("#seriesGenreInput").innerHTML = Object.keys(GENRE_COLORS).map(g=>`<option>${g}</option>`).join("");
 
+    // Swaps the Add Title form between movie and game mode — different
+    // genre list, different rating scale (MPAA vs ESRB), Blu-ray/DVD only
+    // makes sense for movies, Platform only for games, and TV-series
+    // fields don't apply to games at all.
+    function updateMediaTypeFields(){
+      const isGame = $("#newMediaTypeInput").value === "game";
+      const genreSel = $("#newGenreInput");
+      const prevGenre = genreSel.value;
+      const genreKeys = Object.keys(isGame ? GAME_GENRE_COLORS : GENRE_COLORS);
+      genreSel.innerHTML = genreKeys.map(g=>`<option>${g}</option>`).join("");
+      if(genreKeys.includes(prevGenre)) genreSel.value = prevGenre;
+
+      const ratingSel = $("#newRatingInput");
+      ratingSel.innerHTML = isGame
+        ? GAME_RATINGS.map(r=>`<option ${r==='T'?'selected':''}>${r}</option>`).join("")
+        : `<option>G</option><option>PG</option><option selected>PG-13</option><option>R</option>`;
+
+      $("#newFormatInput").style.display = isGame ? "none" : "block";
+      $("#newPlatformInput").style.display = isGame ? "block" : "none";
+      $("#newSeriesSection").style.display = isGame ? "none" : "block";
+    }
+    $("#newMediaTypeInput").onchange = updateMediaTypeFields;
+    updateMediaTypeFields();
+
     render();
     await initApi();
 
@@ -2713,12 +3094,14 @@
       query = e.target.value;
       $("#searchClearBtn").style.display = query ? "block" : "none";
       renderBrowse();
+      renderBrowseGames();
     };
     $("#searchClearBtn").onclick = () => {
       query = "";
       $("#searchBox").value = "";
       $("#searchClearBtn").style.display = "none";
       renderBrowse();
+      renderBrowseGames();
       $("#searchBox").focus();
     };
     document.addEventListener("keydown", e => {
@@ -2734,18 +3117,22 @@
     });
 
     $("#addTitleBtn").onclick = async () => {
+      const isGame = $("#newMediaTypeInput").value === "game";
       await addTitle({
         title: $("#newTitleInput").value,
+        mediaType: $("#newMediaTypeInput").value,
+        platform: isGame ? $("#newPlatformInput").value : "",
         genre: $("#newGenreInput").value,
         year: $("#newYearInput").value,
         rating: $("#newRatingInput").value,
+        format: isGame ? "" : $("#newFormatInput").value,
         stock: $("#newStockInput").value,
         code: $("#newCodeInput").value,
         imdbId: $("#newImdbInput").value,
         poster: pendingAdminPoster,
-        seriesName: $("#newSeriesInput").value,
-        season: $("#newSeasonInput").value,
-        discNumber: $("#newDiscInput").value
+        seriesName: isGame ? "" : $("#newSeriesInput").value,
+        season: isGame ? "" : $("#newSeasonInput").value,
+        discNumber: isGame ? "" : $("#newDiscInput").value
       });
       $("#newTitleInput").value=""; $("#newYearInput").value=""; $("#newStockInput").value="1"; $("#newCodeInput").value=""; $("#newImdbInput").value="";
       $("#newPosterInput").value=""; $("#newPosterStatus").textContent=""; pendingAdminPoster="";
@@ -2758,6 +3145,7 @@
         year: $("#seriesYearInput").value,
         genre: $("#seriesGenreInput").value,
         rating: $("#seriesRatingInput").value,
+        format: $("#seriesFormatInput").value,
         discCount: $("#seriesDiscCountInput").value,
         stockPerDisc: $("#seriesStockInput").value,
         themeSong: pendingSeriesTheme
