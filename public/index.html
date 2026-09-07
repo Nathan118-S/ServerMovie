@@ -367,6 +367,8 @@
 </div>
 <div id="conditionOverlay" class="pending-return-overlay"></div>
 
+<div id="versionFooter" style="text-align:center;padding:14px 20px 20px;font-size:11px;color:var(--muted2);"></div>
+
 </div><!-- /appRoot -->
 <div id="adminConsole" style="display:none;">
   <div class="admin-mode-bar" id="adminModeBar">
@@ -654,6 +656,7 @@
       <div class="bulk-box" style="max-width:520px;">
         <div class="display" style="font-size:15px;margin-bottom:6px;">Update the server</div>
         <div class="scan-msg" style="margin-top:0;">Pulls the latest code from GitHub and reinstalls dependencies if anything changed — the same update step <code>install.sh</code> does, run from here instead of SSH. If the server was set up with autostart (systemd), it restarts itself automatically right after; if not, you'll need to stop and re-run <code>npm start</code> by hand once it's done.</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Currently running: <span id="currentVersionLabel" style="font-family:monospace;">…</span></div>
         <button class="primary" id="systemUpdateBtn" type="button">Check for updates &amp; install</button>
         <div id="systemUpdateStatus" style="font-size:12px;color:var(--muted);margin-top:10px;white-space:pre-wrap;"></div>
       </div>
@@ -721,6 +724,7 @@
     </div>
   </div>
   </div>
+  <div id="versionFooterAdmin" style="text-align:center;padding:14px 20px 24px;font-size:11px;color:var(--muted2);"></div>
 </div><!-- /adminConsole -->
 
 
@@ -932,6 +936,26 @@
     }
     rentals = newRentals;
     knownRentalIds = newIds;
+  }
+
+  // The git commit hash server.js was actually loaded from — updates
+  // automatically with every push+pull, no manual version bumping
+  // anywhere. Shown in three spots: a quiet footer on the customer
+  // view, the same in the Admin Console, and right next to the Update
+  // button so a before/after comparison is possible without leaving
+  // the page.
+  function renderVersionInfo(v){
+    const label = (v && v.commit) ? `v${v.commit}` : "unknown version (not a git checkout?)";
+    const footerEl = $("#versionFooter");
+    if(footerEl) footerEl.textContent = "Sandy Server " + label;
+    const footerAdminEl = $("#versionFooterAdmin");
+    if(footerAdminEl) footerAdminEl.textContent = "Sandy Server " + label;
+    const currentEl = $("#currentVersionLabel");
+    if(currentEl) currentEl.textContent = label;
+  }
+  async function loadVersionInfo(){
+    try{ renderVersionInfo(await api.get("/api/version")); }
+    catch(e){ /* not fatal — just leave the footer blank */ }
   }
 
   async function initApi(){
@@ -3305,6 +3329,7 @@
       renderHwLog();
     };
     startHwLogPolling();
+    loadVersionInfo();
     $("#exportDataBtn").onclick = () => { window.location.href = "/api/export"; };
     $("#importDataInput").onchange = async (e) => {
       const file = e.target.files && e.target.files[0];
@@ -3383,6 +3408,7 @@
       statusEl.textContent = "Pulling latest code and installing dependencies — this can take a minute…";
       try{
         const result = await api.send("POST", "/api/system-update");
+        if(result.version) renderVersionInfo(result.version);
         if(result.willAutoRestart){
           statusEl.textContent = "Update installed. The server is restarting itself now — reload this page in a few seconds.";
         } else {

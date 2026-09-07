@@ -639,7 +639,32 @@ function broadcast(resource){
 
 // ---------- app ----------
 const app = express();
-app.use(compression()); // gzip everything — the JSON responses here are mostly
+
+// Server-Sent Events (live cross-device updates) registered before
+// compression — this has to come first. Express's compression
+// middleware buffers writes to build efficient gzip chunks, which is
+// exactly wrong for SSE: each broadcast needs to flush to the browser
+// the instant it happens, not get held waiting for more data that (on
+// a long-lived connection like this) may never come. Registering this
+// route ahead of app.use(compression()) means Express matches and
+// fully handles it before compression ever sees the request, so this
+// one endpoint is never compressed, and every other JSON response
+// still is.
+app.get("/api/events", (req, res) => {
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    "Connection": "keep-alive"
+  });
+  res.write("\n");
+  sseClients.push(res);
+  req.on("close", () => {
+    const i = sseClients.indexOf(res);
+    if(i !== -1) sseClients.splice(i, 1);
+  });
+});
+
+app.use(compression()); // gzip everything else — the JSON responses here are mostly
                          // base64 poster/logo images, which compress well
 app.use(express.json({ limit: "20mb" })); // poster/logo images and short theme-song clips are all small data URLs, but give room
 app.use(express.static(path.join(__dirname, "public")));
@@ -793,20 +818,6 @@ app.get("/api/barcode", async (req, res) => {
     const png = await generateBarcodePng(text);
     res.json({ dataUrl: "data:image/png;base64," + png.toString("base64") });
   }catch(e){ res.status(500).json({ error: "Couldn't generate barcode" }); }
-});
-
-app.get("/api/events", (req, res) => {
-  res.writeHead(200, {
-    "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache",
-    "Connection": "keep-alive"
-  });
-  res.write("\n");
-  sseClients.push(res);
-  req.on("close", () => {
-    const i = sseClients.indexOf(res);
-    if(i !== -1) sseClients.splice(i, 1);
-  });
 });
 
 // ---------- metadata lookup endpoints (OMDb + TMDb) ----------
@@ -1358,22 +1369,39 @@ app.post("/api/import", (req, res) => {
 // literal shell-out to install.sh itself, since that script prompts
 // interactively on a first run and this is meant to be a one-click
 // action from an already-running server, not a fresh install.
+// ---------- version (git commit — updates automatically with every push) ----------
+let cachedVersion = { commit: null, date: null };
+function refreshVersionInfo(){
+  return new Promise(resolve => {
+    exec("git log -1 --format=%h|%cI", { cwd: __dirname, timeout: 5000 }, (err, out) => {
+      if(err || !out){ cachedVersion = { commit: null, date: null }; return resolve(); }
+      const [commit, date] = out.trim().split("|");
+      cachedVersion = { commit, date };
+      resolve();
+    });
+  });
+}
+refreshVersionInfo(); // populate once at startup; re-checked after every successful update below
+
+app.get("/api/version", (req, res) => res.json(cachedVersion));
+
 app.post("/api/system-update", (req, res) => {
   const cwd = __dirname;
   exec("git pull", { cwd, timeout: 60000 }, (gitErr, gitOut, gitErrOut) => {
     if(gitErr){
       return res.status(500).json({ ok: false, step: "git pull", error: (gitErrOut || gitErr.message || "").trim() || "git pull failed" });
     }
-    exec("npm install", { cwd, timeout: 180000 }, (npmErr, npmOut, npmErrOut) => {
+    exec("npm install", { cwd, timeout: 180000 }, async (npmErr, npmOut, npmErrOut) => {
       if(npmErr){
         return res.status(500).json({ ok: false, step: "npm install", error: (npmErrOut || npmErr.message || "").trim() || "npm install failed", gitOutput: gitOut.trim() });
       }
+      await refreshVersionInfo(); // covers the case where this install isn't under systemd and so won't restart to pick up a fresh version itself
       // systemd sets INVOCATION_ID on every process it starts — a reliable
       // way to tell whether exiting here will actually bring the server
       // back up automatically (Restart=on-failure, set by install.sh's
       // autostart option) or just leave it stopped with no one watching.
       const willAutoRestart = !!process.env.INVOCATION_ID;
-      res.json({ ok: true, gitOutput: gitOut.trim(), npmOutput: npmOut.trim(), willAutoRestart });
+      res.json({ ok: true, gitOutput: gitOut.trim(), npmOutput: npmOut.trim(), willAutoRestart, version: cachedVersion });
       if(willAutoRestart){
         // Give the response above time to actually reach the browser
         // before the process exits out from under it.

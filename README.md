@@ -524,6 +524,40 @@ notifications setup further down this README), it's completely
 unrelated to this pipeline — nothing here needs it, and nothing here
 shows up in it.
 
+## A real bug: live updates silently breaking under gzip compression
+
+If pending-checkout/pending-return screens were getting stuck (not
+auto-clearing when the actual bay event completed them), or the app
+wasn't reflecting a change until a manual page reload — this was why.
+The gzip compression added a while back to speed up initial page loads
+was applied globally, which included the Server-Sent Events endpoint
+that pushes live updates to every open tab. Compression buffers writes
+to build efficient chunks; SSE needs the opposite — every event flushed
+to the browser the instant it happens, since it's a connection that
+stays open indefinitely rather than a normal request with a clear end.
+The two don't mix, and the practical effect was that broadcasts could
+sit buffered and never actually reach an already-open tab, while a
+fresh page load (which doesn't go through SSE at all) always showed the
+correct, current state.
+
+Fixed by registering the `/api/events` route *before*
+`app.use(compression())` in `server.js` — Express handles matching
+routes in registration order, so requests to that one endpoint are now
+fully handled before compression middleware ever sees them, while every
+other response is still compressed exactly as before.
+
+## The version number at the bottom
+
+A quiet `Sandy Server v<commit>` line sits at the bottom of the customer
+view, the Admin Console, and right next to the Update button in System.
+It's the current git commit's short hash, read straight from the
+running checkout — never a manually maintained number, so it can't
+drift out of sync with what's actually deployed. It updates itself the
+moment you `git push` and then either use the Update button or pull on
+the Pi by hand; if it's running somewhere that isn't a git checkout at
+all (a plain zip download, say), it just says so plainly instead of
+showing a fake version.
+
 ## Updating from the UI, not just SSH
 
 **System** has an **Update the server** button: it runs the same update
