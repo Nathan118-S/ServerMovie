@@ -145,6 +145,10 @@
   .row-scroller::-webkit-scrollbar{display:none;}
   .poster-grid{display:flex;flex-wrap:wrap;gap:16px;padding:6px 40px 20px;}
   .poster-card{position:relative;flex-shrink:0;width:150px;height:225px;border-radius:14px;cursor:pointer;display:flex;align-items:flex-end;padding:10px;background-size:cover;background-position:center;box-shadow:0 4px 16px rgba(0,0,0,0.35);transition:transform 0.25s cubic-bezier(.25,.8,.35,1),box-shadow 0.25s ease;animation:fadeInUp 0.4s ease both;}
+  /* TV-remote navigation needs a focus ring that reads clearly from
+     across a room — the default thin browser outline doesn't cut it. */
+  #tvRoot .poster-card:focus, #tvRoot .poster-card:focus-visible{outline:none;transform:scale(1.08);box-shadow:0 0 0 4px #fff, 0 0 0 8px var(--red), 0 12px 32px rgba(0,0,0,0.5);z-index:5;}
+  #tvRoot .hero-btn:focus, #tvRoot .hero-btn:focus-visible, #tvSendBox .tv-send-btn:focus, #tvSendBox .tv-send-btn:focus-visible{outline:none;box-shadow:0 0 0 4px #fff, 0 0 0 8px var(--red);}
   .row-scroller .poster-card:nth-child(1){animation-delay:0.02s;} .row-scroller .poster-card:nth-child(2){animation-delay:0.06s;}
   .row-scroller .poster-card:nth-child(3){animation-delay:0.1s;} .row-scroller .poster-card:nth-child(4){animation-delay:0.14s;}
   .row-scroller .poster-card:nth-child(5){animation-delay:0.18s;} .row-scroller .poster-card:nth-child(6){animation-delay:0.22s;}
@@ -635,6 +639,7 @@
           <button class="secondary" id="hwTestReturnBtn" style="padding:9px 14px;font-size:12px;">Simulate return</button>
           <button class="secondary" id="hwTestDoorOpenBtn" style="padding:9px 14px;font-size:12px;">Simulate door open</button>
           <button class="secondary" id="hwTestDoorCloseBtn" style="padding:9px 14px;font-size:12px;">Simulate door close</button>
+          <button class="secondary" id="hwTestLedsBtn" style="padding:9px 14px;font-size:12px;">Test all bay LEDs</button>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
           <div style="font-size:12px;color:var(--muted);">Live — updates every 2 seconds while this tab is open</div>
@@ -701,6 +706,10 @@
           <div class="new-form">
             <input id="newUserName" placeholder="Name" />
             <input id="newUserPin" class="pin-input" placeholder="0000" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="color" id="newUserColor" value="#B3261E" style="width:44px;height:36px;padding:2px;border-radius:8px;cursor:pointer;" />
+              <input id="newUserEmoji" placeholder="Emoji (optional)" maxlength="2" style="flex:1;" />
+            </div>
             <label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;">
               <input type="checkbox" id="newUserIsAdmin" style="width:auto;" /> Admin (can open the Admin Console)
             </label>
@@ -1210,7 +1219,7 @@
     // gets a plain-language badge instead of an unlabeled colored dot,
     // since a customer shouldn't need to hover a tooltip to know what a
     // dot means.
-    return `<div class="poster-card" data-openmovie="${m.id}" style="${bg}">
+    return `<div class="poster-card" data-openmovie="${m.id}" style="${bg}" ${isTvMode() ? 'tabindex="0"' : ''}>
       <span class="poster-dot${out?'':' in-stock'}" style="background:${out?'#737373':'#46D369'};" title="${out?'Out of stock':'In stock'}"></span>
       ${tag ? `<span style="position:absolute;top:8px;left:8px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,0.55);padding:2px 7px;border-radius:6px;">${tag}</span>` : ""}
       ${m.condition==='damaged' ? `<span class="bluray-badge" style="background:linear-gradient(135deg,#E57373,#B71C1C);${tag?'bottom:56px;':''}">⚠️ Damaged</span>` : ""}
@@ -1359,15 +1368,6 @@
     openMovieModal(pick.id);
   }
 
-  // A recent-first slice, shown as its own row above the main grid —
-  // shared by both Browse views since the logic (has a createdAt, sort
-  // desc, take a handful) doesn't differ between movies and games.
-  function recentlyAddedRowHtml(items){
-    const recent = items.filter(m => m.createdAt).sort((a,b) => b.createdAt - a.createdAt).slice(0, 12);
-    if(recent.length === 0) return "";
-    return rowHtml("Recently Added", recent, 0);
-  }
-
   // Everything that could actually change what the Browse grid looks
   // like, compressed into one comparable string — poster/backdrop data
   // itself is excluded (huge, and irrelevant to *whether* something
@@ -1421,7 +1421,7 @@
     const actionBtn = heroEl.querySelector("[data-hero-action]");
     if(actionBtn && !actionBtn.disabled) actionBtn.onclick = () => openMovieModal(featured.id);
 
-    rowsEl.innerHTML = recentlyAddedRowHtml(movieItems) + gridHtml("", movieItems);
+    rowsEl.innerHTML = gridHtml("", movieItems);
     wireBrowseCards(rowsEl, openMovieModal);
     wireSeriesCards(rowsEl);
     setupScrollReveal(rowsEl);
@@ -1465,7 +1465,7 @@
     const actionBtn = heroEl.querySelector("[data-hero-action]");
     if(actionBtn && !actionBtn.disabled) actionBtn.onclick = () => openMovieModal(featured.id);
 
-    rowsEl.innerHTML = recentlyAddedRowHtml(gameItems) + gridHtml("", gameItems);
+    rowsEl.innerHTML = gridHtml("", gameItems);
     wireBrowseCards(rowsEl, openMovieModal);
     setupScrollReveal(rowsEl);
   }
@@ -1756,8 +1756,10 @@
     if(!el) return;
     if(loggedInUser){
       const count = rentals.filter(r => r.renterName===loggedInUser.name).length;
+      const initial = loggedInUser.name.trim().charAt(0).toUpperCase() || "?";
+      const avatarHtml = `<span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:${loggedInUser.color||'#B3261E'};font-size:${loggedInUser.avatar?'14px':'12px'};font-weight:700;color:#fff;flex-shrink:0;">${loggedInUser.avatar || initial}</span>`;
       el.innerHTML = `<div class="login-box">
-        <span class="who">Checking out as ${loggedInUser.name} <span style="font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:12px;color:var(--muted);">(${count}/${maxCheckouts} discs out)</span></span>
+        <span class="who" style="display:flex;align-items:center;gap:8px;">${avatarHtml} Checking out as ${loggedInUser.name} <span style="font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:12px;color:var(--muted);">(${count}/${maxCheckouts} discs out)</span></span>
         <button class="secondary" data-logout>Not you? Log out</button>
       </div>`;
       el.querySelector("[data-logout]").onclick = pinLogout;
@@ -1814,6 +1816,8 @@
       const restrictOptions = ["PG-13","R","T","M","AO"];
       return `<div class="row" style="align-items:flex-start;">
         <div style="flex:1;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <input type="color" class="userColorInput" data-user="${u.id}" value="${u.color||'#B3261E'}" style="width:36px;height:36px;padding:2px;border-radius:8px;cursor:pointer;" />
+          <input class="userEmojiInput" data-user="${u.id}" value="${u.avatar||''}" placeholder="🙂" maxlength="2" style="width:50px;text-align:center;" />
           <input class="userNameInput" data-user="${u.id}" value="${u.name}" style="width:130px;" />
           <input class="userPinInput pin-input" data-user="${u.id}" value="${u.pin}" maxlength="4" inputmode="numeric" pattern="[0-9]*" style="width:80px;font-size:15px;letter-spacing:4px;padding:9px 0 9px 10px;" />
           <label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;">
@@ -1836,7 +1840,9 @@
       const pin = el.querySelector(`.userPinInput[data-user="${id}"]`).value;
       const isAdmin = el.querySelector(`.userAdminInput[data-user="${id}"]`).checked;
       const restrictedRatings = Array.from(el.querySelectorAll(`.userRestrictInput[data-user="${id}"]:checked`)).map(cb => cb.value);
-      updateUser(id, name, pin, isAdmin, restrictedRatings);
+      const color = el.querySelector(`.userColorInput[data-user="${id}"]`).value;
+      const avatar = el.querySelector(`.userEmojiInput[data-user="${id}"]`).value;
+      updateUser(id, name, pin, isAdmin, restrictedRatings, color, avatar);
     });
   }
 
@@ -2059,9 +2065,94 @@
     rowsEl.innerHTML = rowsOut;
     wireBrowseCards(rowsEl, openTvSendBox);
     setupScrollReveal(rowsEl);
+    focusFirstTvItem();
   }
 
+  // ---------- TV remote navigation ----------
+  // Arrow keys move focus spatially (by actual screen position, not row/
+  // column indices — simpler to get right and naturally handles rows of
+  // different lengths), Enter activates whatever's focused, matching how
+  // every smart-TV browsing app works. Only active in TV mode; a normal
+  // desktop/kiosk touchscreen session never sees this listener do anything.
+  function focusFirstTvItem(){
+    // Don't steal focus away mid-navigation — renderTv() can re-run
+    // while someone's already browsing (a stock change elsewhere, a
+    // live update), and re-focusing the first item on every one of
+    // those would make the remote unusable.
+    if(document.activeElement && document.activeElement.closest && document.activeElement.closest("#tvRoot")) return;
+    const heroBtn = document.querySelector("#tvHero [data-hero-action]");
+    if(heroBtn){ heroBtn.focus(); return; }
+    const firstCard = document.querySelector("#tvRows .poster-card");
+    if(firstCard) firstCard.focus();
+  }
+
+  function tvFocusables(){
+    return Array.from(document.querySelectorAll('#tvRoot .poster-card, #tvRoot [data-hero-action]'))
+      .filter(el => el.offsetParent !== null); // skip anything currently hidden
+  }
+
+  function moveTvFocus(direction){
+    const focusables = tvFocusables();
+    if(focusables.length === 0) return;
+    const current = document.activeElement;
+    if(!focusables.includes(current)){ focusables[0].focus(); return; }
+    const curRect = current.getBoundingClientRect();
+    const curX = curRect.left + curRect.width/2, curY = curRect.top + curRect.height/2;
+    let best = null, bestScore = Infinity;
+    for(const el of focusables){
+      if(el === current) continue;
+      const r = el.getBoundingClientRect();
+      const x = r.left + r.width/2, y = r.top + r.height/2;
+      const dx = x - curX, dy = y - curY;
+      let primary;
+      if(direction==='right'){ if(dx<=4) continue; primary = dx; }
+      else if(direction==='left'){ if(dx>=-4) continue; primary = -dx; }
+      else if(direction==='down'){ if(dy<=4) continue; primary = dy; }
+      else if(direction==='up'){ if(dy>=-4) continue; primary = -dy; }
+      else continue;
+      // weight staying aligned in the perpendicular axis heavily, so
+      // left/right prefers the same row and up/down prefers the same
+      // column, rather than jumping to whatever's merely closest overall
+      const secondary = (direction==='left'||direction==='right') ? Math.abs(dy) : Math.abs(dx);
+      const score = primary + secondary * 3;
+      if(score < bestScore){ bestScore = score; best = el; }
+    }
+    if(best) best.focus();
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if(!isTvMode()) return;
+    const sendBox = $("#tvSendBox");
+    const modalOpen = sendBox && sendBox.style.display === "flex";
+    if(modalOpen){
+      if(e.key === "ArrowDown" || e.key === "ArrowUp"){
+        e.preventDefault();
+        const buttons = Array.from(sendBox.querySelectorAll("button"));
+        if(buttons.length === 0) return;
+        let idx = buttons.indexOf(document.activeElement);
+        if(idx === -1) idx = 0;
+        idx = e.key === "ArrowDown" ? Math.min(idx+1, buttons.length-1) : Math.max(idx-1, 0);
+        buttons[idx].focus();
+      } else if(e.key === "Escape" || e.key === "Backspace"){
+        e.preventDefault();
+        closeTvSendBox();
+      }
+      return;
+    }
+    if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)){
+      e.preventDefault();
+      moveTvFocus(e.key.slice(5).toLowerCase());
+    } else if(e.key === "Enter" && document.activeElement && document.activeElement.matches(".poster-card")){
+      // real <button> elements (the hero action) already respond to
+      // Enter natively — this only covers the poster-card <div>s, which
+      // don't trigger a click on Enter by themselves even with tabindex.
+      document.activeElement.click();
+    }
+  });
+
+  let tvFocusBeforeModal = null;
   function openTvSendBox(id){
+    tvFocusBeforeModal = isTvMode() ? document.activeElement : null;
     tvSendMovieId = id;
     renderTvSendBox();
   }
@@ -2071,6 +2162,8 @@
     const box = $("#tvSendBox");
     box.style.display = "none";
     box.innerHTML = "";
+    if(tvFocusBeforeModal && document.body.contains(tvFocusBeforeModal)) tvFocusBeforeModal.focus();
+    tvFocusBeforeModal = null;
   }
 
   function renderTvSendBox(){
@@ -2094,12 +2187,20 @@
       </div>
       <div class="modal-body">
         <button class="tv-send-btn" id="tvSendConfirmBtn"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg> Send to Kiosk</button>
+        ${bays.some(b=>b.titleId===m.id) ? `<button class="tv-send-btn" id="tvLocateBtn" style="margin-top:10px;background:rgba(255,255,255,0.12);"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.3 7-11.5A7 7 0 0 0 5 9.5C5 14.7 12 21 12 21Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.5" stroke="currentColor" stroke-width="2"/></svg> Flash its shelf light</button>` : ''}
       </div>
     </div>`;
     box.style.display = "flex";
     $("#tvSendCloseBtn").onclick = closeTvSendBox;
     box.onclick = (e) => { if(e.target===box) closeTvSendBox(); };
     $("#tvSendConfirmBtn").onclick = () => sendToKiosk(m);
+    const locateBtn = $("#tvLocateBtn");
+    if(locateBtn) locateBtn.onclick = () => {
+      api.send("POST", "/api/locate-bay", { titleId: m.id }).catch(()=>{});
+      locateBtn.textContent = "✓ Flashing…";
+      setTimeout(() => { if(locateBtn) locateBtn.innerHTML = `<svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.3 7-11.5A7 7 0 0 0 5 9.5C5 14.7 12 21 12 21Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.5" stroke="currentColor" stroke-width="2"/></svg> Flash its shelf light`; }, 3000);
+    };
+    if(isTvMode()) $("#tvSendConfirmBtn").focus(); // so remote nav works immediately, no arrow press needed to "discover" focus
   }
 
   async function sendToKiosk(movie){
@@ -2172,7 +2273,7 @@
     if(pin.length!==4){ setMsg("Enter all 4 digits."); shakeInputs(); return; }
     const u = users.find(x => x.pin === pin);
     if(!u){ setMsg("PIN not recognized. Ask an admin to add you under Manage users."); shakeInputs(); return; }
-    loggedInUser = { id: u.id, name: u.name, isAdmin: !!u.isAdmin };
+    loggedInUser = { id: u.id, name: u.name, isAdmin: !!u.isAdmin, color: u.color || "#B3261E", avatar: u.avatar || "" };
     closeLoginGate();
     renderLoginArea();
     renderModal();
@@ -2448,13 +2549,13 @@
     }, 2000);
   }
 
-  async function addUser(name, pin, isAdmin, restrictedRatings){
+  async function addUser(name, pin, isAdmin, restrictedRatings, color, avatar){
     name = (name||"").trim();
     pin = (pin||"").trim();
     if(!name){ toast("Enter a name"); return; }
     if(!/^\d{4}$/.test(pin)){ toast("PIN must be exactly 4 digits"); return; }
     if(users.some(u => u.pin === pin)){ toast("That PIN is already in use — pick another"); return; }
-    try{ await api.send("POST", "/api/users", { name, pin, isAdmin: !!isAdmin, restrictedRatings: restrictedRatings || [] }); }
+    try{ await api.send("POST", "/api/users", { name, pin, isAdmin: !!isAdmin, restrictedRatings: restrictedRatings || [], color: color || "#B3261E", avatar: (avatar||"").trim() }); }
     catch(e){ toast("Couldn't add user"); return; }
     await refetch("users");
     toast(`Added ${name}`);
@@ -2468,18 +2569,18 @@
     toast("User removed");
   }
 
-  async function updateUser(id, name, pin, isAdmin, restrictedRatings){
+  async function updateUser(id, name, pin, isAdmin, restrictedRatings, color, avatar){
     name = (name||"").trim();
     pin = (pin||"").trim();
     isAdmin = !!isAdmin;
     if(!name){ toast("Name can't be empty"); return; }
     if(!/^\d{4}$/.test(pin)){ toast("PIN must be exactly 4 digits"); return; }
     if(users.some(u => u.pin === pin && u.id !== id)){ toast("That PIN is already in use — pick another"); return; }
-    try{ await api.send("PATCH", "/api/users/"+id, { name, pin, isAdmin, restrictedRatings: restrictedRatings || [] }); }
+    try{ await api.send("PATCH", "/api/users/"+id, { name, pin, isAdmin, restrictedRatings: restrictedRatings || [], color: color || "#B3261E", avatar: (avatar||"").trim() }); }
     catch(e){ toast("Couldn't save changes"); return; }
     await refetch("users");
     await refetch("rentals"); // the server renames matching rental records too
-    if(loggedInUser && loggedInUser.id===id){ loggedInUser = { id, name, isAdmin }; renderNavVisibility(); }
+    if(loggedInUser && loggedInUser.id===id){ loggedInUser = { id, name, isAdmin, color: color || "#B3261E", avatar: (avatar||"").trim() }; renderNavVisibility(); }
     toast("Saved");
   }
 
@@ -3324,6 +3425,10 @@
       try{ await api.send("POST", "/api/door-closed", {}); }catch(e){}
       renderHwLog();
     };
+    $("#hwTestLedsBtn").onclick = async () => {
+      try{ await api.send("POST", "/api/test-bay-leds"); toast("Cycling through each bay's LED now…"); }
+      catch(e){ toast(e.message || "Couldn't start the LED test"); }
+    };
     $("#hwLogClearBtn").onclick = async () => {
       try{ await api.send("DELETE", "/api/hardware-log"); }catch(e){}
       renderHwLog();
@@ -3510,8 +3615,8 @@
 
     $("#addUserBtn").onclick = async () => {
       const restricted = Array.from(document.querySelectorAll(".newUserRestrict:checked")).map(cb => cb.value);
-      await addUser($("#newUserName").value, $("#newUserPin").value, $("#newUserIsAdmin").checked, restricted);
-      $("#newUserName").value=""; $("#newUserPin").value=""; $("#newUserIsAdmin").checked=false;
+      await addUser($("#newUserName").value, $("#newUserPin").value, $("#newUserIsAdmin").checked, restricted, $("#newUserColor").value, $("#newUserEmoji").value);
+      $("#newUserName").value=""; $("#newUserPin").value=""; $("#newUserIsAdmin").checked=false; $("#newUserColor").value="#B3261E"; $("#newUserEmoji").value="";
       document.querySelectorAll(".newUserRestrict").forEach(cb => cb.checked=false);
     };
 

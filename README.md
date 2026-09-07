@@ -416,20 +416,12 @@ risk is a hard crash in the literal instant between responding and the
 write landing — a narrow window, and no worse than what a synchronous
 save always risked in that same scenario.
 
-## Recently Added, and Surprise Me
+## Surprise Me
 
-A **Recently Added** row now shows up above the main grid in both Browse
-Movies and Browse Games — whichever titles were added most recently,
-newest first. It only appears once something's actually been added
-since this feature shipped; titles already in the catalog before this
-don't have the timestamp it needs, so they simply don't show up in that
-row (nothing wrong, just nothing to sort by).
-
-**Surprise Me**, in the top bar, picks a random in-stock
-title and opens it directly — for the "we have 200 things and can't
-decide" problem. It respects whichever tab you're actually looking at:
-hit it from Browse Movies and it only picks movies, from Browse Games
-only games, never mixed.
+In the top bar, picks a random in-stock title and opens it directly —
+for the "we have 200 things and can't decide" problem. It respects
+whichever tab you're actually looking at: hit it from Browse Movies and
+it only picks movies, from Browse Games only games, never mixed.
 
 ## A couple of decluttering passes
 
@@ -545,6 +537,36 @@ Fixed by registering the `/api/events` route *before*
 routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
+
+## Four additions: LED testing, locate-from-TV, login personalization, TV remote nav
+
+**Test all bay LEDs** — a button in Bays &amp; Lighting that cycles every
+configured bay's light in cyan, one at a time, then restores everything
+to its normal in-stock/checked-out color. Lets you verify wiring is
+correct right after setup, without needing to trigger a real checkout
+or return first.
+
+**Locate from the TV page** — browsing on the TV, not just right after
+a rental, now shows a "Flash its shelf light" button for any title
+that has a bay assigned. It's the exact same locate mechanism the app
+already used after a software checkout — reused, not rebuilt.
+
+**Login personalization** — every household member now has a color and
+an optional emoji, settable in Household when adding or editing them.
+Shows up as a small colored avatar (the emoji, or their initial if none
+is set) next to "Checking out as [name]" in the login widget.
+
+**TV remote navigation** — arrow keys move a clear, high-contrast focus
+ring between poster tiles and the hero button, sized to actually read
+from across a room rather than the default thin browser outline; Enter
+opens whatever's focused. Focus moves by real on-screen position (not a
+fixed row/column grid), so it naturally handles rows of different
+lengths without needing to model the layout separately. Opening a
+title's info box switches arrow keys to move between *its* buttons
+instead (Send to Kiosk, Flash its shelf light), and Escape/Backspace
+closes it and returns focus to exactly the tile you had selected before
+opening it — this only activates in TV mode; a normal touchscreen
+session never sees any of it.
 
 ## The version number at the bottom
 

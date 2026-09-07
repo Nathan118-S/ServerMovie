@@ -238,6 +238,24 @@ function flashBayForTitle(title){
   }, 300);
 }
 
+// Lights each configured bay's LED in turn (cyan — distinct from the
+// normal green/red in-stock colors) so wiring can be verified by eye
+// without needing to trigger a real checkout/return first.
+function testAllBayLeds(){
+  const baysWithLeds = db.bays.filter(b => Number.isInteger(parseInt(b.ledIndex, 10)));
+  let i = 0;
+  const timer = setInterval(() => {
+    if(i > 0) pushBayLed(parseInt(baysWithLeds[i-1].ledIndex, 10), "000000");
+    if(i >= baysWithLeds.length){
+      clearInterval(timer);
+      db.titles.forEach(t => updateBayLedForTitle(t)); // restore normal per-title colors
+      return;
+    }
+    pushBayLed(parseInt(baysWithLeds[i].ledIndex, 10), "00FFFF");
+    i++;
+  }, 600);
+}
+
 function mapGenre(omdbGenre){
   const first = (omdbGenre || "").split(",")[0].trim();
   const match = KNOWN_GENRES.find(g => g.toLowerCase() === first.toLowerCase());
@@ -1086,6 +1104,16 @@ app.post("/api/locate-bay", (req, res) => {
   if(!title) return res.status(404).json({ error: "title not found" });
   flashBayForTitle(title);
   res.json({ ok: true });
+});
+
+app.post("/api/test-bay-leds", (req, res) => {
+  if(!((db.settings && db.settings.wledUrl) || "").trim()){
+    return res.status(400).json({ error: "No WLED URL configured yet." });
+  }
+  const count = db.bays.filter(b => Number.isInteger(parseInt(b.ledIndex, 10))).length;
+  if(count === 0) return res.status(400).json({ error: "No bays have an LED index set." });
+  testAllBayLeds();
+  res.json({ ok: true, count });
 });
 
 // ---------- cabinet door sensor (called by Home Assistant) ----------
