@@ -650,8 +650,8 @@ function performDbSave(){
 // ---------- live updates (Server-Sent Events) ----------
 const sseClients = [];
 
-function broadcast(resource){
-  const payload = `data: ${JSON.stringify({ resource })}\n\n`;
+function broadcast(resource, data){
+  const payload = `data: ${JSON.stringify(data !== undefined ? { resource, data } : { resource })}\n\n`;
   sseClients.forEach(res => res.write(payload));
 }
 
@@ -1205,6 +1205,7 @@ app.post("/api/bay-checkout", logHardwareCall("bay-checkout"), (req, res) => {
 
   let renterName = "Unknown (bay sensor)";
   if(db.activeSession && db.activeSession.expiresAt > Date.now()) renterName = db.activeSession.name;
+  const wasUnattributed = renterName === "Unknown (bay sensor)";
 
   title.stock -= 1;
   const now = Date.now();
@@ -1214,6 +1215,13 @@ app.post("/api/bay-checkout", logHardwareCall("bay-checkout"), (req, res) => {
   broadcast("titles");
   broadcast("rentals");
   updateBayLedForTitle(title);
+  // Nobody was logged in when this bay pull happened — the disc still
+  // checked out fine (better than blocking it), but the app-side prompt
+  // for a PIN (with its repeating alert sound) needs this specific
+  // event, not just the generic "rentals changed" one, so it knows
+  // exactly which fresh rental to prompt for rather than guessing from
+  // a full rentals-list diff.
+  if(wasUnattributed) broadcast("unattributed-checkout", { rentalId: rental.id, title: title.title });
   res.json({ ok: true, title: title.title, renterName, rental });
 });
 
@@ -1311,6 +1319,27 @@ app.post("/api/rentals/:id/renew", (req, res) => {
   saveDb();
   broadcast("rentals");
   res.json({ ok: true, rental: r });
+});
+
+// Attributes an "Unknown (bay sensor)" rental to whoever's PIN gets
+// entered on the resulting prompt — a household member pulling a case
+// without logging in first still completes the checkout right away
+// (better than blocking it), this just fixes up who it's actually
+// under afterward, same rating-restriction check a normal checkout gets.
+app.post("/api/rentals/:id/claim", (req, res) => {
+  const { pin } = req.body;
+  const r = db.rentals.find(x => x.id === req.params.id);
+  if(!r) return res.status(404).json({ error: "That rental isn't pending attribution anymore." });
+  const user = db.users.find(u => u.pin === String(pin || "").trim());
+  if(!user) return res.status(401).json({ error: "That PIN doesn't match anyone in Household." });
+  const title = db.titles.find(t => t.id === r.movieId);
+  if(title && Array.isArray(user.restrictedRatings) && user.restrictedRatings.includes(title.rating)){
+    return res.status(403).json({ error: `${user.name}'s account can't check out ${title.rating}-rated titles — this stays unattributed for now.` });
+  }
+  r.renterName = user.name;
+  saveDb();
+  broadcast("rentals");
+  res.json({ ok: true, name: user.name });
 });
 
 app.delete("/api/rentals/:id", (req, res) => {

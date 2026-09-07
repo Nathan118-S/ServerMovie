@@ -415,6 +415,7 @@
 <div id="pendingCheckoutOverlay" class="pending-return-overlay"></div>
 <div id="rentalCompleteOverlay" class="pending-return-overlay"></div>
 <div id="returnCompleteOverlay" class="pending-return-overlay"></div>
+<div id="unattributedCheckoutOverlay" class="pending-return-overlay"></div>
 <div id="returnFlowOverlay" class="modal-overlay">
   <div class="modal-card" style="width:360px;">
     <div class="modal-body" id="returnFlowBody" style="padding:28px 22px;"></div>
@@ -506,6 +507,7 @@
         <button class="subnav-btn" data-subtab="addseries"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg> Add Series</button>
         <button class="subnav-btn" data-subtab="bulk"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M3 8l9-4.5L21 8v9l-9 4.5L3 17V8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M3 8l9 4.5L21 8M12 12.5V21" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Bulk Import</button>
         <button class="subnav-btn" data-subtab="autofill"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Auto-Fill</button>
+        <button class="subnav-btn" data-subtab="labels"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="7" width="18" height="12" rx="2" stroke="currentColor" stroke-width="2"/><line x1="7" y1="11" x2="13" y2="11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="7" y1="14.5" x2="11" y2="14.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Labels</button>
       </div>
 
       <div class="subpanel active" data-subpanel="inventory">
@@ -649,132 +651,151 @@
           <span id="autofillStatus" style="font-size:11px;color:var(--muted);margin-left:8px;"></span>
         </div>
       </div>
+
+      <div class="subpanel" data-subpanel="labels">
+        <div class="bulk-box" style="margin-top:0;">
+          <div class="display" style="font-size:15px;margin-bottom:6px;">Print labels for your catalog</div>
+          <div class="scan-msg" style="margin-top:0;">Pick titles below, then print. Each label is a plain rectangular barcode sticker for the disc case — cut it out and stick it on. Scanning it works exactly like scanning the disc's original barcode.</div>
+          <div class="label-controls">
+            <button class="secondary" id="selectAllLabels">Select all</button>
+            <button class="secondary" id="selectNoneLabels">Select none</button>
+            <button class="primary" id="generateLabelsBtn">Generate &amp; print selected</button>
+          </div>
+          <div class="label-list" id="labelList"></div>
+        </div>
+      </div>
     </div>
   </div>
 
   <div class="panel" data-panel="bays">
     <div class="panel-inner">
-      <div class="bulk-box" style="margin-top:0;max-width:520px;">
-        <div class="display" style="font-size:15px;margin-bottom:6px;">Bay sensors &amp; lighting (ESP32 + WLED)</div>
-        <div class="scan-msg" style="margin-top:0;">Assign each title to a physical bay number so a microswitch pulling it triggers an automatic checkout, and optionally a lit LED index on a WLED strip so the bay's light reflects whether it's in stock. See README.md for the full ESPHome + WLED setup.</div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
-          <input id="wledUrlInput" placeholder="WLED controller address, e.g. 192.168.1.60" style="min-width:220px;flex:1;" />
-          <button class="secondary" id="saveWledUrlBtn" style="padding:9px 14px;font-size:12px;">Save</button>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
-          <input id="bayWindowInput" type="number" min="10" placeholder="Attribution window (seconds)" style="width:220px;" />
-          <button class="secondary" id="saveBayWindowBtn" style="padding:9px 14px;font-size:12px;">Save</button>
-        </div>
-        <div style="font-size:11px;color:var(--muted);">How long after someone logs in with their PIN a bay pull still counts as theirs — long enough to walk over and grab it, short enough that the next person doesn't get blamed for it.</div>
+      <div class="subnav" id="baysSubnav">
+        <button class="subnav-btn active" data-baysubtab="setup"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Setup</button>
+        <button class="subnav-btn" data-baysubtab="assignment"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 21h4M8 12a4 4 0 1 1 8 0c0 2-1.5 3-2 4.5H10c-.5-1.5-2-2.5-2-4.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Assignment</button>
+        <button class="subnav-btn" data-baysubtab="diagnostics"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Diagnostics</button>
       </div>
 
-      <div class="bulk-box" style="max-width:520px;">
-        <div class="display" style="font-size:15px;margin-bottom:6px;">Restart the hardware</div>
-        <div class="scan-msg" style="margin-top:0;">For when a device seems stuck or unresponsive rather than genuinely broken — the same as pulling its power and plugging it back in.</div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
-          <input id="esp32BaysUrlInput" placeholder="Bay ESP32 address, e.g. 192.168.1.61" style="min-width:220px;flex:1;" />
-          <button class="secondary" id="saveEsp32BaysUrlBtn" style="padding:9px 14px;font-size:12px;">Save</button>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-          <button class="secondary" id="restartWledBtn" style="padding:9px 14px;font-size:12px;">Restart WLED</button>
-          <button class="secondary" id="restartBaysEspBtn" style="padding:9px 14px;font-size:12px;">Restart bay ESP32</button>
-        </div>
-        <div id="restartHardwareStatus" style="font-size:12px;color:var(--muted);margin-bottom:6px;"></div>
-        <div style="font-size:11px;color:var(--muted);">The bay ESP32's restart button is best-effort — ESPHome's exact API for it has shifted across versions, so if it doesn't respond, open <span id="esp32BaysDashboardLink" style="color:inherit;">its own dashboard</span> directly and use the restart button shown there instead. Needs <code>esphome-bays.yaml</code>'s <code>web_server:</code> section, which didn't exist before this — re-flash if you set this up prior to that.</div>
-      </div>
-
-      <div class="bulk-box" style="max-width:520px;">
-        <div class="display" style="font-size:15px;margin-bottom:6px;">Door animations</div>
-        <div class="scan-msg" style="margin-top:0;">If you've wired a separate door sensor (not a bay switch), the whole strip plays a welcome effect when it opens, and a leaving effect once it's stayed closed for a while. Effect IDs are whatever WLED numbers them as on your firmware — check your WLED web UI's effects list, or <code>GET http://&lt;wled-ip&gt;/json/eff</code>, rather than trusting these defaults blindly.</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-          <input id="wledOpenEffectInput" type="number" min="0" placeholder="Open effect ID" style="width:140px;" />
-          <input id="wledCloseEffectInput" type="number" min="0" placeholder="Close effect ID" style="width:140px;" />
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-          <input id="wledEffectSecondsInput" type="number" min="1" placeholder="Effect duration (sec)" style="width:170px;" />
-          <input id="doorCloseDelayInput" type="number" min="5" placeholder="Delay after close (sec)" style="width:170px;" />
-        </div>
-        <button class="secondary" id="saveDoorSettingsBtn" style="padding:9px 14px;font-size:12px;">Save</button>
-      </div>
-
-      <div class="bulk-box" style="max-width:900px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
-          <div class="display" style="font-size:15px;">Bay dashboard</div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <input id="newBayNumberInput" type="number" min="1" placeholder="Bay #" style="width:90px;" />
-            <button class="primary" id="addBayBtn" style="padding:9px 14px;font-size:12px;">Add bay</button>
-            <button class="secondary" id="printBayBarcodesBtn" style="padding:9px 14px;font-size:12px;">Print bay barcodes</button>
+      <div class="subpanel active" data-subpanel="setup">
+        <div class="bulk-box" style="margin-top:0;">
+          <div class="display" style="font-size:15px;margin-bottom:6px;">Bay sensors &amp; lighting (ESP32 + WLED)</div>
+          <div class="scan-msg" style="margin-top:0;">Assign each title to a physical bay number so a microswitch pulling it triggers an automatic checkout, and optionally a lit LED index on a WLED strip so the bay's light reflects whether it's in stock. See README.md for the full ESPHome + WLED setup.</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+            <input id="wledUrlInput" placeholder="WLED controller address, e.g. 192.168.1.60" style="min-width:220px;flex:1;" />
+            <button class="secondary" id="saveWledUrlBtn" style="padding:9px 14px;font-size:12px;">Save</button>
           </div>
-        </div>
-        <div class="scan-msg" style="margin-top:0;margin-bottom:14px;">Stick a printed bay barcode on each shelf. Then, from Scan a disc, scan a disc that isn't assigned to a bay yet followed by a bay barcode, and it's linked automatically — no need to use the dropdowns below by hand.</div>
-        <div id="bayDashboard" class="bay-grid"></div>
-      </div>
-
-      <div class="bulk-box" style="max-width:900px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
-          <div class="display" style="font-size:15px;">Bay layout</div>
-          <div style="display:flex;gap:10px;align-items:center;">
-            <span id="wledLiveStatus" style="font-size:12px;color:var(--muted);"></span>
-            <button class="secondary" id="bayLayoutResetBtn" style="padding:7px 12px;font-size:11px;">Reset to grid</button>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+            <input id="bayWindowInput" type="number" min="10" placeholder="Attribution window (seconds)" style="width:220px;" />
+            <button class="secondary" id="saveBayWindowBtn" style="padding:9px 14px;font-size:12px;">Save</button>
           </div>
+          <div style="font-size:11px;color:var(--muted);">How long after someone logs in with their PIN a bay pull still counts as theirs — long enough to walk over and grab it, short enough that the next person doesn't get blamed for it.</div>
         </div>
-        <div class="scan-msg" style="margin-top:0;margin-bottom:14px;">Drag each bay to where it actually sits on the shelf, so this matches reality instead of just listing numbers in order. Shows what's really assigned there, its stock status, and a damaged/missing flag — computed the same way Sandy Server decides what color to send WLED, not a true per-LED read-back (WLED's simple API doesn't support that). The indicator above <em>is</em> a genuine live check, though — it actually asks WLED right now whether it's on and reachable.</div>
-        <div id="bayLayoutCanvas"></div>
+
+        <div class="bulk-box">
+          <div class="display" style="font-size:15px;margin-bottom:6px;">Door animations</div>
+          <div class="scan-msg" style="margin-top:0;">If you've wired a separate door sensor (not a bay switch), the whole strip plays a welcome effect when it opens, and a leaving effect once it's stayed closed for a while. Effect IDs are whatever WLED numbers them as on your firmware — check your WLED web UI's effects list, or <code>GET http://&lt;wled-ip&gt;/json/eff</code>, rather than trusting these defaults blindly.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+            <input id="wledOpenEffectInput" type="number" min="0" placeholder="Open effect ID" style="width:140px;" />
+            <input id="wledCloseEffectInput" type="number" min="0" placeholder="Close effect ID" style="width:140px;" />
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+            <input id="wledEffectSecondsInput" type="number" min="1" placeholder="Effect duration (sec)" style="width:170px;" />
+            <input id="doorCloseDelayInput" type="number" min="5" placeholder="Delay after close (sec)" style="width:170px;" />
+          </div>
+          <button class="secondary" id="saveDoorSettingsBtn" style="padding:9px 14px;font-size:12px;">Save</button>
+        </div>
       </div>
 
-      <div class="bulk-box" style="max-width:900px;">
-        <div class="display" style="font-size:15px;margin-bottom:6px;">Hardware test &amp; diagnostics</div>
-        <div class="scan-msg" style="margin-top:0;">Fire a bay/door event yourself — same effect as the real switch — to check the app side works before touching any wiring, or to narrow down whether a problem is the ESP32 or Sandy Server. The log below shows every call these four endpoints receive, from anywhere, including from your actual hardware — if your ESP32 is reaching the Pi at all, you'll see it show up here the instant you pull a switch, with the IP it came from.</div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
-          <input id="hwTestBayInput" type="number" min="1" placeholder="Bay #" style="width:90px;" />
-          <button class="secondary" id="hwTestCheckoutBtn" style="padding:9px 14px;font-size:12px;">Simulate checkout</button>
-          <button class="secondary" id="hwTestReturnBtn" style="padding:9px 14px;font-size:12px;">Simulate return</button>
-          <button class="secondary" id="hwTestDoorOpenBtn" style="padding:9px 14px;font-size:12px;">Simulate door open</button>
-          <button class="secondary" id="hwTestDoorCloseBtn" style="padding:9px 14px;font-size:12px;">Simulate door close</button>
-          <button class="secondary" id="hwTestLedsBtn" style="padding:9px 14px;font-size:12px;">Test all bay LEDs</button>
+      <div class="subpanel" data-subpanel="assignment">
+        <div class="bulk-box" style="margin-top:0;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+            <div class="display" style="font-size:15px;">Bay dashboard</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <input id="newBayNumberInput" type="number" min="1" placeholder="Bay #" style="width:90px;" />
+              <button class="primary" id="addBayBtn" style="padding:9px 14px;font-size:12px;">Add bay</button>
+              <button class="secondary" id="printBayBarcodesBtn" style="padding:9px 14px;font-size:12px;">Print bay barcodes</button>
+            </div>
+          </div>
+          <div class="scan-msg" style="margin-top:0;margin-bottom:14px;">Stick a printed bay barcode on each shelf. Then, from Scan a disc, scan a disc that isn't assigned to a bay yet followed by a bay barcode, and it's linked automatically — no need to use the dropdowns below by hand.</div>
+          <div id="bayDashboard" class="bay-grid"></div>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <div style="font-size:12px;color:var(--muted);">Live — updates every 2 seconds while this tab is open</div>
-          <button class="secondary" id="hwLogClearBtn" style="padding:6px 12px;font-size:11px;">Clear log</button>
+
+        <div class="bulk-box">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+            <div class="display" style="font-size:15px;">Bay layout</div>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <span id="wledLiveStatus" style="font-size:12px;color:var(--muted);"></span>
+              <button class="secondary" id="bayLayoutResetBtn" style="padding:7px 12px;font-size:11px;">Reset to grid</button>
+            </div>
+          </div>
+          <div class="scan-msg" style="margin-top:0;margin-bottom:14px;">Drag each bay to where it actually sits on the shelf, so this matches reality instead of just listing numbers in order. Shows what's really assigned there, its stock status, and a damaged/missing flag — computed the same way Sandy Server decides what color to send WLED, not a true per-LED read-back (WLED's simple API doesn't support that). The indicator above <em>is</em> a genuine live check, though — it actually asks WLED right now whether it's on and reachable.</div>
+          <div id="bayLayoutCanvas"></div>
         </div>
-        <div id="hwLogList" style="max-height:360px;overflow-y:auto;"></div>
+      </div>
+
+      <div class="subpanel" data-subpanel="diagnostics">
+        <div class="bulk-box" style="margin-top:0;">
+          <div class="display" style="font-size:15px;margin-bottom:6px;">Restart the hardware</div>
+          <div class="scan-msg" style="margin-top:0;">For when a device seems stuck or unresponsive rather than genuinely broken — the same as pulling its power and plugging it back in.</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+            <input id="esp32BaysUrlInput" placeholder="Bay ESP32 address, e.g. 192.168.1.61" style="min-width:220px;flex:1;" />
+            <button class="secondary" id="saveEsp32BaysUrlBtn" style="padding:9px 14px;font-size:12px;">Save</button>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+            <button class="secondary" id="restartWledBtn" style="padding:9px 14px;font-size:12px;">Restart WLED</button>
+            <button class="secondary" id="restartBaysEspBtn" style="padding:9px 14px;font-size:12px;">Restart bay ESP32</button>
+          </div>
+          <div id="restartHardwareStatus" style="font-size:12px;color:var(--muted);margin-bottom:6px;"></div>
+          <div style="font-size:11px;color:var(--muted);">The bay ESP32's restart button is best-effort — ESPHome's exact API for it has shifted across versions, so if it doesn't respond, open <span id="esp32BaysDashboardLink" style="color:inherit;">its own dashboard</span> directly and use the restart button shown there instead. Needs <code>esphome-bays.yaml</code>'s <code>web_server:</code> section, which didn't exist before this — re-flash if you set this up prior to that.</div>
+        </div>
+
+        <div class="bulk-box">
+          <div class="display" style="font-size:15px;margin-bottom:6px;">Hardware test &amp; diagnostics</div>
+          <div class="scan-msg" style="margin-top:0;">Fire a bay/door event yourself — same effect as the real switch — to check the app side works before touching any wiring, or to narrow down whether a problem is the ESP32 or Sandy Server. The log below shows every call these four endpoints receive, from anywhere, including from your actual hardware — if your ESP32 is reaching the Pi at all, you'll see it show up here the instant you pull a switch, with the IP it came from.</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+            <input id="hwTestBayInput" type="number" min="1" placeholder="Bay #" style="width:90px;" />
+            <button class="secondary" id="hwTestCheckoutBtn" style="padding:9px 14px;font-size:12px;">Simulate checkout</button>
+            <button class="secondary" id="hwTestReturnBtn" style="padding:9px 14px;font-size:12px;">Simulate return</button>
+            <button class="secondary" id="hwTestDoorOpenBtn" style="padding:9px 14px;font-size:12px;">Simulate door open</button>
+            <button class="secondary" id="hwTestDoorCloseBtn" style="padding:9px 14px;font-size:12px;">Simulate door close</button>
+            <button class="secondary" id="hwTestLedsBtn" style="padding:9px 14px;font-size:12px;">Test all bay LEDs</button>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div style="font-size:12px;color:var(--muted);">Live — updates every 2 seconds while this tab is open</div>
+            <button class="secondary" id="hwLogClearBtn" style="padding:6px 12px;font-size:11px;">Clear log</button>
+          </div>
+          <div id="hwLogList" style="max-height:360px;overflow-y:auto;"></div>
+        </div>
       </div>
     </div>
   </div>
 
   <div class="panel" data-panel="system">
     <div class="panel-inner">
-      <div class="bulk-box" style="margin-top:0;max-width:520px;">
+      <div class="bulk-box" style="margin-top:0;">
         <div class="display" style="font-size:15px;margin-bottom:6px;">TV display</div>
         <div class="scan-msg" style="margin-top:0;">Opens the big-screen browse page in a new tab — point a TV or monitor's browser at this same URL with <code>#tv</code> on the end to run it as a standalone kiosk display.</div>
         <button class="primary" id="openTvBtn" type="button"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg> Open TV display</button>
       </div>
 
-      <div class="bulk-box" style="max-width:520px;">
-        <div class="display" style="font-size:15px;margin-bottom:6px;">Update the server</div>
-        <div class="scan-msg" style="margin-top:0;">Pulls the latest code from GitHub and reinstalls dependencies if anything changed — the same update step <code>install.sh</code> does, run from here instead of SSH. If the server was set up with autostart (systemd), it restarts itself automatically right after; if not, you'll need to stop and re-run <code>npm start</code> by hand once it's done.</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Currently running: <span id="currentVersionLabel" style="font-family:monospace;">…</span></div>
-        <button class="primary" id="systemUpdateBtn" type="button">Check for updates &amp; install</button>
-        <div id="systemUpdateStatus" style="font-size:12px;color:var(--muted);margin-top:10px;white-space:pre-wrap;"></div>
+      <div class="bulk-box">
+        <div class="display" style="font-size:15px;margin-bottom:6px;">Server maintenance</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Currently running: <span id="currentVersionLabel" style="font-family:monospace;">…</span></div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:260px;">
+            <div class="scan-msg" style="margin-top:0;">Pulls the latest code from GitHub and reinstalls dependencies if anything changed — the same update step <code>install.sh</code> does, run from here instead of SSH.</div>
+            <button class="primary" id="systemUpdateBtn" type="button">Check for updates &amp; install</button>
+            <div id="systemUpdateStatus" style="font-size:12px;color:var(--muted);margin-top:10px;white-space:pre-wrap;"></div>
+          </div>
+          <div style="flex:1;min-width:260px;">
+            <div class="scan-msg" style="margin-top:0;">Just a restart — no update, nothing pulled from GitHub. For when the app seems stuck rather than out of date.</div>
+            <button class="secondary" id="restartServerBtn" type="button">Restart now</button>
+            <div id="restartServerStatus" style="font-size:12px;color:var(--muted);margin-top:10px;white-space:pre-wrap;"></div>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:12px;">Either way, if set up with autostart (systemd), it comes back on its own; if not, you'll need to stop and re-run <code>npm start</code> by hand once it's done.</div>
       </div>
 
-      <div class="bulk-box" style="max-width:520px;">
-        <div class="display" style="font-size:15px;margin-bottom:6px;">Restart the server</div>
-        <div class="scan-msg" style="margin-top:0;">Just a restart — no update, nothing pulled from GitHub. For when the app seems stuck rather than out of date.</div>
-        <button class="secondary" id="restartServerBtn" type="button">Restart now</button>
-        <div id="restartServerStatus" style="font-size:12px;color:var(--muted);margin-top:10px;white-space:pre-wrap;"></div>
-      </div>
-
-      <div class="display" style="font-size:16px;margin-bottom:8px;">Print labels for your catalog</div>
-      <div class="scan-msg">Pick titles below, then print. Each label is a plain rectangular barcode sticker for the disc case — cut it out and stick it on. Scanning it works exactly like scanning the disc's original barcode.</div>
-      <div class="label-controls">
-        <button class="secondary" id="selectAllLabels">Select all</button>
-        <button class="secondary" id="selectNoneLabels">Select none</button>
-        <button class="primary" id="generateLabelsBtn">Generate &amp; print selected</button>
-      </div>
-      <div class="label-list" id="labelList"></div>
-
-      <div class="bulk-box" style="max-width:520px;">
+      <div class="bulk-box">
         <div class="display" style="font-size:15px;margin-bottom:6px;">Export &amp; import</div>
         <div class="scan-msg" style="margin-top:0;">Everything — catalog, rentals, watch history, users and PINs, bays, settings — lives in one file the server already keeps. This just gives you a copy of it to save somewhere else, and a way to bring it back.</div>
         <button class="primary" id="exportDataBtn" style="margin-bottom:20px;">Export data</button>
@@ -1162,7 +1183,9 @@
       events.onmessage = (e) => {
         try{
           const msg = JSON.parse(e.data);
-          if(msg && msg.resource) refetch(msg.resource);
+          if(!msg || !msg.resource) return;
+          if(msg.resource === "unattributed-checkout") promptUnattributedCheckout(msg.data);
+          else refetch(msg.resource);
         }catch(err){}
       };
       events.onerror = () => { /* browser auto-reconnects EventSource */ };
@@ -3178,6 +3201,87 @@
     returnCompleteTimer = setTimeout(close, 5000);
   }
 
+  // ---------- unattributed checkout: "who took this?" ----------
+  // A disc was pulled from its bay with nobody logged in — it still
+  // checked out right away rather than being blocked, but this prompts
+  // for whoever actually took it, with a repeating chime so it doesn't
+  // just sit there unnoticed on a kiosk nobody's actively looking at.
+  let alertAudioCtx = null;
+  let alertSoundTimer = null;
+
+  function playAlertBeep(){
+    try{
+      if(!alertAudioCtx) alertAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = alertAudioCtx;
+      const now = ctx.currentTime;
+      [0, 0.18].forEach(offset => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.0001, now + offset);
+        gain.gain.exponentialRampToValueAtTime(0.25, now + offset + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.15);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(now + offset);
+        osc.stop(now + offset + 0.16);
+      });
+    }catch(e){ /* autoplay-restricted or unsupported — the visual prompt still works fine without it */ }
+  }
+
+  function startAlertSound(){
+    stopAlertSound();
+    playAlertBeep();
+    alertSoundTimer = setInterval(playAlertBeep, 2200);
+  }
+
+  function stopAlertSound(){
+    clearInterval(alertSoundTimer);
+    alertSoundTimer = null;
+  }
+
+  function promptUnattributedCheckout(data){
+    const el = $("#unattributedCheckoutOverlay");
+    if(!el || !data) return;
+    el.style.display = "flex";
+    el.innerHTML = `
+      <div style="font-size:44px;margin-bottom:12px;">🔔</div>
+      <div class="t">Who took "${data.title}"?</div>
+      <div class="g">It checked out fine, but nobody was logged in — enter your PIN so it's under the right name.</div>
+      <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:280px;align-items:center;">
+        <input type="password" class="pin-input" id="unattributedPinInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" autofocus />
+        <div id="unattributedPinMsg" style="font-size:13px;color:#E87C03;min-height:18px;"></div>
+        <button class="primary" id="unattributedPinSubmitBtn" style="width:100%;">Submit</button>
+        ${(loggedInUser && loggedInUser.isAdmin) ? `<button class="secondary" id="unattributedDismissBtn" style="width:100%;">Leave unattributed (admin)</button>` : ""}
+      </div>
+    `;
+    startAlertSound();
+    const pinInput = $("#unattributedPinInput");
+    pinInput.focus();
+    const submit = async () => {
+      const pin = pinInput.value.trim();
+      if(!/^\d{4}$/.test(pin)){ $("#unattributedPinMsg").textContent = "Enter a 4-digit PIN"; return; }
+      try{
+        const result = await api.send("POST", "/api/rentals/"+data.rentalId+"/claim", { pin });
+        stopAlertSound();
+        el.style.display = "none"; el.innerHTML = "";
+        toast(`"${data.title}" is now under ${result.name}`);
+        await refetch("rentals");
+      }catch(e){
+        $("#unattributedPinMsg").textContent = e.message || "That PIN didn't match anyone";
+        pinInput.value = "";
+        pinInput.focus();
+      }
+    };
+    $("#unattributedPinSubmitBtn").onclick = submit;
+    pinInput.addEventListener("keydown", e => { if(e.key === "Enter") submit(); });
+    const dismissBtn = $("#unattributedDismissBtn");
+    if(dismissBtn) dismissBtn.onclick = () => {
+      stopAlertSound();
+      el.style.display = "none"; el.innerHTML = "";
+    };
+  }
+
   async function cancelPendingCheckout(){
     suppressNextCheckoutComplete = true;
     try{ await api.send("DELETE", "/api/pending-checkout"); await refetch("pending-checkout"); }
@@ -3804,6 +3908,15 @@
     $$('.panel[data-panel="admin"] .subpanel').forEach(p => p.classList.toggle("active", p.dataset.subpanel===tab));
   }
 
+  function setBaysSubtab(tab){
+    $$("#baysSubnav .subnav-btn").forEach(b => {
+      const isActive = b.dataset.baysubtab===tab;
+      b.classList.toggle("active", isActive);
+      if(isActive){ b.style.animation="none"; void b.offsetWidth; b.style.animation="tabPop 0.25s ease"; }
+    });
+    $$('.panel[data-panel="bays"] .subpanel').forEach(p => p.classList.toggle("active", p.dataset.subpanel===tab));
+  }
+
   // ---------- light/dark theme ----------
   function getTheme(){
     return document.documentElement.getAttribute("data-theme") || "dark";
@@ -3948,6 +4061,7 @@
 
     $$(".nav button[data-tab]").forEach(b => b.onclick = () => setTab(b.dataset.tab));
     $$("#adminSubnav .subnav-btn").forEach(b => b.onclick = () => setAdminSubtab(b.dataset.subtab));
+    $$("#baysSubnav .subnav-btn").forEach(b => b.onclick = () => setBaysSubtab(b.dataset.baysubtab));
     $("#logoHome").onclick = () => setTab("browse");
     $("#openTvBtn").onclick = () => {
       const url = location.href.split("#")[0] + "#tv";

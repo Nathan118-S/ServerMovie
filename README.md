@@ -538,6 +538,59 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## Regrouping things that had drifted into the wrong place
+
+A few things had genuinely ended up somewhere that didn't quite make
+sense as the admin console grew feature by feature over many separate
+changes — this pass went back through every single box and reconsidered
+where it actually belongs, not just the top-level categories:
+
+- **Print labels moved out of System, into Catalog** as a new "Labels"
+  subtab alongside Inventory/Add Title/Add Series/Bulk Import/Auto-Fill.
+  It's fundamentally a catalog action you'd reach for repeatedly as you
+  add titles, not a "set up once" system task — it was mis-filed.
+- **"Update the server" and "Restart the server"** were two separate
+  boxes; now one "Server maintenance" box with both actions side by
+  side, since they're really the same concern (the Node process itself)
+  looked at two different ways.
+- **Bays &amp; Lighting got subtabs** — Setup (WLED/attribution-window
+  settings, door animations), Assignment (the bay dashboard and the
+  drag-and-drop layout), and Diagnostics (hardware restart buttons, the
+  test-and-log tools) — instead of six boxes in one flat list with no
+  structure distinguishing "configure this once" from "use this
+  regularly" from "troubleshoot with this."
+- Caught and fixed a small inconsistency along the way: the old Print
+  Labels section wasn't wrapped in a box at all, unlike literally
+  everything else in the admin console — it now matches.
+
+## "Who took this?" — prompting when a disc leaves without a login
+
+Pulling a disc from its bay with nobody logged in already checked out
+fine before this — it just landed under "Unknown (bay sensor)" as the
+renter, easy to lose track of. Now it also throws up a full-screen
+prompt naming the title and asking for a PIN, with a repeating two-tone
+chime every ~2 seconds so it doesn't just sit there quietly ignored on
+a kiosk nobody's actively watching. Entering a valid PIN re-attributes
+that specific rental to that person (still respects rating
+restrictions — a restricted PIN can't claim a title it wouldn't have
+been allowed to check out normally) and the chime stops immediately.
+Admins get an extra "Leave unattributed" option to dismiss it without a
+PIN, for whenever that's genuinely the right call.
+
+The chime is synthesized entirely in the browser (Web Audio API, two
+quick tones), not an audio file — nothing to bundle or go missing.
+Browsers can restrict audio from playing without a prior user
+interaction on the page first; if that happens, the prompt and PIN
+entry still work exactly the same, just silently until something else
+on the kiosk unlocks audio.
+
+One honest limitation, not fixed here: this shows one prompt at a time.
+If a second disc gets pulled without a login while the first prompt is
+still up, the new one replaces it, and that first rental just stays
+"Unknown" until someone catches it manually. Rare enough in practice
+(two unattributed pulls within moments of each other) that a queue
+didn't seem worth the added complexity for this pass.
+
 ## The Admin Console's tabs moved to a left sidebar
 
 Dashboard, Rentals, Catalog, Bays & Lighting, Household, and System now
