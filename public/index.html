@@ -70,11 +70,6 @@
   .admin-mode-bar button:hover{background:rgba(255,255,255,0.28);}
   .logo{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:700;font-size:21px;letter-spacing:-0.02em;color:var(--white);cursor:pointer;flex-shrink:0;transition:opacity 0.15s ease;}
   .logo:hover{opacity:0.6;}
-  .search-wrap{flex:1;min-width:180px;max-width:340px;display:flex;align-items:center;background:var(--surf2);border:none;border-radius:10px;padding:7px 12px;gap:8px;transition:background 0.18s ease,box-shadow 0.18s ease;}
-  .search-wrap:focus-within{background:var(--surf3);box-shadow:0 0 0 4px var(--glow);}
-  .search-wrap input{background:transparent;border:none;color:var(--white);font-size:14px;flex:1;padding:2px;}
-  .search-wrap input:focus{outline:none;}
-  .search-wrap .icon-svg{color:var(--muted);flex-shrink:0;}
   .btn-icon{width:14px;height:14px;vertical-align:-2px;margin-right:5px;display:inline-block;flex-shrink:0;}
   .theme-toggle{background:var(--surf2);border:none;color:var(--white);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.18s ease,transform 0.18s ease;}
   .theme-toggle:hover{background:var(--surf4);transform:rotate(15deg);}
@@ -115,6 +110,7 @@
   button.primary:disabled{background:var(--surf3);color:var(--muted2);cursor:not-allowed;transform:none;filter:none;}
   button.secondary{background:var(--surf3);border:none;color:var(--white);border-radius:999px;padding:11px 18px;cursor:pointer;font-size:13px;font-weight:590;transition:background 0.15s ease,transform 0.1s ease;}
   button.secondary:hover{background:var(--surf5);}
+  button.secondary.active{background:var(--red);color:#fff;}
   button.secondary:active{transform:scale(0.97);}
   button.teal{background:var(--green);color:#04240F;border:none;border-radius:999px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:transform 0.1s ease,filter 0.15s ease;}
   button.teal:hover{filter:brightness(1.08);}
@@ -240,9 +236,6 @@
   #initialLoadOverlay{position:fixed;inset:0;background:var(--bg);z-index:90;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity 0.3s ease;}
   #initialLoadOverlay .spinner{width:48px;height:48px;border-radius:50%;border:4px solid var(--surf3);border-top-color:var(--red);animation:spin 0.9s linear infinite;}
   #initialLoadOverlay .t{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:14px;color:var(--muted);}
-  .search-wrap{position:relative;}
-  #searchClearBtn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:2px 4px;flex-shrink:0;transition:color 0.15s ease,transform 0.15s ease;}
-  #searchClearBtn:hover{color:var(--white);transform:scale(1.15);}
   .pending-return-overlay .spinner{width:64px;height:64px;border-radius:50%;border:5px solid var(--surf3);border-top-color:var(--green);animation:spin 1s linear infinite;margin-bottom:24px;}
   #pendingCheckoutOverlay .spinner{border-top-color:#E87C03;}
   .pending-return-overlay .t{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:28px;font-weight:700;color:var(--white);margin-bottom:8px;}
@@ -306,17 +299,9 @@
 
 <div class="topbar">
   <div class="logo" id="logoHome">SANDY SERVER</div>
-  <div class="search-wrap">
-    <svg class="icon-svg" viewBox="0 0 24 24" fill="none" width="16" height="16"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    <input id="searchBox" placeholder="Search titles... (press / to focus)" />
-    <button id="searchClearBtn" title="Clear search" type="button" style="display:none;">×</button>
-  </div>
   <button class="secondary" id="surpriseMeBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Surprise Me</button>
   <button class="secondary" id="topBarReturnBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 1 1 2.3 5.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 17v-5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Return</button>
   <button class="secondary" id="adminConsoleBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;display:none;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Admin Console</button>
-  <button class="theme-toggle" id="scanBarToggleBtn" title="Show/hide barcode scanner &amp; login" type="button">
-    <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/><line x1="7" y1="8" x2="7" y2="16" stroke="currentColor" stroke-width="2"/><line x1="10" y1="8" x2="10" y2="16" stroke="currentColor" stroke-width="1"/><line x1="12.5" y1="8" x2="12.5" y2="16" stroke="currentColor" stroke-width="2"/><line x1="15" y1="8" x2="15" y2="16" stroke="currentColor" stroke-width="1"/><line x1="17.5" y1="8" x2="17.5" y2="16" stroke="currentColor" stroke-width="2"/></svg>
-  </button>
   <button class="theme-toggle" id="themeToggleBtn" title="Switch light/dark" type="button">
     <svg class="icon-sun" viewBox="0 0 24 24" fill="none" width="18" height="18"><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="2"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="2.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="21.5"/><line x1="2.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="21.5" y2="12"/><line x1="5.1" y1="5.1" x2="6.9" y2="6.9"/><line x1="17.1" y1="17.1" x2="18.9" y2="18.9"/><line x1="5.1" y1="18.9" x2="6.9" y2="17.1"/><line x1="17.1" y1="6.9" x2="18.9" y2="5.1"/></g></svg>
     <svg class="icon-moon" viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
@@ -324,11 +309,12 @@
 </div>
 
 <div class="nav">
+  <button data-tab="myrentals">My Rentals</button>
   <button data-tab="browse" class="active">Browse Movies</button>
   <button data-tab="browsegames">Browse Games</button>
 </div>
 
-<div class="scan-bar" id="scanBarRow" style="display:none;">
+<div class="scan-bar" id="scanBarRow">
   <svg class="icon-svg" viewBox="0 0 24 24" fill="none" width="18" height="18" style="flex-shrink:0;"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/><line x1="7" y1="8" x2="7" y2="16" stroke="currentColor" stroke-width="2"/><line x1="10" y1="8" x2="10" y2="16" stroke="currentColor" stroke-width="1"/><line x1="12.5" y1="8" x2="12.5" y2="16" stroke="currentColor" stroke-width="2"/><line x1="15" y1="8" x2="15" y2="16" stroke="currentColor" stroke-width="1"/><line x1="17.5" y1="8" x2="17.5" y2="16" stroke="currentColor" stroke-width="2"/></svg>
   <input id="barcodeInput" placeholder="Scan or type a barcode, then press Enter — works with a USB scanner too" />
   <div id="scanLoginArea"></div>
@@ -391,16 +377,18 @@
     <div class="logo">SANDY SERVER <span style="color:var(--muted);font-weight:400;">— Admin Console</span></div>
   </div>
   <div class="nav">
-    <button data-tab="rentals" class="active">All rentals</button>
-    <button data-tab="activity">Activity</button>
-    <button data-tab="labels">Print labels</button>
-    <button data-tab="admin">Manage inventory</button>
-    <button data-tab="users">Manage users</button>
-    <button id="openTvBtn" type="button"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg> TV Display</button>
+    <button data-tab="dashboard" class="active">Dashboard</button>
+    <button data-tab="rentals">Rentals</button>
+    <button data-tab="admin">Catalog</button>
+    <button data-tab="bays">Bays &amp; Lighting</button>
+    <button data-tab="users">Household</button>
+    <button data-tab="system">System</button>
   </div>
   <div class="content">
-  <div class="panel" data-panel="rentals">
+  <div class="panel" data-panel="dashboard">
     <div class="panel-inner">
+      <div id="dashboardStats" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;"></div>
+      <div id="dashboardAttention" style="margin-bottom:20px;"></div>
       <div class="bulk-box" style="margin-top:0;max-width:520px;">
         <div class="display" style="font-size:15px;margin-bottom:6px;">Check out a disc manually</div>
         <div class="scan-msg" style="margin-top:0;">Skips the pending/bay-confirmation flow entirely and completes right away — same idea as the instant Return button here, for when you're standing at the counter handling it directly.</div>
@@ -410,35 +398,30 @@
           <button class="primary" id="manualCheckoutBtn">Check out</button>
         </div>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;" id="renterChips"></div>
-      <div id="rentalsList"></div>
     </div>
   </div>
 
-  <div class="panel" data-panel="activity">
+  <div class="panel" data-panel="rentals">
     <div class="panel-inner">
-      <div class="bulk-box" style="margin-top:0;">
-        <div class="display" style="font-size:15px;margin-bottom:10px;">Most popular titles</div>
-        <div id="popularList"></div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <button class="secondary active" id="rentalsViewActiveBtn">Active rentals</button>
+        <button class="secondary" id="rentalsViewHistoryBtn">History &amp; popularity</button>
       </div>
-      <div class="bulk-box">
-        <div class="display" style="font-size:15px;margin-bottom:10px;">Who's checked out what</div>
-        <div class="scan-msg" style="margin-top:0;">Every checkout, active or already returned, newest first — who rented it, when, and (once it's back) when it was returned.</div>
-        <div id="checkoutLog"></div>
+      <div id="rentalsActiveView">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;" id="renterChips"></div>
+        <div id="rentalsList"></div>
       </div>
-    </div>
-  </div>
-
-  <div class="panel" data-panel="labels">
-    <div class="panel-inner">
-      <div class="display" style="font-size:16px;margin-bottom:8px;">Print labels for your catalog</div>
-      <div class="scan-msg">Pick titles below, then print. Each label is a plain rectangular barcode sticker for the disc case — cut it out and stick it on. Scanning it works exactly like scanning the disc's original barcode.</div>
-      <div class="label-controls">
-        <button class="secondary" id="selectAllLabels">Select all</button>
-        <button class="secondary" id="selectNoneLabels">Select none</button>
-        <button class="primary" id="generateLabelsBtn">Generate &amp; print selected</button>
+      <div id="rentalsHistoryView" style="display:none;">
+        <div class="bulk-box" style="margin-top:0;">
+          <div class="display" style="font-size:15px;margin-bottom:10px;">Most popular titles</div>
+          <div id="popularList"></div>
+        </div>
+        <div class="bulk-box">
+          <div class="display" style="font-size:15px;margin-bottom:10px;">Who's checked out what</div>
+          <div class="scan-msg" style="margin-top:0;">Every checkout, active or already returned, newest first — who rented it, when, and (once it's back) when it was returned.</div>
+          <div id="checkoutLog"></div>
+        </div>
       </div>
-      <div class="label-list" id="labelList"></div>
     </div>
   </div>
 
@@ -450,8 +433,6 @@
         <button class="subnav-btn" data-subtab="addseries"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg> Add Series</button>
         <button class="subnav-btn" data-subtab="bulk"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M3 8l9-4.5L21 8v9l-9 4.5L3 17V8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M3 8l9 4.5L21 8M12 12.5V21" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Bulk Import</button>
         <button class="subnav-btn" data-subtab="autofill"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Auto-Fill</button>
-        <button class="subnav-btn" data-subtab="bays"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 21h4M8 12a4 4 0 1 1 8 0c0 2-1.5 3-2 4.5H10c-.5-1.5-2-2.5-2-4.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Bays</button>
-        <button class="subnav-btn" data-subtab="backup"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0 4-4m-4 4-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Backup</button>
       </div>
 
       <div class="subpanel active" data-subpanel="inventory">
@@ -597,62 +578,80 @@
           <span id="autofillStatus" style="font-size:11px;color:var(--muted);margin-left:8px;"></span>
         </div>
       </div>
+    </div>
+  </div>
 
-      <div class="subpanel" data-subpanel="bays">
-        <div class="bulk-box" style="margin-top:0;max-width:520px;">
-          <div class="display" style="font-size:15px;margin-bottom:6px;">Bay sensors &amp; lighting (ESP32 / Home Assistant / WLED)</div>
-          <div class="scan-msg" style="margin-top:0;">Assign each title to a physical bay number so a microswitch pulling it triggers an automatic checkout, and optionally a lit LED index on a WLED strip so the bay's light reflects whether it's in stock. See README.md for the full ESPHome + Home Assistant + WLED setup.</div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
-            <input id="wledUrlInput" placeholder="WLED controller address, e.g. 192.168.1.60" style="min-width:220px;flex:1;" />
-            <button class="secondary" id="saveWledUrlBtn" style="padding:9px 14px;font-size:12px;">Save</button>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
-            <input id="bayWindowInput" type="number" min="10" placeholder="Attribution window (seconds)" style="width:220px;" />
-            <button class="secondary" id="saveBayWindowBtn" style="padding:9px 14px;font-size:12px;">Save</button>
-          </div>
-          <div style="font-size:11px;color:var(--muted);">How long after someone logs in with their PIN a bay pull still counts as theirs — long enough to walk over and grab it, short enough that the next person doesn't get blamed for it.</div>
+  <div class="panel" data-panel="bays">
+    <div class="panel-inner">
+      <div class="bulk-box" style="margin-top:0;max-width:520px;">
+        <div class="display" style="font-size:15px;margin-bottom:6px;">Bay sensors &amp; lighting (ESP32 / Home Assistant / WLED)</div>
+        <div class="scan-msg" style="margin-top:0;">Assign each title to a physical bay number so a microswitch pulling it triggers an automatic checkout, and optionally a lit LED index on a WLED strip so the bay's light reflects whether it's in stock. See README.md for the full ESPHome + Home Assistant + WLED setup.</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+          <input id="wledUrlInput" placeholder="WLED controller address, e.g. 192.168.1.60" style="min-width:220px;flex:1;" />
+          <button class="secondary" id="saveWledUrlBtn" style="padding:9px 14px;font-size:12px;">Save</button>
         </div>
-
-        <div class="bulk-box" style="max-width:520px;">
-          <div class="display" style="font-size:15px;margin-bottom:6px;">Door animations</div>
-          <div class="scan-msg" style="margin-top:0;">If you've wired a separate door sensor (not a bay switch), the whole strip plays a welcome effect when it opens, and a leaving effect once it's stayed closed for a while. Effect IDs are whatever WLED numbers them as on your firmware — check your WLED web UI's effects list, or <code>GET http://&lt;wled-ip&gt;/json/eff</code>, rather than trusting these defaults blindly.</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-            <input id="wledOpenEffectInput" type="number" min="0" placeholder="Open effect ID" style="width:140px;" />
-            <input id="wledCloseEffectInput" type="number" min="0" placeholder="Close effect ID" style="width:140px;" />
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-            <input id="wledEffectSecondsInput" type="number" min="1" placeholder="Effect duration (sec)" style="width:170px;" />
-            <input id="doorCloseDelayInput" type="number" min="5" placeholder="Delay after close (sec)" style="width:170px;" />
-          </div>
-          <button class="secondary" id="saveDoorSettingsBtn" style="padding:9px 14px;font-size:12px;">Save</button>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+          <input id="bayWindowInput" type="number" min="10" placeholder="Attribution window (seconds)" style="width:220px;" />
+          <button class="secondary" id="saveBayWindowBtn" style="padding:9px 14px;font-size:12px;">Save</button>
         </div>
-
-        <div class="bulk-box" style="max-width:900px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
-            <div class="display" style="font-size:15px;">Bay dashboard</div>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-              <input id="newBayNumberInput" type="number" min="1" placeholder="Bay #" style="width:90px;" />
-              <button class="primary" id="addBayBtn" style="padding:9px 14px;font-size:12px;">Add bay</button>
-              <button class="secondary" id="printBayBarcodesBtn" style="padding:9px 14px;font-size:12px;">Print bay barcodes</button>
-            </div>
-          </div>
-          <div class="scan-msg" style="margin-top:0;margin-bottom:14px;">Stick a printed bay barcode on each shelf. Then, from Scan a disc, scan a disc that isn't assigned to a bay yet followed by a bay barcode, and it's linked automatically — no need to use the dropdowns below by hand.</div>
-          <div id="bayDashboard" class="bay-grid"></div>
-        </div>
+        <div style="font-size:11px;color:var(--muted);">How long after someone logs in with their PIN a bay pull still counts as theirs — long enough to walk over and grab it, short enough that the next person doesn't get blamed for it.</div>
       </div>
 
-      <div class="subpanel" data-subpanel="backup">
-        <div class="bulk-box" style="margin-top:0;max-width:520px;">
-          <div class="display" style="font-size:15px;margin-bottom:6px;">Export &amp; import</div>
-          <div class="scan-msg" style="margin-top:0;">Everything — catalog, rentals, watch history, users and PINs, bays, settings — lives in one file the server already keeps. This just gives you a copy of it to save somewhere else, and a way to bring it back.</div>
-          <button class="primary" id="exportDataBtn" style="margin-bottom:20px;">Export data</button>
-          <div class="display" style="font-size:14px;margin-bottom:6px;">Import a backup</div>
-          <div class="scan-msg" style="margin-top:0;">This replaces your entire catalog, rentals, and history with whatever's in the file — there's no merging. Use it to restore a backup, not to add a few titles.</div>
-          <label class="file-label">Choose a backup file
-            <input type="file" accept="application/json" id="importDataInput" />
-          </label>
-          <span id="importDataStatus" style="font-size:11px;color:var(--muted);margin-left:8px;"></span>
+      <div class="bulk-box" style="max-width:520px;">
+        <div class="display" style="font-size:15px;margin-bottom:6px;">Door animations</div>
+        <div class="scan-msg" style="margin-top:0;">If you've wired a separate door sensor (not a bay switch), the whole strip plays a welcome effect when it opens, and a leaving effect once it's stayed closed for a while. Effect IDs are whatever WLED numbers them as on your firmware — check your WLED web UI's effects list, or <code>GET http://&lt;wled-ip&gt;/json/eff</code>, rather than trusting these defaults blindly.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <input id="wledOpenEffectInput" type="number" min="0" placeholder="Open effect ID" style="width:140px;" />
+          <input id="wledCloseEffectInput" type="number" min="0" placeholder="Close effect ID" style="width:140px;" />
         </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <input id="wledEffectSecondsInput" type="number" min="1" placeholder="Effect duration (sec)" style="width:170px;" />
+          <input id="doorCloseDelayInput" type="number" min="5" placeholder="Delay after close (sec)" style="width:170px;" />
+        </div>
+        <button class="secondary" id="saveDoorSettingsBtn" style="padding:9px 14px;font-size:12px;">Save</button>
+      </div>
+
+      <div class="bulk-box" style="max-width:900px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+          <div class="display" style="font-size:15px;">Bay dashboard</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <input id="newBayNumberInput" type="number" min="1" placeholder="Bay #" style="width:90px;" />
+            <button class="primary" id="addBayBtn" style="padding:9px 14px;font-size:12px;">Add bay</button>
+            <button class="secondary" id="printBayBarcodesBtn" style="padding:9px 14px;font-size:12px;">Print bay barcodes</button>
+          </div>
+        </div>
+        <div class="scan-msg" style="margin-top:0;margin-bottom:14px;">Stick a printed bay barcode on each shelf. Then, from Scan a disc, scan a disc that isn't assigned to a bay yet followed by a bay barcode, and it's linked automatically — no need to use the dropdowns below by hand.</div>
+        <div id="bayDashboard" class="bay-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" data-panel="system">
+    <div class="panel-inner">
+      <div class="bulk-box" style="margin-top:0;max-width:520px;">
+        <div class="display" style="font-size:15px;margin-bottom:6px;">TV display</div>
+        <div class="scan-msg" style="margin-top:0;">Opens the big-screen browse page in a new tab — point a TV or monitor's browser at this same URL with <code>#tv</code> on the end to run it as a standalone kiosk display.</div>
+        <button class="primary" id="openTvBtn" type="button"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg> Open TV display</button>
+      </div>
+      <div class="display" style="font-size:16px;margin-bottom:8px;">Print labels for your catalog</div>
+      <div class="scan-msg">Pick titles below, then print. Each label is a plain rectangular barcode sticker for the disc case — cut it out and stick it on. Scanning it works exactly like scanning the disc's original barcode.</div>
+      <div class="label-controls">
+        <button class="secondary" id="selectAllLabels">Select all</button>
+        <button class="secondary" id="selectNoneLabels">Select none</button>
+        <button class="primary" id="generateLabelsBtn">Generate &amp; print selected</button>
+      </div>
+      <div class="label-list" id="labelList"></div>
+
+      <div class="bulk-box" style="max-width:520px;">
+        <div class="display" style="font-size:15px;margin-bottom:6px;">Export &amp; import</div>
+        <div class="scan-msg" style="margin-top:0;">Everything — catalog, rentals, watch history, users and PINs, bays, settings — lives in one file the server already keeps. This just gives you a copy of it to save somewhere else, and a way to bring it back.</div>
+        <button class="primary" id="exportDataBtn" style="margin-bottom:20px;">Export data</button>
+        <div class="display" style="font-size:14px;margin-bottom:6px;">Import a backup</div>
+        <div class="scan-msg" style="margin-top:0;">This replaces your entire catalog, rentals, and history with whatever's in the file — there's no merging. Use it to restore a backup, not to add a few titles.</div>
+        <label class="file-label">Choose a backup file
+          <input type="file" accept="application/json" id="importDataInput" />
+        </label>
+        <span id="importDataStatus" style="font-size:11px;color:var(--muted);margin-left:8px;"></span>
       </div>
     </div>
   </div>
@@ -970,6 +969,7 @@
     // once the catalog/bay list grows. enterAdminConsole() renders them
     // once on the way in instead.
     if(adminMode){
+      renderDashboard();
       renderRentals();
       renderActivityPanel();
       renderAdminList();
@@ -1023,13 +1023,14 @@
     const console_ = $("#adminConsole");
     console_.style.display = "block";
     requestAnimationFrame(() => console_.classList.add("visible"));
+    renderDashboard();
     renderRentals();
     renderActivityPanel();
     renderAdminList();
     renderLabelList();
     renderUsersList();
     renderBayDashboard();
-    setTab("rentals");
+    setTab("dashboard");
   }
 
   function exitAdminConsole(){
@@ -1448,6 +1449,50 @@
     el.querySelectorAll("[data-return]").forEach(b => b.onclick = () => returnRental(b.dataset.return));
   }
 
+  // The admin console's landing tab — a snapshot instead of dropping
+  // straight into a bare list. Stats are cheap to recompute (small
+  // arrays, no images touched) so this runs on every admin render pass
+  // like the other admin-only panels.
+  function renderDashboard(){
+    const statsEl = $("#dashboardStats");
+    const attentionEl = $("#dashboardAttention");
+    if(!statsEl || !attentionEl) return;
+
+    const activeCount = rentals.length;
+    const overdueCount = rentals.filter(r => r.dueOn < Date.now()).length;
+    const totalTitles = catalog.length;
+    const inStockCount = catalog.filter(m => m.stock > 0).length;
+
+    const statBox = (label, value, color) => `<div class="bulk-box" style="margin:0;min-width:140px;flex:1;text-align:center;">
+      <div style="font-size:32px;font-weight:700;color:${color||'var(--white)'};font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;">${value}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px;">${label}</div>
+    </div>`;
+    statsEl.innerHTML =
+      statBox("Discs checked out", activeCount) +
+      statBox("Overdue", overdueCount, overdueCount>0 ? "#E87C03" : undefined) +
+      statBox("Titles in catalog", totalTitles) +
+      statBox("Currently in stock", inStockCount);
+
+    // Everything worth a staff member's attention, in one place — no
+    // more scanning the whole inventory list by eye to find it.
+    const damaged = catalog.filter(m => m.condition === 'damaged');
+    const missing = catalog.filter(m => m.condition === 'missing');
+    const noBay = catalog.filter(m => !bays.some(b => b.titleId === m.id));
+    const attentionRow = (label, items, note) => items.length===0 ? "" : `<div class="row" style="align-items:flex-start;">
+        <div>
+          <div style="font-size:14px;">${label} <span style="color:var(--muted);font-weight:400;">(${items.length})</span></div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;">${items.slice(0,6).map(m=>m.title).join(", ")}${items.length>6?`, +${items.length-6} more`:""}</div>
+          ${note ? `<div style="font-size:11px;color:var(--muted2);margin-top:4px;">${note}</div>` : ""}
+        </div>
+      </div>`;
+    const rows = attentionRow("⚠️ Damaged", damaged) + attentionRow("❌ Missing", missing) +
+      attentionRow("No bay assigned", noBay, "Fixable from Bays &amp; Lighting, or automatically the next time a return happens.");
+    attentionEl.innerHTML = rows
+      ? `<div class="bulk-box" style="margin-top:0;"><div class="display" style="font-size:15px;margin-bottom:10px;">Needs attention</div><div class="list-group">${rows}</div></div>`
+      : `<div class="bulk-box" style="margin-top:0;"><div style="font-size:14px;color:var(--muted);">Nothing needs attention right now.</div></div>`;
+  }
+
+
   function renderActivityPanel(){
     const popEl = $("#popularList");
     const logEl = $("#checkoutLog");
@@ -1632,21 +1677,17 @@
 
   // The barcode bar and My Rentals no longer have their own PIN entry —
   // logging in only ever happens through the one login gate (openLoginGate).
-  // These widgets just show who's checked in, or a button that opens it.
+  // These widgets just show who's checked in.
   function renderLoginWidget(selector){
     const el = $(selector);
     if(!el) return;
-    const showMyRentalsLink = selector === "#scanLoginArea";
     if(loggedInUser){
       const count = rentals.filter(r => r.renterName===loggedInUser.name).length;
       el.innerHTML = `<div class="login-box">
         <span class="who">Checking out as ${loggedInUser.name} <span style="font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:12px;color:var(--muted);">(${count}/${maxCheckouts} discs out)</span></span>
-        ${showMyRentalsLink ? `<button class="secondary" data-viewmyrentals>My Rentals</button>` : ""}
         <button class="secondary" data-logout>Not you? Log out</button>
       </div>`;
       el.querySelector("[data-logout]").onclick = pinLogout;
-      const myRentalsBtn = el.querySelector("[data-viewmyrentals]");
-      if(myRentalsBtn) myRentalsBtn.onclick = () => setTab("myrentals");
     } else {
       el.innerHTML = `<button class="primary" data-openlogin style="width:100%;">Log in to rent</button>`;
       el.querySelector("[data-openlogin]").onclick = openLoginGate;
@@ -2911,8 +2952,6 @@
       ? `<div class="return-mode-banner">Return mode on — scan the disc you're returning. Once it's found, place it in a bay slot (or scan its bay barcode) to log the return.</div>`
       : "";
     if(returnMode){
-      const row = $("#scanBarRow");
-      if(row && row.style.display === "none"){ row.style.display = "flex"; $("#scanBarToggleBtn").classList.add("active"); }
       $("#barcodeInput").focus();
     }
   }
@@ -3122,13 +3161,6 @@
   document.addEventListener("DOMContentLoaded", async () => {
     setTheme(getTheme()); // sync the button's icon to whatever the inline head script already applied
     $("#themeToggleBtn").onclick = toggleTheme;
-    $("#scanBarToggleBtn").onclick = () => {
-      const row = $("#scanBarRow");
-      const hidden = row.style.display === "none";
-      row.style.display = hidden ? "flex" : "none";
-      $("#scanBarToggleBtn").classList.toggle("active", hidden);
-      if(hidden) $("#barcodeInput").focus();
-    };
     $("#topBarReturnBtn").onclick = () => openReturnFlow();
     $("#surpriseMeBtn").onclick = surpriseMe;
     $("#adminConsoleBtn").onclick = () => enterAdminConsole();
@@ -3140,6 +3172,18 @@
       if(!movie){ toast("Pick a title first"); return; }
       rentByMovie(movie, renterName);
       $("#manualCheckoutRenter").value = "";
+    };
+    $("#rentalsViewActiveBtn").onclick = () => {
+      $("#rentalsViewActiveBtn").classList.add("active");
+      $("#rentalsViewHistoryBtn").classList.remove("active");
+      $("#rentalsActiveView").style.display = "block";
+      $("#rentalsHistoryView").style.display = "none";
+    };
+    $("#rentalsViewHistoryBtn").onclick = () => {
+      $("#rentalsViewHistoryBtn").classList.add("active");
+      $("#rentalsViewActiveBtn").classList.remove("active");
+      $("#rentalsHistoryView").style.display = "block";
+      $("#rentalsActiveView").style.display = "none";
     };
     $("#exportDataBtn").onclick = () => { window.location.href = "/api/export"; };
     $("#importDataInput").onchange = async (e) => {
@@ -3211,28 +3255,6 @@
       const url = location.href.split("#")[0] + "#tv";
       window.open(url, "_blank");
     };
-
-    $("#searchBox").oninput = e => {
-      query = e.target.value;
-      $("#searchClearBtn").style.display = query ? "block" : "none";
-      renderBrowse();
-      renderBrowseGames();
-    };
-    $("#searchClearBtn").onclick = () => {
-      query = "";
-      $("#searchBox").value = "";
-      $("#searchClearBtn").style.display = "none";
-      renderBrowse();
-      renderBrowseGames();
-      $("#searchBox").focus();
-    };
-    document.addEventListener("keydown", e => {
-      if(e.key === "/" && document.activeElement !== $("#searchBox") && document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA"){
-        e.preventDefault();
-        setTab("browse");
-        $("#searchBox").focus();
-      }
-    });
 
     $("#barcodeInput").addEventListener("keydown", e => {
       if(e.key==="Enter"){ handleScannedCode($("#barcodeInput").value); $("#barcodeInput").value=""; }

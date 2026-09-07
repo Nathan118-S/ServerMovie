@@ -344,6 +344,46 @@ landscape-oriented, so the first screenshot fills that role.
 too, and TV kiosk mode ("Send to Kiosk") stays movie-only, consistent
 with what that feature was already for.
 
+## The Admin Console, reorganized
+
+This had grown to 6 top-level tabs plus 7 more buried as subtabs inside
+"Manage inventory" — 13 sections total, accumulated one feature at a
+time rather than designed as a whole. It's now grouped around what
+you're actually trying to do:
+
+- **Dashboard** (new, and now the default landing tab) — quick counts
+  (checked out, overdue, catalog size, in stock), a **Needs attention**
+  list pulling together every damaged, missing, or no-bay title in one
+  place instead of scanning the whole inventory by eye, and the manual
+  checkout box, moved here from Rentals since this is the "walk up and
+  do something" tab now.
+- **Rentals** — the active list, now with a toggle at the top for
+  **Active rentals** vs. **History & popularity** (the old standalone
+  "Activity" tab), since they're the same underlying concern.
+- **Catalog** — the renamed "Manage inventory": Inventory, Add Title,
+  Add Series, Bulk Import, Auto-Fill. Bays and Backup moved out — they
+  never really belonged under "inventory" conceptually.
+- **Bays & Lighting** — promoted to its own top-level section: bay
+  assignment, WLED lighting, door animations, the bay dashboard.
+- **Household** — the renamed "Manage users": PINs, rating
+  restrictions, per-household checkout limit.
+- **System** — TV display, print labels, and export/import backup,
+  grouped as the "set up once, rarely touch again" section.
+
+Nothing was removed — every feature from before is still here, just
+regrouped. If a setting you remember isn't where you expect, it's
+almost certainly moved to one of Dashboard, Bays & Lighting, or System.
+
+## The top bar is barcode-only now
+
+The search-by-title box is gone from the top bar, replaced with the
+barcode scanner bar — which used to be hidden behind a toggle button and
+now shows all the time instead, right under the top bar. Type or scan a
+barcode there anytime, no button to remember to open first. Browsing by
+genre/grid in Browse Movies and Browse Games is still exactly how you
+find something without knowing its barcode — this only changed the top
+bar's own search box, not the ability to browse.
+
 ## Fixing animations that replayed constantly, and writes that blocked requests
 
 Two real bugs, not cosmetic ones:
@@ -384,7 +424,7 @@ since this feature shipped; titles already in the catalog before this
 don't have the timestamp it needs, so they simply don't show up in that
 row (nothing wrong, just nothing to sort by).
 
-**Surprise Me**, in the top bar next to search, picks a random in-stock
+**Surprise Me**, in the top bar, picks a random in-stock
 title and opens it directly — for the "we have 200 things and can't
 decide" problem. It respects whichever tab you're actually looking at:
 hit it from Browse Movies and it only picks movies, from Browse Games
