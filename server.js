@@ -6,6 +6,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const { exec } = require("child_process");
 const crypto = require("crypto");
 const https = require("https");
 const express = require("express");
@@ -1079,14 +1080,39 @@ app.post("/api/locate-bay", (req, res) => {
 // ---------- cabinet door sensor (called by Home Assistant) ----------
 let doorCloseTimer = null;
 
-app.post("/api/door-opened", (req, res) => {
+// ---------- hardware diagnostics ----------
+// A rolling log of every call to the bay/door endpoints below, regardless
+// of who made it (the ESP32, a manual test button, curl) — built
+// specifically so a person debugging "my ESP32 isn't reaching the
+// server" can see, from the UI, whether requests are actually arriving
+// at all, from what IP, and what Sandy Server sent back. Cleared on
+// restart; not persisted, since it's a live diagnostic, not data.
+const hardwareLog = [];
+function logHardwareCall(label){
+  return (req, res, next) => {
+    const entry = { time: Date.now(), endpoint: label, ip: req.ip || (req.socket && req.socket.remoteAddress) || "unknown", body: req.body, status: null, result: null };
+    hardwareLog.unshift(entry);
+    if(hardwareLog.length > 30) hardwareLog.length = 30;
+    const originalJson = res.json.bind(res);
+    res.json = (data) => {
+      entry.status = res.statusCode;
+      entry.result = data;
+      return originalJson(data);
+    };
+    next();
+  };
+}
+app.get("/api/hardware-log", (req, res) => res.json(hardwareLog));
+app.delete("/api/hardware-log", (req, res) => { hardwareLog.length = 0; res.json({ ok: true }); });
+
+app.post("/api/door-opened", logHardwareCall("door-opened"), (req, res) => {
   clearTimeout(doorCloseTimer);
   doorCloseTimer = null;
   playDoorAnimation((db.settings && db.settings.wledOpenEffect) || 9);
   res.json({ ok: true });
 });
 
-app.post("/api/door-closed", (req, res) => {
+app.post("/api/door-closed", logHardwareCall("door-closed"), (req, res) => {
   clearTimeout(doorCloseTimer);
   const delaySeconds = (db.settings && db.settings.doorCloseDelaySeconds) || 60;
   doorCloseTimer = setTimeout(() => {
@@ -1097,7 +1123,7 @@ app.post("/api/door-closed", (req, res) => {
 });
 
 // ---------- bay sensor events (called by Home Assistant) ----------
-app.post("/api/bay-checkout", (req, res) => {
+app.post("/api/bay-checkout", logHardwareCall("bay-checkout"), (req, res) => {
   const bayNumber = req.body.bay;
   if(bayNumber === undefined || bayNumber === null) return res.status(400).json({ error: "bay is required" });
 
@@ -1146,7 +1172,7 @@ app.post("/api/bay-checkout", (req, res) => {
   res.json({ ok: true, title: title.title, renterName, rental });
 });
 
-app.post("/api/bay-return", (req, res) => {
+app.post("/api/bay-return", logHardwareCall("bay-return"), (req, res) => {
   const bayNumber = req.body.bay;
   if(bayNumber === undefined || bayNumber === null) return res.status(400).json({ error: "bay is required" });
   let bay = db.bays.find(b => String(b.number) === String(bayNumber));
@@ -1324,6 +1350,37 @@ app.post("/api/import", (req, res) => {
   broadcast("settings");
   broadcast("bays");
   res.json({ ok: true, titles: db.titles.length, rentals: db.rentals.length, users: db.users.length, bays: db.bays.length });
+});
+
+// ---------- self-update ----------
+// Runs the same update path install.sh takes for an existing checkout
+// (git pull, then npm install in case dependencies changed) — not a
+// literal shell-out to install.sh itself, since that script prompts
+// interactively on a first run and this is meant to be a one-click
+// action from an already-running server, not a fresh install.
+app.post("/api/system-update", (req, res) => {
+  const cwd = __dirname;
+  exec("git pull", { cwd, timeout: 60000 }, (gitErr, gitOut, gitErrOut) => {
+    if(gitErr){
+      return res.status(500).json({ ok: false, step: "git pull", error: (gitErrOut || gitErr.message || "").trim() || "git pull failed" });
+    }
+    exec("npm install", { cwd, timeout: 180000 }, (npmErr, npmOut, npmErrOut) => {
+      if(npmErr){
+        return res.status(500).json({ ok: false, step: "npm install", error: (npmErrOut || npmErr.message || "").trim() || "npm install failed", gitOutput: gitOut.trim() });
+      }
+      // systemd sets INVOCATION_ID on every process it starts — a reliable
+      // way to tell whether exiting here will actually bring the server
+      // back up automatically (Restart=on-failure, set by install.sh's
+      // autostart option) or just leave it stopped with no one watching.
+      const willAutoRestart = !!process.env.INVOCATION_ID;
+      res.json({ ok: true, gitOutput: gitOut.trim(), npmOutput: npmOut.trim(), willAutoRestart });
+      if(willAutoRestart){
+        // Give the response above time to actually reach the browser
+        // before the process exits out from under it.
+        setTimeout(() => process.exit(1), 1200);
+      }
+    });
+  });
 });
 
 // ---------- TV selection ----------

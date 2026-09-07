@@ -1,7 +1,8 @@
 # Sandy Server — bay microswitch ESP32 (ESPHome)
 #
-# One ESP32 reads a microswitch per bay and exposes each as a binary_sensor
-# to Home Assistant over ESPHome's native API — no MQTT broker needed.
+# This ESP32 talks straight to Sandy Server over HTTP — no Home Assistant
+# involved at all. Each bay switch and the cabinet door POST directly to
+# Sandy Server's REST endpoints the instant they change state.
 #
 # WIRING (per bay):
 #   GPIO pin ---- microswitch ---- GND
@@ -10,7 +11,8 @@
 #   the weight/presence of the case sitting in the bay, and springs OPEN
 #   when the case is lifted out — that's what `inverted: true` below
 #   assumes ("on" state = case present). If your switches are wired the
-#   opposite way, just remove `inverted: true` on that sensor.
+#   opposite way, just remove `inverted: true` on that sensor (and swap
+#   which trigger, on_press or on_release, calls which endpoint).
 #
 # GPIO NOTES for ESP32 (adjust pin numbers to match your actual wiring):
 #   - Good general-purpose input pins: 4, 5, 13, 14, 15, 16, 17, 18, 19,
@@ -22,11 +24,18 @@
 #   - Avoid entirely: 6-11 (connected to the ESP32's internal flash).
 #   - A single ESP32 comfortably handles 20-28 bays this way. Beyond
 #     that, add a second ESP32 running a second copy of this file with
-#     a different `name:`/`friendly_name:` and continue the bay numbers.
+#     a different `name:` and continue the bay numbers.
 #
-# Duplicate the `binary_sensor:` block below once per bay, changing the
-# `pin:`, `name:`, and `id:` each time. Only 4 example bays are included —
-# copy the pattern for as many as you actually have.
+# BEFORE FLASHING:
+#   1. Replace 192.168.1.50 below (in every http_request.post url:) with
+#      your Pi's actual IP address.
+#   2. Duplicate the `binary_sensor:` block once per bay, changing the
+#      `pin:`, `name:`, `id:`, and the `"bay": N` number in both
+#      on_press/on_release bodies each time. Only 4 example bays are
+#      included — copy the pattern for as many as you actually have.
+#   3. Fill in secrets.yaml alongside this file with wifi_ssid,
+#      wifi_password, and ota_password (api_encryption_key is no longer
+#      needed — there's no Home Assistant native API connection anymore).
 
 esphome:
   name: sandy-server-bays
@@ -37,23 +46,21 @@ esp32:
   framework:
     type: arduino
 
-# Fill these in, or better, use ESPHome's secrets.yaml so credentials
-# aren't sitting in a file you might share/commit:
-#   wifi_ssid: !secret wifi_ssid
-#   wifi_password: !secret wifi_password
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
-
-# Lets Home Assistant discover and control this device automatically.
-api:
-  encryption:
-    key: !secret api_encryption_key
 
 ota:
   password: !secret ota_password
 
 logger:
+
+# What lets this device make HTTP calls on its own, straight to Sandy
+# Server — this replaces the `api:` component that used to register the
+# device with Home Assistant. Nothing here talks to Home Assistant at all.
+http_request:
+  useragent: sandy-server-bays
+  timeout: 5s
 
 binary_sensor:
   - platform: gpio
@@ -66,6 +73,18 @@ binary_sensor:
     filters:
       - delayed_on: 50ms   # basic debounce
       - delayed_off: 50ms
+    on_press:    # case placed back in the bay
+      - http_request.post:
+          url: "http://192.168.1.50:3000/api/bay-return"
+          headers:
+            Content-Type: application/json
+          body: '{"bay": 1}'
+    on_release:  # case pulled out of the bay
+      - http_request.post:
+          url: "http://192.168.1.50:3000/api/bay-checkout"
+          headers:
+            Content-Type: application/json
+          body: '{"bay": 1}'
 
   - platform: gpio
     id: bay_02
@@ -77,6 +96,18 @@ binary_sensor:
     filters:
       - delayed_on: 50ms
       - delayed_off: 50ms
+    on_press:
+      - http_request.post:
+          url: "http://192.168.1.50:3000/api/bay-return"
+          headers:
+            Content-Type: application/json
+          body: '{"bay": 2}'
+    on_release:
+      - http_request.post:
+          url: "http://192.168.1.50:3000/api/bay-checkout"
+          headers:
+            Content-Type: application/json
+          body: '{"bay": 2}'
 
   - platform: gpio
     id: bay_03
@@ -88,6 +119,18 @@ binary_sensor:
     filters:
       - delayed_on: 50ms
       - delayed_off: 50ms
+    on_press:
+      - http_request.post:
+          url: "http://192.168.1.50:3000/api/bay-return"
+          headers:
+            Content-Type: application/json
+          body: '{"bay": 3}'
+    on_release:
+      - http_request.post:
+          url: "http://192.168.1.50:3000/api/bay-checkout"
+          headers:
+            Content-Type: application/json
+          body: '{"bay": 3}'
 
   - platform: gpio
     id: bay_04
@@ -99,14 +142,28 @@ binary_sensor:
     filters:
       - delayed_on: 50ms
       - delayed_off: 50ms
+    on_press:
+      - http_request.post:
+          url: "http://192.168.1.50:3000/api/bay-return"
+          headers:
+            Content-Type: application/json
+          body: '{"bay": 4}'
+    on_release:
+      - http_request.post:
+          url: "http://192.168.1.50:3000/api/bay-checkout"
+          headers:
+            Content-Type: application/json
+          body: '{"bay": 4}'
 
-  # ... duplicate the block above for every remaining bay, incrementing
-  # bay_05, bay_06, etc. and picking the next free GPIO from the list
-  # in the comment at the top of this file.
+  # ... duplicate one of the blocks above for every remaining bay,
+  # incrementing bay_05, bay_06, etc., picking the next free GPIO from
+  # the list in the comment at the top of this file, and updating the
+  # "bay": N number in BOTH the on_press and on_release bodies.
 
   # The cabinet/case door — separate from the bay switches above. Wired
   # so "on" = door open, "off" = door closed; if your switch reads the
-  # opposite way, add `inverted: true` here like the bay sensors have.
+  # opposite way, add `inverted: true` here like the bay sensors have,
+  # and swap which trigger calls which endpoint.
   - platform: gpio
     id: cabinet_door
     name: "Cabinet Door"
@@ -116,3 +173,15 @@ binary_sensor:
     filters:
       - delayed_on: 50ms
       - delayed_off: 50ms
+    on_press:    # door opened
+      - http_request.post:
+          url: "http://192.168.1.50:3000/api/door-opened"
+          headers:
+            Content-Type: application/json
+          body: "{}"
+    on_release:  # door closed
+      - http_request.post:
+          url: "http://192.168.1.50:3000/api/door-closed"
+          headers:
+            Content-Type: application/json
+          body: "{}"

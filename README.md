@@ -2,9 +2,10 @@
 
 This is the fully self-contained version of Sandy Server: a small Node.js
 server (`server.js`) stores everything in a plain JSON file on disk
-(`data/db.json`), and serves the same app you've been using — Browse,
-the barcode bar, All rentals, Print labels, Manage inventory, Manage users,
-and the hidden TV page — as a normal local website.
+(`data/db.json`), and serves the same app you've been using — Browse
+Movies, Browse Games, My Rentals, the barcode bar, and the Admin
+Console (Dashboard, Rentals, Catalog, Bays &amp; Lighting, Household,
+System) — as a normal local website.
 
 Nothing here talks to the internet or to Anthropic at runtime. The **only**
 step that needs a network connection is `npm install`, which downloads three
@@ -206,7 +207,7 @@ single year.
    [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api)
    (just needs a free account). Either one alone works fine — having both
    just means better odds of finding art/details and always getting a logo.
-2. In the app, under **Manage inventory**, paste them into the "Auto-fill
+2. In the app, under **Catalog**, paste them into the "Auto-fill
    posters, logos & descriptions" box and click **Save key** for each.
    That's it — stored alongside the rest of your settings, takes effect
    immediately, no SSH, no restarting the server.
@@ -226,7 +227,7 @@ app checks the saved key first, falling back to the environment variable.)
 
 Title-name collisions happen — a low-budget movie sharing its name with
 something more famous, a remake, a foreign film with the same English
-title. Each title in **Manage inventory** now has a **Wrong match?**
+title. Each title in **Catalog** now has a **Wrong match?**
 button right next to Look up: it shows up to 8 real TMDb candidates for
 that title's name, each with its actual poster thumbnail and a short
 description, so you can visually confirm which one is actually yours
@@ -301,7 +302,7 @@ system would mean maintaining two copies of every fix from here on.
 What *is* fully separate: the browsing experience itself (nav, hero,
 grid, search), the genre list, the platform field, and the rating scale.
 
-Adding a game (**Manage inventory → Add a title**, Media type: Game):
+Adding a game (**Catalog → Add a title**, Media type: Game):
 
 - **Genre** switches to a game-specific list (Action, Adventure, Sports,
   Racing, Fighting, Party, RPG, Shooter, Platformer, Puzzle) — separate
@@ -319,7 +320,7 @@ movies/TV — games use [IGDB](https://www.igdb.com/) (run by Twitch),
 which needs a **Client ID and Client Secret** rather than a single API
 key. Create a free app at
 [dev.twitch.tv/console/apps](https://dev.twitch.tv/console/apps) to get
-both, then paste them under **Manage inventory → Auto-Fill**, same
+both, then paste them under **Catalog → Auto-Fill**, same
 place as the OMDb/TMDb keys. "Look up on IGDB" and "Wrong match?" work
 the same way they do for movies — the picker shows real cover art so a
 title-name collision (a common problem with sequels and remasters) is
@@ -436,7 +437,7 @@ The Browse view had grown a stack of small colored dots on every poster
 (stock, bay status, damaged) that needed a tooltip to even understand —
 now it's just one dot (available or not) plus plain-language badges
 (⚠️ Damaged, Blu-ray, a platform name) where something's actually worth
-knowing. Bay-assignment status moved to **Manage inventory** instead,
+knowing. Bay-assignment status moved to **Catalog** instead,
 where it's genuinely useful — a customer browsing has no reason to know
 or care whether a title has a bay assigned, that's a staff concern.
 
@@ -459,7 +460,7 @@ with no restrictions, which is the default for a new user.
 
 Every "Add a title" and "Add a TV series" form has a DVD/Blu-ray dropdown
 (defaults to DVD, since that's the common case) — and for titles already
-in your catalog, the same dropdown shows up right in **Manage inventory**'s
+in your catalog, the same dropdown shows up right in **Catalog**'s
 list, so you can flip one after the fact without re-adding it. Blu-ray
 titles get a small blue badge on their poster card in Browse, and it
 shows up in the checkout modal too. Doesn't affect anything else — stock,
@@ -468,7 +469,7 @@ purely informational.
 
 ## TV series with multiple discs
 
-Under **Manage inventory → Add a TV series (multiple discs)**, give a
+Under **Catalog → Add a TV series (multiple discs)**, give a
 series name, season, genre, rating, and how many discs, and it creates
 that many separate catalog entries in one go — each with its own barcode
 and stock, each independently scannable/rentable, just tagged with a
@@ -480,7 +481,7 @@ file *you* provide (same idea as the poster photos: your own file, not
 fetched from anywhere). I didn't build automatic fetching of real theme
 songs from the internet on purpose — that's copyrighted music, and
 scraping and auto-embedding it is a different, much less defensible thing
-than a personal poster thumbnail. Attach one from Manage inventory (per
+than a personal poster thumbnail. Attach one from Catalog (per
 title) or right in the "Add a TV series" form (applies to all discs
 created in that batch), and it plays automatically when someone opens that
 title's checkout card in Browse — with a small "tap to stop" control if
@@ -495,7 +496,7 @@ episodes a particular publisher put on which disc of a specific release,
 so double-check it against your actual box set and edit the description
 if it's off.
 
-## Bay sensors &amp; WLED lighting (ESP32 + Home Assistant)
+## Bay sensors &amp; WLED lighting (ESP32, direct to Sandy Server)
 
 If you've moved from printed labels to a physical bay system — each case
 lives in its own numbered slot, wired with a microswitch — Sandy Server
@@ -506,44 +507,91 @@ show what's in stock at a glance.
 ### How it fits together
 
 ```
- [microswitch per bay] --> [ESP32 running ESPHome] --> [Home Assistant]
-                                                              |
-                                                    (automation calls a
-                                                     small REST endpoint)
-                                                              v
-                                                      [Sandy Server on the Pi]
-                                                              |
-                                                    (pushes LED color updates)
-                                                              v
-                                            [ESP32 running WLED + LED strip]
+ [microswitch per bay] --> [ESP32 running ESPHome] --> [Sandy Server on the Pi]
+                                                                  |
+                                                        (pushes LED color updates)
+                                                                  v
+                                                [ESP32 running WLED + LED strip]
 ```
 
 Two separate ESP32s are involved: one runs **ESPHome** and reads the
-switches, the other runs **WLED** and drives the lights. They don't talk
-to each other directly — Home Assistant bridges the switch side, and
-Sandy Server itself talks straight to WLED's own API for the lights.
+switches, the other runs **WLED** and drives the lights. Neither one
+talks to Home Assistant at all — the switch ESP32 POSTs straight to
+Sandy Server's own REST endpoints the instant a switch changes state,
+and Sandy Server talks straight to WLED's own API for the lights. If
+you're also running Home Assistant for other things (the sensors/
+notifications setup further down this README), it's completely
+unrelated to this pipeline — nothing here needs it, and nothing here
+shows up in it.
+
+## Updating from the UI, not just SSH
+
+**System** has an **Update the server** button: it runs the same update
+path `install.sh` takes when it's pointed at an existing checkout —
+`git pull`, then `npm install` in case dependencies changed — without
+needing to SSH in and run the script by hand. It's not literally
+shelling out to `install.sh` itself, since that script prompts
+interactively on a first run; this replicates just the update half,
+which is the only part that makes sense to trigger from a button on an
+already-running server.
+
+What happens next depends on how you set the server up:
+
+- **Set up with autostart (systemd)** — it restarts itself automatically
+  a moment after the update finishes. Reload the page after a few
+  seconds; the live connection will have dropped when the old process
+  exited, same as any restart.
+- **Running plain `npm start` in a terminal** — the update installs, but
+  nothing restarts it for you (there'd be no one to bring it back up).
+  You'll need to stop it and run `npm start` again yourself to actually
+  pick up the new code.
+
+Either way, if `git pull` or `npm install` fails partway (a local edit
+conflicting with the pull, a dependency that won't install), the button
+reports exactly what failed and the server keeps running the old code
+untouched — nothing is left half-updated.
+
+While building this, I also found and fixed a real bug it would've
+otherwise hit: the app's internal API client was discarding every
+specific error message from the server and replacing it with a generic
+"Request failed" — meaning a failure here would've shown you nothing
+useful about *why*. Fixed for every feature that talks to the server,
+not just this one, since it was silently making error messages useless
+everywhere.
+
+### Testing without touching a curl command
+
+**Bays & Lighting** has a **Hardware test & diagnostics** box:
+Simulate buttons that fire a bay checkout/return or door open/close
+exactly like the real switch would, and a live log underneath showing
+every call these four endpoints receive — from anywhere, including your
+actual ESP32 — with the source IP, what was sent, and what Sandy Server
+sent back. If your ESP32's requests are reaching the Pi at all, pulling
+a switch makes them show up here within about 2 seconds; if nothing
+shows up when you pull one, that confirms the requests genuinely aren't
+arriving (a network issue), rather than arriving and getting rejected
+for some other reason (which the log would also show, in the response
+column).
 
 ### Setting up the switches
 
 1. Wire one microswitch per bay to a GPIO pin on an ESP32 (see the wiring
    notes at the top of `esphome-bays.yaml` for pin choices and the
    assumption about which state means "case present").
-2. Flash `esphome-bays.yaml` with the ESPHome tool (`esphome run
-   esphome-bays.yaml`, or the ESPHome dashboard if you use that) — you'll
-   need a `secrets.yaml` alongside it with your `wifi_ssid`,
-   `wifi_password`, `api_encryption_key`, and `ota_password`. Duplicate
-   the `binary_sensor:` block once per bay you actually have; only 4
-   examples are included as a starting pattern.
-3. It should show up in Home Assistant automatically (Settings > Devices
-   & Services > ESPHome). Check its entities to confirm the exact
-   `binary_sensor.` IDs it created.
-4. Add `homeassistant-bays.yaml`'s contents to Home Assistant (as a
-   package, or copy the `rest_command:`/`automation:` sections into your
-   existing config) — update the IP address and the entity ID lists to
-   match what you saw in step 3.
-5. In Sandy Server, under **Manage inventory > Bays**, click "Add bay"
-   for each bay number you wired, then use the dropdown on each bay's
-   card to pick which title lives there.
+2. Open `esphome-bays.yaml` and replace every `192.168.1.50` with your
+   Pi's actual IP address — there's one in every bay's `on_press`/
+   `on_release` action, plus two more for the cabinet door.
+3. Duplicate the `binary_sensor:` block once per bay you actually have —
+   only 4 examples are included as a starting pattern — updating the
+   `pin:`, `name:`, `id:`, and the `"bay": N` number in *both* actions
+   each time.
+4. Flash it (`esphome run esphome-bays.yaml`, or the ESPHome dashboard)
+   — you'll need a `secrets.yaml` alongside it with `wifi_ssid`,
+   `wifi_password`, and `ota_password`. No `api_encryption_key` needed
+   this time — there's no Home Assistant native API connection to make.
+5. In Sandy Server, under **Bays &amp; Lighting**, click "Add bay" for each
+   bay number you wired, then use the dropdown on each bay's card to
+   pick which title lives there.
 
 Pull a case, and that title checks out automatically. Put it back, and it
 returns automatically — including if it goes back in a *different* bay
@@ -551,9 +599,15 @@ than it came from (see the next section), which real-world tidiness
 never quite guarantees. Both attribute correctly regardless of who's
 logged in where, with one caveat covered next.
 
-### Activity — what's popular, and who's got what
+Testing without hardware wired up yet: `curl -X POST
+http://<pi-ip>:3000/api/bay-checkout -H "Content-Type: application/json"
+-d '{"bay": 1}'` (and `bay-return` the same way) hits the exact same
+endpoint the ESP32 calls, so you can confirm the Sandy Server side works
+before any wiring is done at all.
 
-A new **Activity** tab in the Admin Console, next to All rentals:
+### Rentals — Active, History &amp; popularity
+
+The **Rentals** tab in the Admin Console has a toggle at the top:
 
 - **Most popular titles** — every checkout ever, active or already
   returned, tallied up and ranked. Nothing new to track for this — it's
@@ -589,7 +643,7 @@ remembering to flag it later.
   itself just gave it — since a missing copy genuinely isn't available
   to rent again.
 - Either flag can also be set or cleared by hand anytime, from a
-  dropdown right in **Manage inventory**'s list, independent of the
+  dropdown right in **Catalog**'s list, independent of the
   return prompt.
 
 This works for every return path automatically, without hooking each one
@@ -689,7 +743,7 @@ just recorded as "Unknown (bay sensor)" so you can fix it up later in
 
 ### The Bay Dashboard
 
-**Manage inventory > Bays** is a grid, one card per physical bay:
+**Bays &amp; Lighting** is a grid, one card per physical bay:
 
 - **Add bay** at the top creates a new bay by number
 - Each card shows the bay number, whatever title is currently assigned
@@ -728,10 +782,10 @@ door itself (not a bay), opening it plays a WLED effect across the
 for a while, a "leaving" effect plays before the strip settles back to
 everyone's normal per-bay colors. This uses a second binary_sensor
 (`cabinet_door`, already included in `esphome-bays.yaml` — same ESP32,
-different GPIO) and two more automations (already in
-`homeassistant-bays.yaml`).
+different GPIO), which POSTs directly to Sandy Server the same way the
+bay switches do — no separate automation to add anywhere.
 
-Configure it under **Manage inventory > Bays > Door animations**:
+Configure it under **Bays &amp; Lighting > Door animations**:
 
 - **Open effect ID** / **Close effect ID** — which WLED built-in effect
   plays for each. WLED numbers its effects, and that numbering can differ
@@ -755,7 +809,7 @@ Configure it under **Manage inventory > Bays > Door animations**:
    the strip. WLED has its own web installer and setup wizard — that part
    isn't Sandy Server-specific, follow WLED's own docs for getting it
    on your network.
-2. Note WLED's IP address, and enter it under **Manage inventory > Bays**
+2. Note WLED's IP address, and enter it under **Bays &amp; Lighting**
    in the "WLED controller address" field.
 3. On each bay's card, set its "LED #" — which position along your
    physical strip corresponds to that bay (0 for the first LED, 1 for the

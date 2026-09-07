@@ -584,8 +584,8 @@
   <div class="panel" data-panel="bays">
     <div class="panel-inner">
       <div class="bulk-box" style="margin-top:0;max-width:520px;">
-        <div class="display" style="font-size:15px;margin-bottom:6px;">Bay sensors &amp; lighting (ESP32 / Home Assistant / WLED)</div>
-        <div class="scan-msg" style="margin-top:0;">Assign each title to a physical bay number so a microswitch pulling it triggers an automatic checkout, and optionally a lit LED index on a WLED strip so the bay's light reflects whether it's in stock. See README.md for the full ESPHome + Home Assistant + WLED setup.</div>
+        <div class="display" style="font-size:15px;margin-bottom:6px;">Bay sensors &amp; lighting (ESP32 + WLED)</div>
+        <div class="scan-msg" style="margin-top:0;">Assign each title to a physical bay number so a microswitch pulling it triggers an automatic checkout, and optionally a lit LED index on a WLED strip so the bay's light reflects whether it's in stock. See README.md for the full ESPHome + WLED setup.</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
           <input id="wledUrlInput" placeholder="WLED controller address, e.g. 192.168.1.60" style="min-width:220px;flex:1;" />
           <button class="secondary" id="saveWledUrlBtn" style="padding:9px 14px;font-size:12px;">Save</button>
@@ -623,6 +623,23 @@
         <div class="scan-msg" style="margin-top:0;margin-bottom:14px;">Stick a printed bay barcode on each shelf. Then, from Scan a disc, scan a disc that isn't assigned to a bay yet followed by a bay barcode, and it's linked automatically — no need to use the dropdowns below by hand.</div>
         <div id="bayDashboard" class="bay-grid"></div>
       </div>
+
+      <div class="bulk-box" style="max-width:900px;">
+        <div class="display" style="font-size:15px;margin-bottom:6px;">Hardware test &amp; diagnostics</div>
+        <div class="scan-msg" style="margin-top:0;">Fire a bay/door event yourself — same effect as the real switch — to check the app side works before touching any wiring, or to narrow down whether a problem is the ESP32 or Sandy Server. The log below shows every call these four endpoints receive, from anywhere, including from your actual hardware — if your ESP32 is reaching the Pi at all, you'll see it show up here the instant you pull a switch, with the IP it came from.</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+          <input id="hwTestBayInput" type="number" min="1" placeholder="Bay #" style="width:90px;" />
+          <button class="secondary" id="hwTestCheckoutBtn" style="padding:9px 14px;font-size:12px;">Simulate checkout</button>
+          <button class="secondary" id="hwTestReturnBtn" style="padding:9px 14px;font-size:12px;">Simulate return</button>
+          <button class="secondary" id="hwTestDoorOpenBtn" style="padding:9px 14px;font-size:12px;">Simulate door open</button>
+          <button class="secondary" id="hwTestDoorCloseBtn" style="padding:9px 14px;font-size:12px;">Simulate door close</button>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div style="font-size:12px;color:var(--muted);">Live — updates every 2 seconds while this tab is open</div>
+          <button class="secondary" id="hwLogClearBtn" style="padding:6px 12px;font-size:11px;">Clear log</button>
+        </div>
+        <div id="hwLogList" style="max-height:360px;overflow-y:auto;"></div>
+      </div>
     </div>
   </div>
 
@@ -633,6 +650,14 @@
         <div class="scan-msg" style="margin-top:0;">Opens the big-screen browse page in a new tab — point a TV or monitor's browser at this same URL with <code>#tv</code> on the end to run it as a standalone kiosk display.</div>
         <button class="primary" id="openTvBtn" type="button"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg> Open TV display</button>
       </div>
+
+      <div class="bulk-box" style="max-width:520px;">
+        <div class="display" style="font-size:15px;margin-bottom:6px;">Update the server</div>
+        <div class="scan-msg" style="margin-top:0;">Pulls the latest code from GitHub and reinstalls dependencies if anything changed — the same update step <code>install.sh</code> does, run from here instead of SSH. If the server was set up with autostart (systemd), it restarts itself automatically right after; if not, you'll need to stop and re-run <code>npm start</code> by hand once it's done.</div>
+        <button class="primary" id="systemUpdateBtn" type="button">Check for updates &amp; install</button>
+        <div id="systemUpdateStatus" style="font-size:12px;color:var(--muted);margin-top:10px;white-space:pre-wrap;"></div>
+      </div>
+
       <div class="display" style="font-size:16px;margin-bottom:8px;">Print labels for your catalog</div>
       <div class="scan-msg">Pick titles below, then print. Each label is a plain rectangular barcode sticker for the disc case — cut it out and stick it on. Scanning it works exactly like scanning the disc's original barcode.</div>
       <div class="label-controls">
@@ -805,10 +830,17 @@
   // ---------- local server API client ----------
   // Talks to server.js over plain HTTP on the same device/network — no
   // internet, no Anthropic account, nothing outside this Pi is involved.
+  async function extractErrorMessage(r, fallback){
+    try{
+      const data = await r.clone().json();
+      if(data && data.error) return data.error;
+    }catch(e){}
+    return fallback;
+  }
   const api = {
     async get(path){
       const r = await fetch(path);
-      if(!r.ok) throw new Error("Request failed: "+path);
+      if(!r.ok) throw new Error(await extractErrorMessage(r, "Request failed: "+path));
       return r.json();
     },
     async send(method, path, body){
@@ -817,7 +849,7 @@
         headers: body ? { "Content-Type": "application/json" } : undefined,
         body: body ? JSON.stringify(body) : undefined
       });
-      if(!r.ok) throw new Error("Request failed: "+path);
+      if(!r.ok) throw new Error(await extractErrorMessage(r, "Request failed: "+path));
       const text = await r.text();
       return text ? JSON.parse(text) : null;
     }
@@ -837,6 +869,7 @@
   let featuredGamesId = null;
   let featuredTvId = null;
   let pendingAdminPoster = "";
+  let adminListPage = 0;
   let pendingScanPoster = "";
   let pendingSeriesTheme = "";
   let renterFilter = "All";
@@ -1030,6 +1063,7 @@
     renderLabelList();
     renderUsersList();
     renderBayDashboard();
+    renderHwLog();
     setTab("dashboard");
   }
 
@@ -1585,7 +1619,18 @@
 
   function renderAdminList(){
     const el = $("#adminList");
-    el.innerHTML = `<div class="list-group">` + catalog.map(m => {
+    const perPage = 10;
+    const totalPages = Math.max(1, Math.ceil(catalog.length / perPage));
+    adminListPage = Math.min(adminListPage, totalPages - 1);
+    const pageItems = catalog.slice(adminListPage * perPage, adminListPage * perPage + perPage);
+    const pagerHtml = `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;">
+      <span style="font-size:12px;color:var(--muted);">${catalog.length} title${catalog.length===1?'':'s'} — page ${adminListPage+1} of ${totalPages}</span>
+      <div style="display:flex;gap:6px;">
+        <button class="secondary" id="adminListPrevBtn" style="padding:6px 12px;font-size:12px;" ${adminListPage<=0?'disabled':''}>‹ Prev</button>
+        <button class="secondary" id="adminListNextBtn" style="padding:6px 12px;font-size:12px;" ${adminListPage>=totalPages-1?'disabled':''}>Next ›</button>
+      </div>
+    </div>`;
+    el.innerHTML = pagerHtml + `<div class="list-group">` + pageItems.map(m => {
       const isGame = m.mediaType === 'game';
       return `<div class="row">
       <img class="poster-thumb" src="${m.poster || ''}" style="${m.poster?'':'visibility:hidden;'}" />
@@ -1624,6 +1669,10 @@
       </div>
     </div>`;
     }).join("") + `</div>`;
+    const prevBtn = $("#adminListPrevBtn");
+    if(prevBtn) prevBtn.onclick = () => { adminListPage--; renderAdminList(); };
+    const nextBtn = $("#adminListNextBtn");
+    if(nextBtn) nextBtn.onclick = () => { adminListPage++; renderAdminList(); };
     el.querySelectorAll("[data-adj]").forEach(b => b.onclick = () => {
       const [delta,id] = b.dataset.adj.split("|");
       adjustStock(id, parseInt(delta,10));
@@ -2329,6 +2378,50 @@
     el.querySelectorAll("[data-removebay]").forEach(b => {
       b.onclick = () => removeBay(b.dataset.removebay);
     });
+  }
+
+  // Fetches and renders the rolling log of every call to the bay/door
+  // endpoints — the whole point is showing the source IP and raw
+  // response for each one, so a mismatch (wrong IP, unexpected error
+  // body) is visible without needing SSH access or trusting the ESP32's
+  // own logs alone.
+  async function renderHwLog(){
+    const el = $("#hwLogList");
+    if(!el) return;
+    let entries;
+    try{ entries = await api.get("/api/hardware-log"); }
+    catch(e){ return; }
+    if(!entries || entries.length===0){
+      el.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:12px 0;">Nothing's called any of these endpoints yet. Pull a bay switch, or use a Simulate button above.</div>`;
+      return;
+    }
+    el.innerHTML = `<div class="list-group">` + entries.map(e => {
+      const ok = e.status >= 200 && e.status < 300;
+      const time = new Date(e.time).toLocaleTimeString();
+      const bodyStr = e.body && Object.keys(e.body).length ? JSON.stringify(e.body) : "(empty body)";
+      const resultStr = e.result ? (e.result.error || e.result.title || JSON.stringify(e.result)) : "(no response yet)";
+      return `<div class="row" style="align-items:flex-start;">
+        <div>
+          <div style="font-size:13px;">
+            <span style="font-family:monospace;color:${ok?'var(--green)':'#E87C03'};">${e.status||'…'}</span>
+            <b style="margin-left:6px;">${e.endpoint}</b>
+            <span style="color:var(--muted);margin-left:6px;">from ${e.ip}</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">sent: ${bodyStr}</div>
+          <div style="font-size:11px;color:${ok?'var(--muted)':'#E87C03'};margin-top:2px;">received: ${resultStr}</div>
+        </div>
+        <span style="font-size:11px;color:var(--muted2);flex-shrink:0;">${time}</span>
+      </div>`;
+    }).join("") + `</div>`;
+  }
+
+  let hwLogPollTimer = null;
+  function startHwLogPolling(){
+    if(hwLogPollTimer) return;
+    hwLogPollTimer = setInterval(() => {
+      const activePanel = document.querySelector(".panel.active");
+      if(adminMode && activePanel && activePanel.dataset.panel === "bays") renderHwLog();
+    }, 2000);
   }
 
   async function addUser(name, pin, isAdmin, restrictedRatings){
@@ -3185,6 +3278,33 @@
       $("#rentalsHistoryView").style.display = "block";
       $("#rentalsActiveView").style.display = "none";
     };
+    $("#hwTestCheckoutBtn").onclick = async () => {
+      const bay = $("#hwTestBayInput").value;
+      if(!bay){ toast("Enter a bay number first"); return; }
+      try{ await api.send("POST", "/api/bay-checkout", { bay: Number(bay) }); }catch(e){}
+      await refetch("titles"); await refetch("rentals");
+      renderHwLog();
+    };
+    $("#hwTestReturnBtn").onclick = async () => {
+      const bay = $("#hwTestBayInput").value;
+      if(!bay){ toast("Enter a bay number first"); return; }
+      try{ await api.send("POST", "/api/bay-return", { bay: Number(bay) }); }catch(e){}
+      await refetch("titles"); await refetch("rentals"); await refetch("bays");
+      renderHwLog();
+    };
+    $("#hwTestDoorOpenBtn").onclick = async () => {
+      try{ await api.send("POST", "/api/door-opened", {}); }catch(e){}
+      renderHwLog();
+    };
+    $("#hwTestDoorCloseBtn").onclick = async () => {
+      try{ await api.send("POST", "/api/door-closed", {}); }catch(e){}
+      renderHwLog();
+    };
+    $("#hwLogClearBtn").onclick = async () => {
+      try{ await api.send("DELETE", "/api/hardware-log"); }catch(e){}
+      renderHwLog();
+    };
+    startHwLogPolling();
     $("#exportDataBtn").onclick = () => { window.location.href = "/api/export"; };
     $("#importDataInput").onchange = async (e) => {
       const file = e.target.files && e.target.files[0];
@@ -3254,6 +3374,24 @@
     $("#openTvBtn").onclick = () => {
       const url = location.href.split("#")[0] + "#tv";
       window.open(url, "_blank");
+    };
+    $("#systemUpdateBtn").onclick = async () => {
+      if(!confirm("Pull the latest code and reinstall dependencies now? If autostart is set up, the server restarts itself right after and this page will need a manual reload.")) return;
+      const btn = $("#systemUpdateBtn");
+      const statusEl = $("#systemUpdateStatus");
+      btn.disabled = true;
+      statusEl.textContent = "Pulling latest code and installing dependencies — this can take a minute…";
+      try{
+        const result = await api.send("POST", "/api/system-update");
+        if(result.willAutoRestart){
+          statusEl.textContent = "Update installed. The server is restarting itself now — reload this page in a few seconds.";
+        } else {
+          statusEl.textContent = "Update installed.\n\n" + result.gitOutput + "\n\nThis install isn't running under systemd, so it won't restart on its own — stop it and run 'npm start' again to pick up the change.";
+        }
+      }catch(e){
+        statusEl.textContent = "Update failed: " + (e.message || "unknown error") + "\n\nThe server is still running the old code — nothing was left half-updated.";
+        btn.disabled = false;
+      }
     };
 
     $("#barcodeInput").addEventListener("keydown", e => {
