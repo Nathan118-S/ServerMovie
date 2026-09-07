@@ -538,6 +538,46 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## The Admin Console's tabs moved to a left sidebar
+
+Dashboard, Rentals, Catalog, Bays & Lighting, Household, and System now
+live in a vertical sidebar down the left, not a row of tabs across the
+top — stays visible (sticky) as you scroll a long panel, rather than
+scrolling out of view along with everything else. The section grouping
+itself is unchanged from the earlier reorganization; this is purely
+about the layout shape, not regrouping anything again.
+
+Every settings box is now full-width and clearly separated from the
+next, instead of some being capped at a few hundred pixels or sitting
+two-across — including Bulk Import's title-list and poster-upload boxes,
+which used to sit side by side and are now their own full-width rows
+like everything else.
+
+## Live WLED status — and an honest limit on how "live" this gets
+
+The bay layout now shows a genuine live indicator — **● WLED online**
+or **● WLED unreachable right now** — polled every 10 seconds while
+that tab's open, actually asking the controller whether it's on and
+reachable at this moment, not assuming so.
+
+Worth being direct about why this stops there instead of reading back
+each bay's actual current LED color: **it can't, reliably.** I checked
+this against WLED's own documentation and community discussion before
+building anything, rather than assuming it would work. Individual LEDs
+get set through WLED's `i` command (exactly what `pushBayLed` in this
+project already uses) — and per WLED's own community, that's
+fire-and-forget: it doesn't get reflected back in state queries. The
+only real way to read true per-pixel color is WLED's WebSocket "Peek"
+live-stream feature, a genuinely different integration (a persistent
+connection instead of simple request/response calls) that I don't have
+verified confidence I could implement correctly without testing
+against real hardware — and shipping something that silently doesn't
+work would be worse than not shipping it. So the bay layout's per-bay
+colors remain what they were before this: derived from the exact same
+logic Sandy Server uses to decide what to *send* WLED, not a confirmed
+read-back of what's actually lit. The connectivity check above it is
+new, and it's the genuinely live part.
+
 ## A drag-and-drop bay floor plan
 
 **Bays &amp; Lighting** now has a **Bay layout** section, below the

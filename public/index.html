@@ -119,6 +119,22 @@
   .banner{background:var(--panel2);color:var(--white);padding:10px 40px;font-size:13px;animation:fadeIn 0.3s ease;border-bottom:1px solid var(--line);}
 
   .content{padding:0 0 40px;max-width:1600px;margin:0 auto;}
+  /* Admin Console only: tabs move to a left sidebar instead of a top
+     bar, and content fills the remaining width instead of being
+     centered/capped — .nav and .content are shared class names with
+     the customer view above, so everything here is scoped to
+     #adminConsole specifically rather than touching those base rules. */
+  .admin-shell{display:flex;align-items:flex-start;}
+  #adminConsole .nav{flex-direction:column;align-items:stretch;width:220px;flex-shrink:0;gap:3px;padding:20px 14px;border-bottom:none;border-right:1px solid var(--line);position:sticky;top:0;align-self:flex-start;max-height:100vh;overflow-y:auto;}
+  #adminConsole .nav button{text-align:left;width:100%;padding:11px 14px;}
+  #adminConsole .content{flex:1;min-width:0;max-width:none;margin:0;padding:0 0 40px;}
+  /* Every settings box is its own full-width, clearly separated row —
+     not side-by-side, not capped to some fraction of the available
+     space. The inline max-width values scattered on individual
+     .bulk-box elements predate the sidebar layout; overriding them
+     here in one place is far more reliable than hunting down each one
+     (inline styles otherwise beat any plain CSS rule on specificity). */
+  #adminConsole .bulk-box{max-width:none !important;margin-bottom:24px;}
   .panel{display:none;}
   .panel.active{display:block;animation:fadeInUp 0.35s ease both;}
   .panel-inner{padding:24px 40px;}
@@ -432,6 +448,7 @@
   <div class="topbar">
     <div class="logo">SANDY SERVER <span style="color:var(--muted);font-weight:400;">— Admin Console</span></div>
   </div>
+  <div class="admin-shell">
   <div class="nav">
     <button data-tab="dashboard" class="active">Dashboard</button>
     <button data-tab="rentals">Rentals</button>
@@ -575,22 +592,20 @@
       </div>
 
       <div class="subpanel" data-subpanel="bulk">
-        <div style="display:flex;gap:20px;flex-wrap:wrap;">
-          <div class="bulk-box" style="margin-top:0;flex:1;min-width:300px;max-width:480px;">
-            <div class="display" style="font-size:15px;margin-bottom:6px;">Bulk import titles</div>
-            <div class="scan-msg" style="margin-top:0;">One title per line: <code>Title | Year | Genre | Rating | imdbId</code> — only Title is required. Ask Claude in chat to look up the details for a list of movies you own and it'll hand you a block in this format to paste here.</div>
-            <textarea id="bulkText" placeholder="Night Circuit | 2019 | Sci-Fi | PG-13 | tt1234567&#10;Second Wind | 2021 | Drama | R"></textarea>
-            <div style="margin-top:8px;"><button class="primary" id="bulkImportBtn">Import lines</button></div>
-          </div>
+        <div class="bulk-box" style="margin-top:0;">
+          <div class="display" style="font-size:15px;margin-bottom:6px;">Bulk import titles</div>
+          <div class="scan-msg" style="margin-top:0;">One title per line: <code>Title | Year | Genre | Rating | imdbId</code> — only Title is required. Ask Claude in chat to look up the details for a list of movies you own and it'll hand you a block in this format to paste here.</div>
+          <textarea id="bulkText" placeholder="Night Circuit | 2019 | Sci-Fi | PG-13 | tt1234567&#10;Second Wind | 2021 | Drama | R"></textarea>
+          <div style="margin-top:8px;"><button class="primary" id="bulkImportBtn">Import lines</button></div>
+        </div>
 
-          <div class="bulk-box" style="margin-top:0;flex:1;min-width:300px;max-width:480px;">
-            <div class="display" style="font-size:15px;margin-bottom:6px;">Bulk import posters &amp; banners</div>
-            <div class="scan-msg" style="margin-top:0;">Select several image files at once, named to match your titles (e.g. <code>Night Circuit.jpg</code> matches "Night Circuit") — each gets matched and attached automatically, used for both the poster card and the hero banner. This can't reach the web, so use images you already have the rights to use.</div>
-            <label class="file-label"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Choose poster images
-              <input type="file" accept="image/*" multiple id="bulkPosterInput" />
-            </label>
-            <span id="bulkPosterStatus" style="font-size:11px;color:var(--muted);margin-left:8px;"></span>
-          </div>
+        <div class="bulk-box" style="margin-top:0;">
+          <div class="display" style="font-size:15px;margin-bottom:6px;">Bulk import posters &amp; banners</div>
+          <div class="scan-msg" style="margin-top:0;">Select several image files at once, named to match your titles (e.g. <code>Night Circuit.jpg</code> matches "Night Circuit") — each gets matched and attached automatically, used for both the poster card and the hero banner. This can't reach the web, so use images you already have the rights to use.</div>
+          <label class="file-label"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Choose poster images
+            <input type="file" accept="image/*" multiple id="bulkPosterInput" />
+          </label>
+          <span id="bulkPosterStatus" style="font-size:11px;color:var(--muted);margin-left:8px;"></span>
         </div>
       </div>
 
@@ -698,9 +713,12 @@
       <div class="bulk-box" style="max-width:900px;">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
           <div class="display" style="font-size:15px;">Bay layout</div>
-          <button class="secondary" id="bayLayoutResetBtn" style="padding:7px 12px;font-size:11px;">Reset to grid</button>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <span id="wledLiveStatus" style="font-size:12px;color:var(--muted);"></span>
+            <button class="secondary" id="bayLayoutResetBtn" style="padding:7px 12px;font-size:11px;">Reset to grid</button>
+          </div>
         </div>
-        <div class="scan-msg" style="margin-top:0;margin-bottom:14px;">Drag each bay to where it actually sits on the shelf, so this matches reality instead of just listing numbers in order. Shows what's really assigned there, its stock status, and a damaged/missing flag — the same colors the shelf's own LED would show, not a live read of the light itself.</div>
+        <div class="scan-msg" style="margin-top:0;margin-bottom:14px;">Drag each bay to where it actually sits on the shelf, so this matches reality instead of just listing numbers in order. Shows what's really assigned there, its stock status, and a damaged/missing flag — computed the same way Sandy Server decides what color to send WLED, not a true per-LED read-back (WLED's simple API doesn't support that). The indicator above <em>is</em> a genuine live check, though — it actually asks WLED right now whether it's on and reachable.</div>
         <div id="bayLayoutCanvas"></div>
       </div>
 
@@ -812,6 +830,7 @@
         </div>
       </div>
     </div>
+  </div>
   </div>
   </div>
   <div id="versionFooterAdmin" style="text-align:center;padding:14px 20px 24px;font-size:11px;color:var(--muted2);"></div>
@@ -1243,6 +1262,7 @@
     renderBayDashboard();
     renderBayLayout();
     renderHwLog();
+    renderWledLiveStatus();
     setTab("dashboard");
   }
 
@@ -2891,6 +2911,31 @@
     }, 2000);
   }
 
+  // A real, live-checked signal (see the /api/wled-status comment in
+  // server.js for why this stops short of per-LED colors) — polled only
+  // while Bays & Lighting is actually the open tab, same as the
+  // hardware log above.
+  async function renderWledLiveStatus(){
+    const el = $("#wledLiveStatus");
+    if(!el) return;
+    let status;
+    try{ status = await api.get("/api/wled-status"); }
+    catch(e){ return; }
+    if(!status.configured){ el.textContent = ""; return; }
+    el.innerHTML = status.online
+      ? `<span style="color:var(--green);">●</span> WLED online${status.name ? ' ('+status.name+')' : ''}`
+      : `<span style="color:#E87C03;">●</span> WLED unreachable right now`;
+  }
+
+  let wledStatusPollTimer = null;
+  function startWledStatusPolling(){
+    if(wledStatusPollTimer) return;
+    wledStatusPollTimer = setInterval(() => {
+      const activePanel = document.querySelector(".panel.active");
+      if(adminMode && activePanel && activePanel.dataset.panel === "bays") renderWledLiveStatus();
+    }, 10000);
+  }
+
   async function addUser(name, pin, isAdmin, restrictedRatings, color, avatar){
     name = (name||"").trim();
     pin = (pin||"").trim();
@@ -3830,6 +3875,7 @@
       renderHwLog();
     };
     startHwLogPolling();
+    startWledStatusPolling();
     loadVersionInfo();
     $("#exportDataBtn").onclick = () => { window.location.href = "/api/export"; };
     $("#importDataInput").onchange = async (e) => {

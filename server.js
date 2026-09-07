@@ -1407,9 +1407,16 @@ app.post("/api/import", (req, res) => {
 let cachedVersion = { commit: null, date: null };
 function refreshVersionInfo(){
   return new Promise(resolve => {
-    exec("git log -1 --format=%h|%cI", { cwd: __dirname, timeout: 5000 }, (err, out) => {
+    // NOT %h|%cI — exec() runs this through a real shell, so a literal
+    // "|" in the format string gets parsed as an actual pipe operator,
+    // not a delimiter inside --format. That silently broke this on
+    // every single run: the shell tried to execute "%cI" as a separate
+    // command, failed, and the whole call errored out — which is
+    // exactly why the version was always showing as unknown. A comma
+    // isn't a shell metacharacter, so it can't be reinterpreted this way.
+    exec("git log -1 --format=%h,%cI", { cwd: __dirname, timeout: 5000 }, (err, out) => {
       if(err || !out){ cachedVersion = { commit: null, date: null }; return resolve(); }
-      const [commit, date] = out.trim().split("|");
+      const [commit, date] = out.trim().split(",");
       cachedVersion = { commit, date };
       resolve();
     });
@@ -1464,6 +1471,29 @@ app.post("/api/restart-wled", (req, res) => {
   httpsPostJson(url, JSON.stringify({ rb: true }), { "Content-Type": "application/json" })
     .then(() => res.json({ ok: true }))
     .catch(() => res.status(500).json({ error: "Couldn't reach WLED at that address." }));
+});
+
+// A genuine live signal, not a derived one — actually asks WLED right
+// now whether it's on and reachable, rather than assuming so. This
+// deliberately does NOT attempt to report back individual bay LED
+// colors: WLED's simple HTTP JSON API doesn't support reading those
+// back at all (confirmed against WLED's own docs/community — setting
+// an LED via the "i" individual-LED command is fire-and-forget and
+// isn't reflected in state queries; the only real way to read true
+// per-pixel color is its WebSocket "Peek" live-stream feature, a much
+// bigger integration this app doesn't attempt). What this DOES give
+// honestly: whether the controller itself is actually online right
+// now, which the app previously had no way to know at all — the bay
+// layout's per-bay colors remain a derived "what Sandy Server intends"
+// rather than a confirmed "what's actually lit."
+app.get("/api/wled-status", (req, res) => {
+  let wledUrl = ((db.settings && db.settings.wledUrl) || "").trim();
+  if(!wledUrl) return res.json({ configured: false, online: false });
+  if(!/^https?:\/\//i.test(wledUrl)) wledUrl = "http://" + wledUrl;
+  const url = wledUrl.replace(/\/+$/, "") + "/json/info";
+  httpsGetJson(url)
+    .then(info => res.json({ configured: true, online: true, name: (info && info.name) || "", ledCount: info && info.leds ? info.leds.count : undefined, ver: info && info.ver }))
+    .catch(() => res.json({ configured: true, online: false }));
 });
 
 // The bay-switch ESP32 only ever makes outbound calls to this server —
