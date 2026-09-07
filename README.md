@@ -538,6 +538,57 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## The disc-condition prompt no longer waits forever
+
+"How was the disc?" previously had no timeout at all — if someone
+returned something and walked away without answering, the kiosk would
+just sit there, stuck, until someone happened to come along and pick
+one. Now it shows a visible countdown ("Assuming Good in 10s…") and
+auto-picks Good if nothing's clicked in time — the sensible default,
+since most returns genuinely are fine. Clicking any of the three
+options at any point cancels the countdown immediately, same as always;
+the countdown only ever fires if literally nothing happens.
+
+## Test alert, a wishlist, and a chime that's actually hard to ignore
+
+**Test the alert chime** — Household now has a "▶ Play once" button
+next to the "Who took this?" alert, so you can hear it and tune whether
+it's the right volume/tone for your space without pulling a disc to
+trigger it for real.
+
+**The chime itself got reworked** — it was a plain double-beep before;
+now it's a short 4-note rising motif (a triad plus octave, not just two
+notes) using a triangle wave instead of sine, which gives it a
+brighter, more piercing edge that's genuinely harder to tune out. It
+also repeats every 1.6 seconds instead of 2.2 — more musical *and* more
+insistent, both asked for together and neither one traded off for the
+other.
+
+**A wishlist** — "Request a Title" in the top bar (next to Surprise Me)
+opens a small form: title, an optional note, an optional name. No
+account needed, nothing fancy — it just lands on a list. Admins see
+every request under **Catalog → Wishlist**, with a "Use this title"
+button that jumps straight to Add Title with the name pre-filled (you
+still add it and dismiss the request yourself — nothing here
+auto-adds anything to the catalog on its own).
+
+## A Server Health box on the Dashboard
+
+One glance instead of three separate checks: WLED online/offline, when
+the last hardware event (a bay pull, a door open, anything the ESP32s
+sent) actually landed, free disk space where `data/db.json` lives,
+server uptime, and memory in use. Updates every 10 seconds while
+Dashboard is the open tab.
+
+Worth knowing how the disk space number is calculated, since it's easy
+to get subtly wrong: it's not free space over the *raw* total disk
+size. Filesystems reserve a slice of blocks that never shows up as
+"available" (standard on ext-style filesystems), so dividing free
+space by the raw total block count gives a percentage that looks
+nothing like what running `df` yourself would show. This matches `df`'s
+own Use% calculation instead — confirmed by actually running `df` and
+comparing the numbers side by side before shipping this, not assumed.
+
 ## Regrouping things that had drifted into the wrong place
 
 A few things had genuinely ended up somewhere that didn't quite make

@@ -359,6 +359,7 @@
 <div class="topbar">
   <div class="logo" id="logoHome">SANDY SERVER</div>
   <button class="secondary" id="surpriseMeBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Surprise Me</button>
+  <button class="secondary" id="requestTitleBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.3 7-11.5A7 7 0 0 0 5 9.5C5 14.7 12 21 12 21Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 6v7M8.5 9.5h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Request a Title</button>
   <button class="secondary" id="topBarReturnBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 1 1 2.3 5.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 17v-5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Return</button>
   <button class="secondary" id="adminConsoleBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;display:none;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Admin Console</button>
   <button class="theme-toggle" id="themeToggleBtn" title="Switch light/dark" type="button">
@@ -416,6 +417,11 @@
 <div id="rentalCompleteOverlay" class="pending-return-overlay"></div>
 <div id="returnCompleteOverlay" class="pending-return-overlay"></div>
 <div id="unattributedCheckoutOverlay" class="pending-return-overlay"></div>
+<div id="requestTitleOverlay" class="modal-overlay">
+  <div class="modal-card" style="width:380px;">
+    <div class="modal-body" id="requestTitleBody" style="padding:26px 22px;"></div>
+  </div>
+</div>
 <div id="returnFlowOverlay" class="modal-overlay">
   <div class="modal-card" style="width:360px;">
     <div class="modal-body" id="returnFlowBody" style="padding:28px 22px;"></div>
@@ -463,6 +469,7 @@
     <div class="panel-inner">
       <div id="dashboardStats" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;"></div>
       <div id="dashboardAttention" style="margin-bottom:20px;"></div>
+      <div id="dashboardHealth" style="margin-bottom:20px;"></div>
       <div class="bulk-box" style="margin-top:0;max-width:520px;">
         <div class="display" style="font-size:15px;margin-bottom:6px;">Check out a disc manually</div>
         <div class="scan-msg" style="margin-top:0;">Skips the pending/bay-confirmation flow entirely and completes right away — same idea as the instant Return button here, for when you're standing at the counter handling it directly.</div>
@@ -508,6 +515,7 @@
         <button class="subnav-btn" data-subtab="bulk"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M3 8l9-4.5L21 8v9l-9 4.5L3 17V8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M3 8l9 4.5L21 8M12 12.5V21" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Bulk Import</button>
         <button class="subnav-btn" data-subtab="autofill"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Auto-Fill</button>
         <button class="subnav-btn" data-subtab="labels"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="7" width="18" height="12" rx="2" stroke="currentColor" stroke-width="2"/><line x1="7" y1="11" x2="13" y2="11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="7" y1="14.5" x2="11" y2="14.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Labels</button>
+        <button class="subnav-btn" data-subtab="wishlist"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.3 7-11.5A7 7 0 0 0 5 9.5C5 14.7 12 21 12 21Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Wishlist</button>
       </div>
 
       <div class="subpanel active" data-subpanel="inventory">
@@ -662,6 +670,14 @@
             <button class="primary" id="generateLabelsBtn">Generate &amp; print selected</button>
           </div>
           <div class="label-list" id="labelList"></div>
+        </div>
+      </div>
+
+      <div class="subpanel" data-subpanel="wishlist">
+        <div class="bulk-box" style="margin-top:0;">
+          <div class="display" style="font-size:15px;margin-bottom:6px;">Requested titles</div>
+          <div class="scan-msg" style="margin-top:0;">What people have asked for from the "Request a Title" button in Browse — a starting list for what to physically buy or add next, not something that auto-adds anything.</div>
+          <div id="wishlistList"></div>
         </div>
       </div>
     </div>
@@ -819,6 +835,12 @@
           <span style="font-size:13px;color:var(--muted);">discs per person, max</span>
           <button class="secondary" id="saveMaxCheckoutBtn" style="padding:8px 12px;font-size:12px;">Save</button>
         </div>
+      </div>
+
+      <div class="bulk-box" style="margin-bottom:24px;max-width:420px;">
+        <div class="display" style="font-size:15px;margin-bottom:6px;">"Who took this?" alert chime</div>
+        <div class="scan-msg" style="margin-top:0;">Plays whenever a disc leaves without anyone logged in, repeating until someone enters a PIN. Preview it here without actually pulling anything.</div>
+        <button class="secondary" id="testAlertChimeBtn">▶ Play once</button>
       </div>
       <div style="display:flex;gap:28px;flex-wrap:wrap;">
         <div style="flex:1 1 260px;max-width:300px;">
@@ -1033,6 +1055,7 @@
   let suppressNextCheckoutComplete = false;
   let suppressNextReturnComplete = false;
   let rentalHistory = []; // [{id, movieId, title, genre, renterName, rentedOn, dueOn, renewals, returnedOn}]
+  let wishlist = []; // [{id, title, note, requestedBy, requestedAt}]
 
   const $ = sel => document.querySelector(sel);
   const $$ = sel => Array.from(document.querySelectorAll(sel));
@@ -1070,6 +1093,7 @@
         pendingCheckout = data;
       }
       else if(resource==="rental-history") rentalHistory = data;
+      else if(resource==="wishlist") wishlist = data;
       render();
     }catch(e){ toast("Couldn't reach the local server"); }
   }
@@ -1163,6 +1187,7 @@
       pendingReturn = state.pendingReturn && state.pendingReturn.expiresAt > Date.now() ? state.pendingReturn : null;
       pendingCheckout = state.pendingCheckout && state.pendingCheckout.expiresAt > Date.now() ? state.pendingCheckout : null;
       rentalHistory = state.rentalHistory || [];
+      wishlist = state.wishlist || [];
       apiReady = true;
       render();
       const loadOverlay = $("#initialLoadOverlay");
@@ -1215,6 +1240,7 @@
       renderActivityPanel();
       renderAdminList();
       renderLabelList();
+      renderWishlist();
       renderUsersList();
       renderBayDashboard();
       renderBayLayout();
@@ -1277,10 +1303,12 @@
     console_.style.display = "block";
     requestAnimationFrame(() => console_.classList.add("visible"));
     renderDashboard();
+    renderServerHealth();
     renderRentals();
     renderActivityPanel();
     renderAdminList();
     renderLabelList();
+    renderWishlist();
     renderUsersList();
     renderBayDashboard();
     renderBayLayout();
@@ -1575,6 +1603,42 @@
     openMovieModal(pick.id);
   }
 
+  function openRequestTitleModal(){
+    const overlay = $("#requestTitleOverlay");
+    const body = $("#requestTitleBody");
+    overlay.style.display = "flex";
+    body.innerHTML = `
+      <div class="t" style="font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:19px;font-weight:700;color:var(--white);margin-bottom:4px;">Request a title</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">We don't have it, but you want it — this just goes on a list for whoever manages the catalog to see.</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <input id="requestTitleInput" placeholder="Title" />
+        <input id="requestTitleNote" placeholder="Note (optional) — platform, why, whatever" />
+        <input id="requestTitleName" placeholder="Your name (optional)" value="${loggedInUser ? loggedInUser.name : ''}" />
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button class="secondary" id="requestTitleCancelBtn" style="flex:1;">Cancel</button>
+        <button class="primary" id="requestTitleSubmitBtn" style="flex:1;">Submit</button>
+      </div>
+    `;
+    $("#requestTitleInput").focus();
+    const close = () => { overlay.style.display = "none"; body.innerHTML = ""; };
+    $("#requestTitleCancelBtn").onclick = close;
+    overlay.onclick = (e) => { if(e.target===overlay) close(); };
+    $("#requestTitleSubmitBtn").onclick = async () => {
+      const title = $("#requestTitleInput").value.trim();
+      if(!title){ toast("Enter a title first"); return; }
+      try{
+        await api.send("POST", "/api/wishlist", {
+          title,
+          note: $("#requestTitleNote").value,
+          requestedBy: $("#requestTitleName").value
+        });
+        close();
+        toast(`Requested "${title}" — thanks!`);
+      }catch(e){ toast(e.message || "Couldn't save that request"); }
+    };
+  }
+
   // Everything that could actually change what the Browse grid looks
   // like, compressed into one comparable string — poster/backdrop data
   // itself is excluded (huge, and irrelevant to *whether* something
@@ -1763,6 +1827,61 @@
       : `<div class="bulk-box" style="margin-top:0;"><div style="font-size:14px;color:var(--muted);">Nothing needs attention right now.</div></div>`;
   }
 
+  // "Is everything actually working right now" in one glance, instead
+  // of checking Bays & Lighting for WLED, the hardware log for the last
+  // event, and SSH for disk space separately.
+  async function renderServerHealth(){
+    const el = $("#dashboardHealth");
+    if(!el) return;
+    let h;
+    try{ h = await api.get("/api/server-health"); }
+    catch(e){ return; }
+
+    const wledLine = !h.wled.configured
+      ? `<span style="color:var(--muted);">—</span> WLED not configured`
+      : h.wled.online
+        ? `<span style="color:var(--green);">●</span> WLED online`
+        : `<span style="color:#E87C03;">●</span> WLED unreachable`;
+
+    const eventLine = h.lastHardwareEvent
+      ? `${h.lastHardwareEvent.endpoint} — ${new Date(h.lastHardwareEvent.time).toLocaleTimeString()}`
+      : `No hardware events yet`;
+
+    const diskLine = h.disk
+      ? `${h.disk.freeGb.toFixed(1)} GB free${h.disk.usedPct!=null ? ` (${h.disk.usedPct}% used)` : ''}`
+      : `Unavailable`;
+    const diskLow = h.disk && h.disk.freeGb < 1;
+
+    const days = Math.floor(h.uptimeSeconds / 86400);
+    const hours = Math.floor((h.uptimeSeconds % 86400) / 3600);
+    const uptimeLine = days > 0 ? `${days}d ${hours}h` : `${hours}h ${Math.floor((h.uptimeSeconds%3600)/60)}m`;
+
+    const item = (label, value, warn) => `<div style="flex:1;min-width:150px;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:3px;">${label}</div>
+      <div style="font-size:13px;${warn?'color:#E87C03;':''}">${value}</div>
+    </div>`;
+
+    el.innerHTML = `<div class="bulk-box" style="margin-top:0;">
+      <div class="display" style="font-size:15px;margin-bottom:12px;">Server health</div>
+      <div style="display:flex;flex-wrap:wrap;gap:16px;">
+        ${item("WLED", wledLine)}
+        ${item("Last hardware event", eventLine)}
+        ${item("Disk space", diskLine, diskLow)}
+        ${item("Server uptime", uptimeLine)}
+        ${item("Memory in use", h.memoryMb + " MB")}
+      </div>
+    </div>`;
+  }
+
+  let serverHealthPollTimer = null;
+  function startServerHealthPolling(){
+    if(serverHealthPollTimer) return;
+    serverHealthPollTimer = setInterval(() => {
+      const activePanel = document.querySelector(".panel.active");
+      if(adminMode && activePanel && activePanel.dataset.panel === "dashboard") renderServerHealth();
+    }, 10000);
+  }
+
 
   function renderActivityPanel(){
     const popEl = $("#popularList");
@@ -1946,6 +2065,40 @@
           await setThemeSong(inp.dataset.theme, dataUrl);
         }catch(e){ toast(e.message || "Couldn't use that file"); }
       };
+    });
+  }
+
+  function renderWishlist(){
+    const el = $("#wishlistList");
+    if(!el) return;
+    if(wishlist.length === 0){
+      el.innerHTML = `<div style="color:var(--muted);font-size:14px;">Nothing requested yet.</div>`;
+      return;
+    }
+    el.innerHTML = `<div class="list-group">` + wishlist.map(w => `<div class="row" style="align-items:flex-start;">
+        <div>
+          <div style="font-size:14px;">${w.title}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;">
+            ${w.requestedBy ? `Requested by ${w.requestedBy} · ` : ''}${new Date(w.requestedAt).toLocaleDateString()}
+          </div>
+          ${w.note ? `<div style="font-size:12px;color:var(--muted2);margin-top:2px;">"${w.note}"</div>` : ''}
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="secondary" data-usewish="${w.id}" style="padding:7px 12px;font-size:11px;">Use this title</button>
+          <button class="adjbtn" style="color:#E87C03;border-color:#5A3A20;" data-removewish="${w.id}">×</button>
+        </div>
+      </div>`).join("") + `</div>`;
+    el.querySelectorAll("[data-removewish]").forEach(b => b.onclick = async () => {
+      try{ await api.send("DELETE", "/api/wishlist/"+b.dataset.removewish); await refetch("wishlist"); }
+      catch(e){ toast("Couldn't remove that"); }
+    });
+    el.querySelectorAll("[data-usewish]").forEach(b => b.onclick = () => {
+      const item = wishlist.find(w => w.id === b.dataset.usewish);
+      if(!item) return;
+      setAdminSubtab("addtitle");
+      const titleInput = $("#newTitleInput");
+      if(titleInput) titleInput.value = item.title;
+      toast(`Pre-filled "${item.title}" in Add Title — dismiss the request here once it's actually added.`);
     });
   }
 
@@ -3214,17 +3367,26 @@
       if(!alertAudioCtx) alertAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
       const ctx = alertAudioCtx;
       const now = ctx.currentTime;
-      [0, 0.18].forEach(offset => {
+      // A short rising 4-note motif (A5-C#6-E6-A6, a major triad plus
+      // octave) rather than a plain double-beep — reads as an actual
+      // little tune, not just a noise. Triangle wave instead of sine
+      // gives it a brighter, more piercing edge that cuts through
+      // background noise better and is harder to tune out, which is
+      // the whole point of an alert that's supposed to be annoying
+      // until it's dealt with.
+      const notes = [880, 1108.7, 1318.5, 1760];
+      notes.forEach((freq, i) => {
+        const offset = i * 0.1;
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.value = 880;
+        osc.type = "triangle";
+        osc.frequency.value = freq;
         gain.gain.setValueAtTime(0.0001, now + offset);
-        gain.gain.exponentialRampToValueAtTime(0.25, now + offset + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.28, now + offset + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.11);
         osc.connect(gain).connect(ctx.destination);
         osc.start(now + offset);
-        osc.stop(now + offset + 0.16);
+        osc.stop(now + offset + 0.12);
       });
     }catch(e){ /* autoplay-restricted or unsupported — the visual prompt still works fine without it */ }
   }
@@ -3232,7 +3394,7 @@
   function startAlertSound(){
     stopAlertSound();
     playAlertBeep();
-    alertSoundTimer = setInterval(playAlertBeep, 2200);
+    alertSoundTimer = setInterval(playAlertBeep, 1600);
   }
 
   function stopAlertSound(){
@@ -3622,9 +3784,13 @@
   // updateRentalsAndDetectReturns above) — a quick condition check while
   // it's still fresh, rather than relying on someone noticing damage
   // later and remembering to flag it.
+  let conditionAutoTimer = null;
+  let conditionCountdownInterval = null;
+
   function promptDiscCondition(rental){
     const overlay = $("#conditionOverlay");
     overlay.style.display = "flex";
+    let secondsLeft = 10;
     overlay.innerHTML = `
       <div class="t">How was the disc?</div>
       <div class="g">"${rental.title}" — just returned</div>
@@ -3633,16 +3799,32 @@
         <button class="secondary" data-cond="damaged" style="width:100%;">⚠️ Damaged — scratched, won't play right</button>
         <button class="secondary" data-cond="missing" style="width:100%;">❌ Missing — case was empty / lost</button>
       </div>
+      <div id="conditionCountdown" style="font-size:12px;color:var(--muted2);margin-top:14px;">Assuming Good in ${secondsLeft}s if nothing's picked…</div>
     `;
     overlay.querySelectorAll("[data-cond]").forEach(b => {
       b.onclick = () => setDiscCondition(rental, b.dataset.cond);
     });
+    // Nobody answering shouldn't leave the kiosk stuck on this screen
+    // indefinitely — 10 seconds of no interaction assumes the common
+    // case (the disc's fine) and moves on, same idea as the countdown
+    // itself makes visible rather than a silent, surprising auto-pick.
+    clearTimeout(conditionAutoTimer);
+    clearInterval(conditionCountdownInterval);
+    conditionCountdownInterval = setInterval(() => {
+      secondsLeft--;
+      const el = $("#conditionCountdown");
+      if(el) el.textContent = `Assuming Good in ${secondsLeft}s if nothing's picked…`;
+      if(secondsLeft <= 0) clearInterval(conditionCountdownInterval);
+    }, 1000);
+    conditionAutoTimer = setTimeout(() => setDiscCondition(rental, "good"), 10000);
   }
 
   function closeConditionPrompt(){
     const overlay = $("#conditionOverlay");
     overlay.style.display = "none";
     overlay.innerHTML = "";
+    clearTimeout(conditionAutoTimer);
+    clearInterval(conditionCountdownInterval);
   }
 
   async function setDiscCondition(rental, condition){
@@ -3935,6 +4117,7 @@
     $("#themeToggleBtn").onclick = toggleTheme;
     $("#topBarReturnBtn").onclick = () => openReturnFlow();
     $("#surpriseMeBtn").onclick = surpriseMe;
+    $("#requestTitleBtn").onclick = openRequestTitleModal;
     $("#adminConsoleBtn").onclick = () => enterAdminConsole();
     $("#exitAdminConsoleBtn").onclick = exitAdminConsole;
     $("#manualCheckoutBtn").onclick = () => {
@@ -3989,6 +4172,7 @@
     };
     startHwLogPolling();
     startWledStatusPolling();
+    startServerHealthPolling();
     loadVersionInfo();
     $("#exportDataBtn").onclick = () => { window.location.href = "/api/export"; };
     $("#importDataInput").onchange = async (e) => {
@@ -4215,6 +4399,7 @@
     };
 
     $("#saveMaxCheckoutBtn").onclick = () => setMaxCheckouts($("#maxCheckoutInput").value);
+    $("#testAlertChimeBtn").onclick = playAlertBeep;
 
     $("#selectAllLabels").onclick = () => $$(".labelCheck").forEach(c=>c.checked=true);
     $("#selectNoneLabels").onclick = () => $$(".labelCheck").forEach(c=>c.checked=false);

@@ -565,6 +565,7 @@ function loadDb(){
       titles: SEED_TITLES,
       rentals: [],
       rentalHistory: [],
+      wishlist: [],
       users: [{ id: newId("u"), name: "Admin", pin: "0000", isAdmin: true }],
       settings: { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90, wledOpenEffect: 9, wledCloseEffect: 2, wledEffectSeconds: 6, doorCloseDelaySeconds: 60, maxRenewals: 2 },
       tvSelection: null,
@@ -583,6 +584,7 @@ function loadDb(){
   parsed.titles = parsed.titles || [];
   parsed.rentals = parsed.rentals || [];
   parsed.rentalHistory = parsed.rentalHistory || [];
+  parsed.wishlist = parsed.wishlist || [];
   parsed.users = parsed.users || [];
   parsed.settings = parsed.settings || { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90, wledOpenEffect: 9, wledCloseEffect: 2, wledEffectSeconds: 6, doorCloseDelaySeconds: 60, maxRenewals: 2 };
   if(parsed.settings.wledOpenEffect === undefined) parsed.settings.wledOpenEffect = 9;
@@ -689,9 +691,29 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // ---------- read endpoints ----------
 app.get("/api/state", (req, res) => {
-  res.json({ titles: db.titles, rentals: db.rentals, rentalHistory: db.rentalHistory, users: db.users, settings: db.settings, tvSelection: db.tvSelection, bays: db.bays, pendingReturn: db.pendingReturn, pendingCheckout: db.pendingCheckout });
+  res.json({ titles: db.titles, rentals: db.rentals, rentalHistory: db.rentalHistory, wishlist: db.wishlist, users: db.users, settings: db.settings, tvSelection: db.tvSelection, bays: db.bays, pendingReturn: db.pendingReturn, pendingCheckout: db.pendingCheckout });
 });
 app.get("/api/rental-history", (req, res) => res.json(db.rentalHistory));
+
+app.get("/api/wishlist", (req, res) => res.json(db.wishlist));
+
+app.post("/api/wishlist", (req, res) => {
+  const { title, note, requestedBy } = req.body;
+  if(!title || !title.trim()) return res.status(400).json({ error: "A title is required." });
+  const item = { id: newId("w"), title: title.trim(), note: (note||"").trim(), requestedBy: (requestedBy||"").trim(), requestedAt: Date.now() };
+  db.wishlist.unshift(item);
+  saveDb();
+  broadcast("wishlist");
+  res.json(item);
+});
+
+app.delete("/api/wishlist/:id", (req, res) => {
+  db.wishlist = db.wishlist.filter(w => w.id !== req.params.id);
+  saveDb();
+  broadcast("wishlist");
+  res.json({ ok: true });
+});
+
 app.get("/api/pending-checkout", (req, res) => {
   if(db.pendingCheckout && db.pendingCheckout.expiresAt > Date.now()) res.json(db.pendingCheckout);
   else res.json(null);
@@ -1515,14 +1537,60 @@ app.post("/api/restart-wled", (req, res) => {
 // now, which the app previously had no way to know at all — the bay
 // layout's per-bay colors remain a derived "what Sandy Server intends"
 // rather than a confirmed "what's actually lit."
-app.get("/api/wled-status", (req, res) => {
+function getWledStatus(){
   let wledUrl = ((db.settings && db.settings.wledUrl) || "").trim();
-  if(!wledUrl) return res.json({ configured: false, online: false });
+  if(!wledUrl) return Promise.resolve({ configured: false, online: false });
   if(!/^https?:\/\//i.test(wledUrl)) wledUrl = "http://" + wledUrl;
   const url = wledUrl.replace(/\/+$/, "") + "/json/info";
-  httpsGetJson(url)
-    .then(info => res.json({ configured: true, online: true, name: (info && info.name) || "", ledCount: info && info.leds ? info.leds.count : undefined, ver: info && info.ver }))
-    .catch(() => res.json({ configured: true, online: false }));
+  return httpsGetJson(url)
+    .then(info => ({ configured: true, online: true, name: (info && info.name) || "", ledCount: info && info.leds ? info.leds.count : undefined, ver: info && info.ver }))
+    .catch(() => ({ configured: true, online: false }));
+}
+
+app.get("/api/wled-status", (req, res) => { getWledStatus().then(status => res.json(status)); });
+
+// Disk space via the "df" command rather than Node's fs.statfs — that
+// API landed too recently to count on across the Node 16+ this app
+// targets, while "df" has been standard on every Linux distro (what a
+// Pi actually runs) for decades. Parses "df -k", not "-h", since fixed
+// units are trivial to parse reliably and human-readable ones aren't.
+function getDiskSpace(){
+  return new Promise(resolve => {
+    exec(`df -k "${DATA_DIR}"`, { timeout: 5000 }, (err, out) => {
+      if(err || !out) return resolve(null);
+      const lines = out.trim().split("\n");
+      const cols = lines[lines.length - 1].trim().split(/\s+/);
+      // Filesystem, 1K-blocks, Used, Available, Use%, Mounted on
+      if(cols.length < 5) return resolve(null);
+      const totalKb = parseInt(cols[1], 10), usedKb = parseInt(cols[2], 10), freeKb = parseInt(cols[3], 10);
+      if(!Number.isFinite(freeKb)) return resolve(null);
+      // Matches what "df" itself reports in its Use% column — Used /
+      // (Used + Available), not Used / Total. Filesystems reserve a
+      // slice of total blocks outside what's ever reported as
+      // "available" (ext-style reserved space, typically), so dividing
+      // by the raw total block count gives a number that looks nothing
+      // like what "df -h" would show for the same disk — confirmed by
+      // actually running both and comparing, not assumed.
+      const usedPct = (usedKb + freeKb) > 0 ? Math.round((usedKb / (usedKb + freeKb)) * 100) : null;
+      resolve({ freeGb: freeKb / 1048576, totalGb: totalKb / 1048576, usedPct });
+    });
+  });
+}
+
+// Everything worth glancing at to answer "is this actually all working
+// right now" in one place, instead of checking Bays & Lighting for
+// WLED, the hardware log for the last event, and SSH for disk space
+// separately. Gathered in parallel so one slow check (WLED being
+// unreachable, say) doesn't hold up the rest.
+app.get("/api/server-health", async (req, res) => {
+  const [wled, disk] = await Promise.all([getWledStatus(), getDiskSpace()]);
+  res.json({
+    wled,
+    disk,
+    uptimeSeconds: process.uptime(),
+    lastHardwareEvent: hardwareLog[0] || null,
+    memoryMb: Math.round(process.memoryUsage().rss / 1048576)
+  });
 });
 
 // The bay-switch ESP32 only ever makes outbound calls to this server —
