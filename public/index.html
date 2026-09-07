@@ -49,6 +49,25 @@
   *{box-sizing:border-box;}
   html,body{margin:0;background:var(--bg);}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:var(--white);background:radial-gradient(ellipse 1200px 800px at 50% -10%, var(--bg-radial) 0%, var(--bg) 55%) fixed;transition:background 0.25s ease,color 0.25s ease;-webkit-font-smoothing:antialiased;}
+  /* A soft, blurred wash of whatever's currently featured, sitting behind
+     everything else — the same trick Apple Music/Apple TV use so the
+     page never feels like a flat single color, without it ever
+     competing with actual content for attention. Empty by default
+     (no image set) so it's invisible until the first render picks a
+     featured item. */
+  #ambientBg{position:fixed;inset:-5%;z-index:-1;background-size:cover;background-position:center;filter:blur(70px) brightness(0.35) saturate(1.3);transform:scale(1.15);transition:background-image 1.2s ease;pointer-events:none;}
+  /* Idle screensaver — an Apple-TV-style slow rotation through catalog
+     art for a kiosk that otherwise just sits on Browse for hours.
+     Two stacked layers cross-fade between images (only one is ever
+     visible at full opacity at a time); the JS swaps which layer is
+     "current" and updates the other's image just before its turn. */
+  #screensaverOverlay{position:fixed;inset:0;z-index:95;background:#000;display:none;cursor:pointer;}
+  .screensaver-layer{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;transition:opacity 2.5s ease;}
+  .screensaver-layer.showing{opacity:1;}
+  #screensaverInfo{position:absolute;left:0;right:0;bottom:60px;text-align:center;color:#fff;text-shadow:0 2px 20px rgba(0,0,0,0.8);}
+  #screensaverTitle{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:28px;font-weight:700;margin-bottom:8px;opacity:0;transition:opacity 1s ease;}
+  #screensaverTitle.showing{opacity:1;}
+  .screensaver-hint{font-size:13px;color:rgba(255,255,255,0.6);}
   .display{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;letter-spacing:-0.01em;}
   ::-webkit-scrollbar{height:8px;width:8px;}
   ::-webkit-scrollbar-thumb{background:var(--muted2);border-radius:4px;opacity:0.5;}
@@ -61,6 +80,8 @@
   @keyframes breathe{ 0%,100%{opacity:1;} 50%{opacity:0.45;} }
   @keyframes tabPop{ 0%{transform:scale(0.9);} 60%{transform:scale(1.05);} 100%{transform:scale(1);} }
   @keyframes successPulse{ 0%{box-shadow:0 0 0 0 var(--glow);} 70%{box-shadow:0 0 0 14px rgba(0,0,0,0);} 100%{box-shadow:0 0 0 0 rgba(0,0,0,0);} }
+  @keyframes cardPulse{ 0%{box-shadow:0 0 0 0 rgba(255,255,255,0.7);} 60%{box-shadow:0 0 0 10px rgba(255,255,255,0);} 100%{box-shadow:0 0 0 0 rgba(255,255,255,0);} }
+  .poster-card.pulse-update{animation:cardPulse 1s ease;}
 
   .topbar{position:sticky;top:0;z-index:40;background:var(--glass);backdrop-filter:blur(20px) saturate(1.8);-webkit-backdrop-filter:blur(20px) saturate(1.8);padding:14px 40px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;border-bottom:1px solid var(--line);}
   .admin-mode-bar{position:sticky;top:0;z-index:41;background:#B3261E;color:#fff;padding:9px 40px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px;font-weight:600;}
@@ -160,6 +181,10 @@
   .poster-title{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.15;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.7);}
   .poster-dot{position:absolute;top:8px;right:8px;width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 2px rgba(0,0,0,0.4);}
   .bluray-badge{position:absolute;bottom:34px;left:8px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.4px;color:#0A0C10;background:linear-gradient(135deg,#4FC3F7,#0288D1);padding:2px 7px;border-radius:4px;}
+  /* Styled like a real MPAA/ESRB rating card — black field, thin white
+     border, bold condensed letters — instead of plain "Rating: PG-13"
+     text next to everything else. */
+  .rating-badge{display:inline-flex;align-items:center;justify-content:center;background:#000;color:#fff;border:1.5px solid #fff;border-radius:3px;padding:1px 7px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;font-weight:800;letter-spacing:0.3px;line-height:1.5;}
   .poster-dot.in-stock{animation:breathe 2.4s ease-in-out infinite;}
 
   .row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surf1);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:8px;transition:border-color 0.18s ease,background 0.18s ease;}
@@ -193,6 +218,18 @@
   .subpanel.active{display:block;animation:fadeInUp 0.3s ease both;}
 
   .bay-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;}
+  /* The drag-and-drop floor plan — a fixed-height canvas with a faint
+     grid backdrop for visual reference, holding one absolutely-
+     positioned card per bay. Positions are stored as percentages of
+     this container, so they hold up across different screen sizes. */
+  #bayLayoutCanvas{position:relative;width:100%;height:480px;border-radius:14px;background-color:var(--surf1);background-image:linear-gradient(var(--line) 1px, transparent 1px),linear-gradient(90deg, var(--line) 1px, transparent 1px);background-size:40px 40px;overflow:hidden;touch-action:none;}
+  .bay-layout-card{position:absolute;width:150px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;cursor:grab;box-shadow:0 4px 14px rgba(0,0,0,0.3);user-select:none;transform:translate(-50%,-50%);transition:box-shadow 0.15s ease;}
+  .bay-layout-card:active{cursor:grabbing;box-shadow:0 8px 24px rgba(0,0,0,0.5);z-index:10;}
+  .bay-layout-card.dragging{opacity:0.9;z-index:20;}
+  .bay-layout-num{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:3px;}
+  .bay-layout-title{font-size:12px;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;}
+  .bay-layout-status{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);}
+  .bay-layout-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
   .bay-card{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;}
   .bay-card .bay-num{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;}
   .bay-card .bay-title{font-size:14px;color:var(--white);min-height:20px;}
@@ -296,6 +333,8 @@
 
 <div id="appRoot">
 
+<div id="ambientBg"></div>
+
 <div id="initialLoadOverlay">
   <div class="spinner"></div>
   <div class="t">Loading your catalog…</div>
@@ -358,6 +397,8 @@
 <div id="movieModal" class="modal-overlay"></div>
 <div id="pendingReturnOverlay" class="pending-return-overlay"></div>
 <div id="pendingCheckoutOverlay" class="pending-return-overlay"></div>
+<div id="rentalCompleteOverlay" class="pending-return-overlay"></div>
+<div id="returnCompleteOverlay" class="pending-return-overlay"></div>
 <div id="returnFlowOverlay" class="modal-overlay">
   <div class="modal-card" style="width:360px;">
     <div class="modal-body" id="returnFlowBody" style="padding:28px 22px;"></div>
@@ -372,6 +413,15 @@
 <div id="conditionOverlay" class="pending-return-overlay"></div>
 
 <div id="versionFooter" style="text-align:center;padding:14px 20px 20px;font-size:11px;color:var(--muted2);"></div>
+
+<div id="screensaverOverlay">
+  <div id="screensaverLayerA" class="screensaver-layer"></div>
+  <div id="screensaverLayerB" class="screensaver-layer"></div>
+  <div id="screensaverInfo">
+    <div id="screensaverTitle"></div>
+    <div class="screensaver-hint">Tap anywhere to keep browsing</div>
+  </div>
+</div>
 
 </div><!-- /appRoot -->
 <div id="adminConsole" style="display:none;">
@@ -604,6 +654,21 @@
       </div>
 
       <div class="bulk-box" style="max-width:520px;">
+        <div class="display" style="font-size:15px;margin-bottom:6px;">Restart the hardware</div>
+        <div class="scan-msg" style="margin-top:0;">For when a device seems stuck or unresponsive rather than genuinely broken — the same as pulling its power and plugging it back in.</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+          <input id="esp32BaysUrlInput" placeholder="Bay ESP32 address, e.g. 192.168.1.61" style="min-width:220px;flex:1;" />
+          <button class="secondary" id="saveEsp32BaysUrlBtn" style="padding:9px 14px;font-size:12px;">Save</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <button class="secondary" id="restartWledBtn" style="padding:9px 14px;font-size:12px;">Restart WLED</button>
+          <button class="secondary" id="restartBaysEspBtn" style="padding:9px 14px;font-size:12px;">Restart bay ESP32</button>
+        </div>
+        <div id="restartHardwareStatus" style="font-size:12px;color:var(--muted);margin-bottom:6px;"></div>
+        <div style="font-size:11px;color:var(--muted);">The bay ESP32's restart button is best-effort — ESPHome's exact API for it has shifted across versions, so if it doesn't respond, open <span id="esp32BaysDashboardLink" style="color:inherit;">its own dashboard</span> directly and use the restart button shown there instead. Needs <code>esphome-bays.yaml</code>'s <code>web_server:</code> section, which didn't exist before this — re-flash if you set this up prior to that.</div>
+      </div>
+
+      <div class="bulk-box" style="max-width:520px;">
         <div class="display" style="font-size:15px;margin-bottom:6px;">Door animations</div>
         <div class="scan-msg" style="margin-top:0;">If you've wired a separate door sensor (not a bay switch), the whole strip plays a welcome effect when it opens, and a leaving effect once it's stayed closed for a while. Effect IDs are whatever WLED numbers them as on your firmware — check your WLED web UI's effects list, or <code>GET http://&lt;wled-ip&gt;/json/eff</code>, rather than trusting these defaults blindly.</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
@@ -628,6 +693,15 @@
         </div>
         <div class="scan-msg" style="margin-top:0;margin-bottom:14px;">Stick a printed bay barcode on each shelf. Then, from Scan a disc, scan a disc that isn't assigned to a bay yet followed by a bay barcode, and it's linked automatically — no need to use the dropdowns below by hand.</div>
         <div id="bayDashboard" class="bay-grid"></div>
+      </div>
+
+      <div class="bulk-box" style="max-width:900px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+          <div class="display" style="font-size:15px;">Bay layout</div>
+          <button class="secondary" id="bayLayoutResetBtn" style="padding:7px 12px;font-size:11px;">Reset to grid</button>
+        </div>
+        <div class="scan-msg" style="margin-top:0;margin-bottom:14px;">Drag each bay to where it actually sits on the shelf, so this matches reality instead of just listing numbers in order. Shows what's really assigned there, its stock status, and a damaged/missing flag — the same colors the shelf's own LED would show, not a live read of the light itself.</div>
+        <div id="bayLayoutCanvas"></div>
       </div>
 
       <div class="bulk-box" style="max-width:900px;">
@@ -664,6 +738,13 @@
         <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Currently running: <span id="currentVersionLabel" style="font-family:monospace;">…</span></div>
         <button class="primary" id="systemUpdateBtn" type="button">Check for updates &amp; install</button>
         <div id="systemUpdateStatus" style="font-size:12px;color:var(--muted);margin-top:10px;white-space:pre-wrap;"></div>
+      </div>
+
+      <div class="bulk-box" style="max-width:520px;">
+        <div class="display" style="font-size:15px;margin-bottom:6px;">Restart the server</div>
+        <div class="scan-msg" style="margin-top:0;">Just a restart — no update, nothing pulled from GitHub. For when the app seems stuck rather than out of date.</div>
+        <button class="secondary" id="restartServerBtn" type="button">Restart now</button>
+        <div id="restartServerStatus" style="font-size:12px;color:var(--muted);margin-top:10px;white-space:pre-wrap;"></div>
       </div>
 
       <div class="display" style="font-size:16px;margin-bottom:8px;">Print labels for your catalog</div>
@@ -892,6 +973,7 @@
   let igdbClientId = "";
   let igdbClientSecret = "";
   let wledUrl = "";
+  let esp32BaysUrl = "";
   let bayWindowSeconds = 90;
   let wledOpenEffect = 9;
   let wledCloseEffect = 2;
@@ -901,6 +983,15 @@
   let bays = []; // [{number, ledIndex, titleId}]
   let pendingReturn = null; // {titleId, title, expiresAt} — set until the disc lands back in a bay
   let pendingCheckout = null; // {titleId, title, renterName, expiresAt} — set until the disc leaves its bay
+  // Set right before a plain Cancel clears one of the above, so the
+  // resulting pending->null transition (detected in refetch(), below)
+  // doesn't get mistaken for a genuine completion and show a false
+  // "You're all set!" screen. Consumed by whichever of the direct call
+  // or the server's own broadcast to this same tab notices the
+  // transition first — the other one is a no-op anyway, since by then
+  // local state has already gone to null.
+  let suppressNextCheckoutComplete = false;
+  let suppressNextReturnComplete = false;
   let rentalHistory = []; // [{id, movieId, title, genre, renterName, rentedOn, dueOn, renewals, returnedOn}]
 
   const $ = sel => document.querySelector(sel);
@@ -918,17 +1009,58 @@
   async function refetch(resource){
     try{
       const data = await api.get("/api/"+resource);
-      if(resource==="titles") catalog = data;
+      if(resource==="titles") updateCatalogAndDetectChanges(data);
       else if(resource==="rentals") updateRentalsAndDetectReturns(data);
       else if(resource==="users") users = data;
-      else if(resource==="settings"){ maxCheckouts = data.maxCheckouts || 3; omdbApiKey = data.omdbApiKey || ""; tmdbApiKey = data.tmdbApiKey || ""; igdbClientId = data.igdbClientId || ""; igdbClientSecret = data.igdbClientSecret || ""; wledUrl = data.wledUrl || ""; bayWindowSeconds = data.bayWindowSeconds || 90; wledOpenEffect = data.wledOpenEffect ?? 9; wledCloseEffect = data.wledCloseEffect ?? 2; wledEffectSeconds = data.wledEffectSeconds || 6; doorCloseDelaySeconds = data.doorCloseDelaySeconds || 60; maxRenewals = data.maxRenewals ?? 2; }
+      else if(resource==="settings"){ maxCheckouts = data.maxCheckouts || 3; omdbApiKey = data.omdbApiKey || ""; tmdbApiKey = data.tmdbApiKey || ""; igdbClientId = data.igdbClientId || ""; igdbClientSecret = data.igdbClientSecret || ""; wledUrl = data.wledUrl || ""; esp32BaysUrl = data.esp32BaysUrl || ""; bayWindowSeconds = data.bayWindowSeconds || 90; wledOpenEffect = data.wledOpenEffect ?? 9; wledCloseEffect = data.wledCloseEffect ?? 2; wledEffectSeconds = data.wledEffectSeconds || 6; doorCloseDelaySeconds = data.doorCloseDelaySeconds || 60; maxRenewals = data.maxRenewals ?? 2; }
       else if(resource==="tv-selection") tvSelection = data && data.movieId ? data : null;
       else if(resource==="bays") bays = data;
-      else if(resource==="pending-return") pendingReturn = data;
-      else if(resource==="pending-checkout") pendingCheckout = data;
+      else if(resource==="pending-return"){
+        if(pendingReturn && !data){
+          if(suppressNextReturnComplete) suppressNextReturnComplete = false;
+          else showReturnCompleteScreen(pendingReturn);
+        }
+        pendingReturn = data;
+      }
+      else if(resource==="pending-checkout"){
+        if(pendingCheckout && !data){
+          if(suppressNextCheckoutComplete) suppressNextCheckoutComplete = false;
+          else showRentalCompleteScreen(pendingCheckout);
+        }
+        pendingCheckout = data;
+      }
       else if(resource==="rental-history") rentalHistory = data;
       render();
     }catch(e){ toast("Couldn't reach the local server"); }
+  }
+
+  // Titles whose stock just changed via this fetch — rendered with a
+  // brief pulse so a live update (someone else checking something out,
+  // a return completing) is actually noticeable instead of a poster
+  // just silently swapping its dot color while you're looking at it.
+  let pulseTitleIds = new Set();
+  function updateCatalogAndDetectChanges(newCatalog){
+    const oldStock = new Map(catalog.map(m => [m.id, m.stock]));
+    const changed = new Set();
+    newCatalog.forEach(m => {
+      if(oldStock.has(m.id) && oldStock.get(m.id) !== m.stock) changed.add(m.id);
+    });
+    catalog = newCatalog;
+    pulseTitleIds = changed;
+  }
+
+  // Called once per render pass, right after the grid HTML lands in the
+  // DOM — finds any poster card whose title just changed stock and adds
+  // the pulse class, then clears the pending set so it only fires once.
+  function applyPendingPulses(container){
+    if(pulseTitleIds.size === 0 || !container) return;
+    pulseTitleIds.forEach(id => {
+      const card = container.querySelector(`[data-openmovie="${id}"]`);
+      if(card){
+        card.classList.add("pulse-update");
+        setTimeout(() => card.classList.remove("pulse-update"), 1000);
+      }
+    });
   }
 
   // Catches a return the instant it completes, no matter which path did
@@ -979,6 +1111,7 @@
       igdbClientId = (state.settings && state.settings.igdbClientId) || "";
       igdbClientSecret = (state.settings && state.settings.igdbClientSecret) || "";
       wledUrl = (state.settings && state.settings.wledUrl) || "";
+      esp32BaysUrl = (state.settings && state.settings.esp32BaysUrl) || "";
       bayWindowSeconds = (state.settings && state.settings.bayWindowSeconds) || 90;
       wledOpenEffect = (state.settings && state.settings.wledOpenEffect) ?? 9;
       wledCloseEffect = (state.settings && state.settings.wledCloseEffect) ?? 2;
@@ -1042,6 +1175,7 @@
       renderLabelList();
       renderUsersList();
       renderBayDashboard();
+      renderBayLayout();
     }
     const mcInput = $("#maxCheckoutInput");
     if(mcInput && document.activeElement !== mcInput) mcInput.value = maxCheckouts;
@@ -1055,6 +1189,17 @@
     if(igcsInput && document.activeElement !== igcsInput) igcsInput.value = igdbClientSecret;
     const wuInput = $("#wledUrlInput");
     if(wuInput && document.activeElement !== wuInput) wuInput.value = wledUrl;
+    const ebInput = $("#esp32BaysUrlInput");
+    if(ebInput && document.activeElement !== ebInput) ebInput.value = esp32BaysUrl;
+    const ebLink = $("#esp32BaysDashboardLink");
+    if(ebLink){
+      if(esp32BaysUrl){
+        const href = /^https?:\/\//i.test(esp32BaysUrl) ? esp32BaysUrl : "http://"+esp32BaysUrl;
+        ebLink.innerHTML = `<a href="${href}" target="_blank" rel="noopener" style="color:inherit;">its own dashboard</a>`;
+      } else {
+        ebLink.textContent = "its own dashboard (set its address above first)";
+      }
+    }
     const bwInput = $("#bayWindowInput");
     if(bwInput && document.activeElement !== bwInput) bwInput.value = bayWindowSeconds;
     const oeInput = $("#wledOpenEffectInput");
@@ -1096,6 +1241,7 @@
     renderLabelList();
     renderUsersList();
     renderBayDashboard();
+    renderBayLayout();
     renderHwLog();
     setTab("dashboard");
   }
@@ -1315,7 +1461,7 @@
       <div class="hero-content">
         <div class="hero-eyebrow">${m.genre} · ${m.year}</div>
         ${m.logo ? `<img src="${m.logo}" alt="${m.title}" class="title-logo hero-logo" />` : `<div class="hero-title">${m.title}</div>`}
-        <div class="hero-meta">${m.rating} &nbsp;·&nbsp; ${out?'Out of stock':m.stock+' disc'+(m.stock===1?'':'s')+' available'}</div>
+        <div class="hero-meta"><span class="rating-badge">${m.rating}</span> &nbsp;${out?'Out of stock':m.stock+' disc'+(m.stock===1?'':'s')+' available'}</div>
         ${blurb ? `<div style="font-size:14px;color:var(--muted);line-height:1.5;margin-bottom:16px;max-width:520px;">${blurb}</div>` : ''}
         <div class="hero-actions">${actions}</div>
       </div>
@@ -1350,6 +1496,24 @@
     const pick = pool[Math.floor(Math.random() * pool.length)];
     setId(pick.id);
     return pick;
+  }
+
+  // A soft blurred wash of the currently-featured item, sitting behind
+  // the whole page. Both renderBrowse() and renderBrowseGames() run on
+  // every render() pass regardless of which tab is actually visible, so
+  // this only updates the DOM when the panel calling it is the one
+  // actually showing — otherwise the ambient background would just end
+  // up reflecting whichever of the two ran last, not what's on screen.
+  let lastAmbientImg = "";
+  function updateAmbientBg(item, panelName){
+    const activePanel = document.querySelector(".panel.active");
+    if(!activePanel || activePanel.dataset.panel !== panelName) return;
+    const el = $("#ambientBg");
+    if(!el) return;
+    const img = (item && (item.backdrop || item.poster)) || "";
+    if(img === lastAmbientImg) return;
+    lastAmbientImg = img;
+    el.style.backgroundImage = img ? `url('${img}')` : "none";
   }
 
   // Picks a random in-stock title from whichever Browse tab is currently
@@ -1405,6 +1569,7 @@
       wireBrowseCards(rowsEl, openMovieModal);
       wireSeriesCards(rowsEl);
       setupScrollReveal(rowsEl);
+      applyPendingPulses(rowsEl);
       return;
     }
 
@@ -1415,6 +1580,7 @@
     }
 
     const featured = pickFeatured(movieItems, featuredBrowseId, id => { featuredBrowseId = id; });
+    updateAmbientBg(featured, "browse");
     heroEl.innerHTML = heroHtml(featured, "browse");
     const infoBtn = heroEl.querySelector("[data-hero-info]");
     if(infoBtn) infoBtn.onclick = () => openMovieModal(featured.id);
@@ -1425,6 +1591,7 @@
     wireBrowseCards(rowsEl, openMovieModal);
     wireSeriesCards(rowsEl);
     setupScrollReveal(rowsEl);
+    applyPendingPulses(rowsEl);
   }
 
   // Games get their own, fully parallel browse render — same structure
@@ -1449,6 +1616,7 @@
         : `<div style="color:var(--muted);font-size:14px;padding:24px 40px;">No games match "${query}".</div>`;
       wireBrowseCards(rowsEl, openMovieModal);
       setupScrollReveal(rowsEl);
+      applyPendingPulses(rowsEl);
       return;
     }
 
@@ -1459,6 +1627,7 @@
     }
 
     const featured = pickFeatured(gameItems, featuredGamesId, id => { featuredGamesId = id; });
+    updateAmbientBg(featured, "browsegames");
     heroEl.innerHTML = heroHtml(featured, "browse");
     const infoBtn = heroEl.querySelector("[data-hero-info]");
     if(infoBtn) infoBtn.onclick = () => openMovieModal(featured.id);
@@ -1468,6 +1637,7 @@
     rowsEl.innerHTML = gridHtml("", gameItems);
     wireBrowseCards(rowsEl, openMovieModal);
     setupScrollReveal(rowsEl);
+    applyPendingPulses(rowsEl);
   }
 
   function renderRentals(){
@@ -1925,8 +2095,8 @@
         ${m.logo ? `<img src="${m.logo}" alt="${m.title}" class="title-logo" />` : `<div class="t">${m.title}</div>`}
       </div>
       <div class="modal-body">
-        <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:14px;">
-          <span>Rating: ${m.rating}</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);margin-bottom:14px;">
+          <span class="rating-badge">${m.rating}</span>
           <span>${out ? 'Out of stock' : m.stock+' disc'+(m.stock===1?'':'s')+' on hand'}</span>
         </div>
         ${m.description ? `<div style="font-size:13px;color:#D8D4CC;line-height:1.5;margin-bottom:16px;">${m.description}</div>` : ''}
@@ -2241,6 +2411,77 @@
     tvSelection = null; render();
   }
 
+  // ---------- idle screensaver ----------
+  // A kiosk that just sits on Browse for hours benefits from something
+  // more alive than a static grid — this rotates through catalog art
+  // full-screen after a few minutes of no interaction, and any tap/key
+  // brings the app straight back. Deliberately scoped to the customer
+  // touchscreen view only: TV mode is already a passive browsing
+  // display, and the admin console has its own concerns, not this one.
+  const SCREENSAVER_IDLE_MS = 3 * 60 * 1000;
+  const SCREENSAVER_CYCLE_MS = 9000;
+  let screensaverTimer = null;
+  let screensaverCycleTimer = null;
+  let screensaverShowingA = true;
+
+  function resetScreensaverTimer(){
+    clearTimeout(screensaverTimer);
+    if(isTvMode() || adminMode) return;
+    screensaverTimer = setTimeout(showScreensaver, SCREENSAVER_IDLE_MS);
+  }
+
+  function screensaverPool(){
+    return catalog.filter(m => m.backdrop || m.poster);
+  }
+
+  function showScreensaver(){
+    // Don't interrupt someone mid-checkout/return — those overlays are
+    // already full-screen and demand attention, the exact opposite of
+    // an idle state.
+    if(pendingCheckout || pendingReturn || isTvMode() || adminMode) { resetScreensaverTimer(); return; }
+    const pool = screensaverPool();
+    if(pool.length === 0) return; // nothing with art to show — just stay on Browse
+    const overlay = $("#screensaverOverlay");
+    if(!overlay) return;
+    screensaverShowingA = true;
+    const first = pool[Math.floor(Math.random()*pool.length)];
+    const layerA = $("#screensaverLayerA");
+    layerA.style.backgroundImage = `url('${first.backdrop || first.poster}')`;
+    layerA.classList.add("showing");
+    $("#screensaverLayerB").classList.remove("showing");
+    const titleEl = $("#screensaverTitle");
+    titleEl.textContent = first.title;
+    requestAnimationFrame(() => titleEl.classList.add("showing"));
+    overlay.style.display = "block";
+    screensaverCycleTimer = setInterval(cycleScreensaver, SCREENSAVER_CYCLE_MS);
+  }
+
+  function cycleScreensaver(){
+    const pool = screensaverPool();
+    if(pool.length === 0) return;
+    const pick = pool[Math.floor(Math.random()*pool.length)];
+    const showingEl = $(screensaverShowingA ? "#screensaverLayerA" : "#screensaverLayerB");
+    const nextEl = $(screensaverShowingA ? "#screensaverLayerB" : "#screensaverLayerA");
+    nextEl.style.backgroundImage = `url('${pick.backdrop || pick.poster}')`;
+    const titleEl = $("#screensaverTitle");
+    titleEl.classList.remove("showing");
+    setTimeout(() => {
+      nextEl.classList.add("showing");
+      showingEl.classList.remove("showing");
+      titleEl.textContent = pick.title;
+      titleEl.classList.add("showing");
+    }, 50);
+    screensaverShowingA = !screensaverShowingA;
+  }
+
+  function hideScreensaver(){
+    const overlay = $("#screensaverOverlay");
+    if(!overlay || overlay.style.display === "none" || !overlay.style.display) return;
+    overlay.style.display = "none";
+    clearInterval(screensaverCycleTimer);
+    resetScreensaverTimer();
+  }
+
   // ---------- users & PIN login ----------
   const AUTO_LOGOUT_MS = 30000;
   let autoLogoutTimer = null;
@@ -2327,6 +2568,13 @@
     try{ await api.send("PUT", "/api/settings", { wledUrl: url }); wledUrl = url; render(); }
     catch(e){ toast("Couldn't save the WLED address"); return; }
     toast(url ? "WLED address saved" : "WLED address cleared");
+  }
+
+  async function setEsp32BaysUrl(url){
+    url = (url||"").trim();
+    try{ await api.send("PUT", "/api/settings", { esp32BaysUrl: url }); esp32BaysUrl = url; render(); }
+    catch(e){ toast("Couldn't save the bay ESP32 address"); return; }
+    toast(url ? "Bay ESP32 address saved" : "Bay ESP32 address cleared");
   }
 
   async function setBayWindowSeconds(n){
@@ -2503,6 +2751,100 @@
     el.querySelectorAll("[data-removebay]").forEach(b => {
       b.onclick = () => removeBay(b.dataset.removebay);
     });
+  }
+
+  // The drag-and-drop bay floor plan. Deliberately NOT a full
+  // innerHTML rebuild on every call — that would fight any in-progress
+  // drag and reset the DOM out from under whichever card is being
+  // moved, the exact class of bug the Browse grid's animation-retrigger
+  // fix (elsewhere in this file) exists to avoid. Instead: cards are
+  // created once per bay and kept, only their *content* (status color,
+  // assigned title, condition) gets refreshed on later calls, and only
+  // brand-new bays get an initial position — an existing card's
+  // position is never touched by a normal render.
+  function bayLayoutStatus(bay){
+    const title = catalog.find(m => m.id === bay.titleId);
+    if(!title) return { color: "#4B5563", text: "Empty — no title assigned", name: "" };
+    if(title.condition === "missing") return { color: "#B71C1C", text: "Missing", name: title.title };
+    if(title.condition === "damaged") return { color: "#E87C03", text: "Damaged", name: title.title };
+    if(title.stock > 0) return { color: "#46D369", text: "In stock", name: title.title };
+    return { color: "#737373", text: "Checked out", name: title.title };
+  }
+
+  function renderBayLayout(){
+    const canvas = $("#bayLayoutCanvas");
+    if(!canvas) return;
+    const seen = new Set();
+    bays.forEach((bay, i) => {
+      const key = String(bay.number);
+      seen.add(key);
+      let card = canvas.querySelector(`.bay-layout-card[data-bay="${key}"]`);
+      const isNew = !card;
+      if(isNew){
+        card = document.createElement("div");
+        card.className = "bay-layout-card";
+        card.dataset.bay = key;
+        canvas.appendChild(card);
+        // Only a brand-new card (no saved position yet) gets placed —
+        // a simple wrapped grid so it starts somewhere sane rather than
+        // stacked at the origin, until it's actually dragged.
+        const hasPos = bay.x !== undefined && bay.x !== null && bay.y !== undefined && bay.y !== null;
+        const col = i % 5, row = Math.floor(i / 5);
+        const x = hasPos ? bay.x : 12 + col * 19;
+        const y = hasPos ? bay.y : 15 + row * 22;
+        card.style.left = x + "%";
+        card.style.top = y + "%";
+        if(!hasPos){ setBayPosition(bay.number, x, y); }
+        wireBayCardDrag(card, bay.number);
+      }
+      const status = bayLayoutStatus(bay);
+      card.innerHTML = `
+        <div class="bay-layout-num">BAY ${bay.number}</div>
+        <div class="bay-layout-title">${status.name || '—'}</div>
+        <div class="bay-layout-status"><span class="bay-layout-dot" style="background:${status.color};"></span>${status.text}</div>
+      `;
+    });
+    // Remove cards for bays that no longer exist (deleted since the last render)
+    canvas.querySelectorAll(".bay-layout-card").forEach(card => {
+      if(!seen.has(card.dataset.bay)) card.remove();
+    });
+  }
+
+  function wireBayCardDrag(card, bayNumber){
+    let dragging = false, offsetX = 0, offsetY = 0;
+    card.addEventListener("pointerdown", (e) => {
+      dragging = true;
+      card.classList.add("dragging");
+      card.setPointerCapture(e.pointerId);
+      const canvasRect = card.parentElement.getBoundingClientRect();
+      offsetX = e.clientX - (canvasRect.left + parseFloat(card.style.left)/100 * canvasRect.width);
+      offsetY = e.clientY - (canvasRect.top + parseFloat(card.style.top)/100 * canvasRect.height);
+    });
+    card.addEventListener("pointermove", (e) => {
+      if(!dragging) return;
+      const canvasRect = card.parentElement.getBoundingClientRect();
+      let xPct = ((e.clientX - offsetX - canvasRect.left) / canvasRect.width) * 100;
+      let yPct = ((e.clientY - offsetY - canvasRect.top) / canvasRect.height) * 100;
+      xPct = Math.max(2, Math.min(98, xPct));
+      yPct = Math.max(4, Math.min(96, yPct));
+      card.style.left = xPct + "%";
+      card.style.top = yPct + "%";
+    });
+    const endDrag = (e) => {
+      if(!dragging) return;
+      dragging = false;
+      card.classList.remove("dragging");
+      setBayPosition(bayNumber, parseFloat(card.style.left), parseFloat(card.style.top));
+    };
+    card.addEventListener("pointerup", endDrag);
+    card.addEventListener("pointercancel", endDrag);
+  }
+
+  async function setBayPosition(bayNumber, x, y){
+    const bay = bays.find(b => String(b.number) === String(bayNumber));
+    if(bay){ bay.x = x; bay.y = y; } // update local state immediately so a fast re-render doesn't snap it back
+    try{ await api.send("PUT", "/api/bays/"+bayNumber, { x, y }); }
+    catch(e){ toast("Couldn't save that bay's position"); }
   }
 
   // Fetches and renders the rolling log of every call to the bay/door
@@ -2692,8 +3034,9 @@
   }
 
   async function cancelPendingReturn(){
+    suppressNextReturnComplete = true;
     try{ await api.send("DELETE", "/api/pending-return"); await refetch("pending-return"); }
-    catch(e){}
+    catch(e){ suppressNextReturnComplete = false; }
   }
 
   async function adminForceCompleteReturn(){
@@ -2750,9 +3093,50 @@
     if(isAdmin) $("#adminForceCheckoutBtn").onclick = adminForceCompleteCheckout;
   }
 
+  // A proper "done!" moment instead of the pending overlay just quietly
+  // disappearing back to Browse the instant a checkout/return finishes —
+  // shown once, right when the transition from pending to not-pending
+  // is actually detected (see refetch() above), auto-dismissing itself
+  // so it never blocks someone who's already moved on.
+  let rentalCompleteTimer = null;
+  function showRentalCompleteScreen(completed){
+    const el = $("#rentalCompleteOverlay");
+    if(!el || !completed) return;
+    clearTimeout(rentalCompleteTimer);
+    const dueDate = new Date(Date.now() + RENTAL_DAYS*86400000).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+    el.style.display = "flex";
+    el.innerHTML = `
+      <div style="font-size:56px;margin-bottom:16px;">✅</div>
+      <div class="t">You're all set!</div>
+      <div class="g">"${completed.title}" is checked out${completed.renterName ? ' to '+completed.renterName : ''} — due back ${dueDate}.</div>
+      <button class="primary" id="rentalCompleteDoneBtn">Continue browsing</button>
+    `;
+    const close = () => { el.style.display = "none"; el.innerHTML = ""; };
+    $("#rentalCompleteDoneBtn").onclick = close;
+    rentalCompleteTimer = setTimeout(close, 5000);
+  }
+
+  let returnCompleteTimer = null;
+  function showReturnCompleteScreen(completed){
+    const el = $("#returnCompleteOverlay");
+    if(!el || !completed) return;
+    clearTimeout(returnCompleteTimer);
+    el.style.display = "flex";
+    el.innerHTML = `
+      <div style="font-size:56px;margin-bottom:16px;">✅</div>
+      <div class="t">Thanks for returning it!</div>
+      <div class="g">"${completed.title}" is back and available to rent again.</div>
+      <button class="primary" id="returnCompleteDoneBtn">Continue browsing</button>
+    `;
+    const close = () => { el.style.display = "none"; el.innerHTML = ""; };
+    $("#returnCompleteDoneBtn").onclick = close;
+    returnCompleteTimer = setTimeout(close, 5000);
+  }
+
   async function cancelPendingCheckout(){
+    suppressNextCheckoutComplete = true;
     try{ await api.send("DELETE", "/api/pending-checkout"); await refetch("pending-checkout"); }
-    catch(e){}
+    catch(e){ suppressNextCheckoutComplete = false; }
   }
 
   async function adminForceCompleteCheckout(){
@@ -3352,6 +3736,18 @@
       if(isActive){ b.style.animation="none"; void b.offsetWidth; b.style.animation="tabPop 0.25s ease"; }
     });
     $$(".panel").forEach(p => p.classList.toggle("active", p.dataset.panel===tab));
+    // renderBrowse()/renderBrowseGames() only update the ambient
+    // background when their own panel is the active one — switching
+    // tabs doesn't re-run either of them, so without this the ambient
+    // background would keep showing whichever tab was visible before
+    // the switch until something else happened to trigger a render.
+    if(tab === "browse"){
+      const m = catalog.find(x => x.id === featuredBrowseId);
+      if(m) updateAmbientBg(m, "browse");
+    } else if(tab === "browsegames"){
+      const m = catalog.find(x => x.id === featuredGamesId);
+      if(m) updateAmbientBg(m, "browsegames");
+    }
   }
 
   function setAdminSubtab(tab){
@@ -3466,7 +3862,13 @@
 
     ["click","keydown","touchstart"].forEach(evt => {
       document.addEventListener(evt, resetAutoLogoutTimer, { passive: true });
+      document.addEventListener(evt, () => {
+        const overlay = $("#screensaverOverlay");
+        if(overlay && overlay.style.display === "block") hideScreensaver();
+        else resetScreensaverTimer();
+      }, { passive: true });
     });
+    resetScreensaverTimer(); // start the idle clock right away, not just after the first interaction
 
     $("#newGenreInput").innerHTML = Object.keys(GENRE_COLORS).map(g=>`<option>${g}</option>`).join("");
     $("#seriesGenreInput").innerHTML = Object.keys(GENRE_COLORS).map(g=>`<option>${g}</option>`).join("");
@@ -3522,6 +3924,18 @@
       }catch(e){
         statusEl.textContent = "Update failed: " + (e.message || "unknown error") + "\n\nThe server is still running the old code — nothing was left half-updated.";
         btn.disabled = false;
+      }
+    };
+    $("#restartServerBtn").onclick = async () => {
+      if(!confirm("Restart the server now? If autostart is set up, it comes right back on its own and this page will need a manual reload.")) return;
+      const statusEl = $("#restartServerStatus");
+      try{
+        const result = await api.send("POST", "/api/restart-server");
+        statusEl.textContent = result.willAutoRestart
+          ? "Restarting now — reload this page in a few seconds."
+          : "This install isn't running under systemd, so it won't come back on its own — you'll need to stop it and run 'npm start' again.";
+      }catch(e){
+        statusEl.textContent = e.message || "Couldn't restart it.";
       }
     };
 
@@ -3603,6 +4017,26 @@
     $("#igdbClientIdShow").onchange = (e) => { $("#igdbClientIdInput").type = e.target.checked ? "text" : "password"; };
     $("#igdbClientSecretShow").onchange = (e) => { $("#igdbClientSecretInput").type = e.target.checked ? "text" : "password"; };
     $("#saveWledUrlBtn").onclick = () => setWledUrl($("#wledUrlInput").value);
+    $("#saveEsp32BaysUrlBtn").onclick = () => setEsp32BaysUrl($("#esp32BaysUrlInput").value);
+    $("#bayLayoutResetBtn").onclick = () => {
+      if(!confirm("Reset every bay back to a plain grid layout? This discards any custom positions you've dragged them to.")) return;
+      const canvas = $("#bayLayoutCanvas");
+      canvas.querySelectorAll(".bay-layout-card").forEach(c => c.remove()); // forces renderBayLayout to treat every bay as new and re-place (and re-save) it
+      bays.forEach(b => { delete b.x; delete b.y; });
+      renderBayLayout();
+    };
+    $("#restartWledBtn").onclick = async () => {
+      const statusEl = $("#restartHardwareStatus");
+      statusEl.textContent = "Restarting WLED…";
+      try{ await api.send("POST", "/api/restart-wled"); statusEl.textContent = "WLED restarting — its lights may flicker or go dark for a few seconds."; }
+      catch(e){ statusEl.textContent = e.message || "Couldn't reach WLED."; }
+    };
+    $("#restartBaysEspBtn").onclick = async () => {
+      const statusEl = $("#restartHardwareStatus");
+      statusEl.textContent = "Restarting the bay ESP32…";
+      try{ await api.send("POST", "/api/restart-esp32-bays"); statusEl.textContent = "Restart sent — bay checkouts/returns won't register for a few seconds while it reboots and reconnects to Wi-Fi."; }
+      catch(e){ statusEl.textContent = (e.message || "Couldn't reach it.") + " Try the dashboard link below instead."; }
+    };
     $("#saveBayWindowBtn").onclick = () => setBayWindowSeconds($("#bayWindowInput").value);
     $("#saveDoorSettingsBtn").onclick = () => setDoorSettings({
       openEffect: $("#wledOpenEffectInput").value,

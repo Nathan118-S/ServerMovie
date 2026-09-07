@@ -538,6 +538,115 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## A drag-and-drop bay floor plan
+
+**Bays &amp; Lighting** now has a **Bay layout** section, below the
+existing grid dashboard (which is still there — this is a second view,
+not a replacement). Drag each bay to wherever it actually sits on the
+real shelf, so the on-screen layout matches reality instead of just
+listing bay numbers in order. Each card shows what's really assigned
+there, whether it's in stock, checked out, damaged, or missing, and the
+title's name — the same status colors the shelf's own LED would show.
+
+**One honest simplification, stated plainly**: the color shown is
+*derived* the same way the app already decides what color to push to
+WLED (green in stock, gray checked out, orange damaged, red missing) —
+it's not a live read-back of the actual current pixel color from the
+LED strip itself. Querying WLED for its true current state is possible
+but adds a second source of truth to keep in sync; this way, what's
+shown here and what Sandy Server *intends* the light to be are always
+the exact same calculation, which is simpler and correct as long as
+WLED itself is behaving normally.
+
+Positions save automatically as percentages of the layout area (not
+pixels), so they hold up across different screen sizes rather than
+being tied to whatever window they were dragged in. **Reset to grid**
+clears every custom position back to a plain wrapped grid, if it ever
+gets cluttered enough to want a clean slate.
+
+## Restart buttons, for the server and both ESP32s
+
+**System** has a **Restart the server** button — same idea as "Update
+the server" from before, minus the git pull/npm install: just a plain
+restart, for when the app seems stuck rather than out of date. Same
+systemd-awareness as the update button: comes back on its own if set up
+with autostart, otherwise tells you it needs a manual `npm start`.
+
+**Bays &amp; Lighting** has two more, under a new "Restart the hardware"
+box:
+
+- **Restart WLED** uses WLED's own JSON API directly — reboots it the
+  same way pulling its power would. No new setup needed; it reuses the
+  WLED address you've already configured for the lights themselves.
+- **Restart bay ESP32** needed something that didn't exist before this:
+  that device only ever *sends* requests to Sandy Server, nothing on it
+  was listening for anything back. `esphome-bays.yaml` now includes
+  ESPHome's `web_server` component and a restart button entity
+  specifically so there's something to reach — **this needs a
+  re-flash** if your bay ESP32 was set up before this change. You'll
+  also need to tell Sandy Server that device's own address (a new field
+  right above the restart buttons), separate from WLED's.
+
+Worth being straightforward about: the bay ESP32 restart is
+**best-effort**, not a guarantee. ESPHome's exact REST URL convention
+for pressing a button entity has shifted across versions, so if Sandy
+Server's button doesn't line up with your firmware's actual API path,
+it'll tell you so plainly rather than pretend it worked — and right
+next to it is a direct link to open that device's own built-in
+dashboard, where the same restart button is guaranteed to work no
+matter what, since you're using its own web page rather than a
+constructed URL.
+
+## A proper "done!" screen, not just a quiet disappearance
+
+Finishing a checkout or return used to just make the pending overlay
+vanish straight back to Browse, with nothing but a small toast to mark
+that it actually worked. Now there's a real confirmation screen —
+"You're all set!" with the due date for a checkout, "Thanks for
+returning it!" for a return — that shows for a few seconds (or until
+tapped away) right when the transition from pending to done actually
+happens, however it happens: a bay pull, a scanned barcode, or an admin
+force-completing it.
+
+Worth knowing how this avoids a real trap: clicking **Cancel** on a
+pending screen also clears the pending state server-side, which looks
+identical, from the outside, to a genuine completion — same transition,
+same broadcast to every connected tab. Showing a "You're all set!"
+celebration after someone explicitly canceled would be a real bug, not
+a cosmetic one. A cancel sets a one-shot flag that suppresses exactly
+the next detected transition and nothing else, so a genuine completion
+right afterward still shows normally.
+
+## A design polish pass: live pulse, rating badges, ambient background, screensaver
+
+**Live-update pulse** — when a poster's stock changes from a live
+broadcast (someone else checking something out or returning it
+elsewhere, not your own action), that specific card briefly pulses with
+a white ring instead of just silently swapping its stock dot. Only the
+titles that actually changed pulse — browsing isn't interrupted by
+everything flashing every time anything anywhere changes.
+
+**Rating badges** — `PG-13`, `M`, and the rest now render as an actual
+small badge (black field, white border, bold letters) in the hero and
+the checkout modal, instead of plain "Rating: PG-13" text sitting next
+to everything else.
+
+**Ambient background** — a soft, blurred wash of whatever's currently
+featured now sits behind the whole page (the same trick Apple Music and
+Apple TV use), instead of a flat single color. Updates when the
+featured title changes and immediately on switching between Browse
+Movies and Browse Games — each tab shows its own art, never a stale one
+left over from the other.
+
+**Idle screensaver** — after 3 minutes with no interaction, the app
+fades into a slow, cross-fading rotation of catalog art full-screen,
+Apple-TV-style, with the title named underneath. Any tap, click, or key
+brings Browse straight back. It won't interrupt a pending
+checkout/return (those are already full-screen and need attention,
+the opposite of an idle state), and it's scoped to the customer
+touchscreen only — TV mode is already a passive display, and it never
+triggers from inside the Admin Console.
+
 ## Four additions: LED testing, locate-from-TV, login personalization, TV remote nav
 
 **Test all bay LEDs** — a button in Bays &amp; Lighting that cycles every

@@ -1066,7 +1066,7 @@ app.get("/api/bays", (req, res) => res.json(db.bays));
 
 app.put("/api/bays/:number", (req, res) => {
   const number = req.params.number;
-  const { ledIndex, titleId } = req.body;
+  const { ledIndex, titleId, x, y } = req.body;
   let bay = db.bays.find(b => String(b.number) === String(number));
   if(!bay){
     bay = { number, ledIndex: null, titleId: null };
@@ -1081,6 +1081,12 @@ app.put("/api/bays/:number", (req, res) => {
     }
     bay.titleId = (titleId === "" ? null : titleId);
   }
+  // Position on the drag-and-drop floor plan — percentages of the
+  // layout container (0-100), not pixels, so it holds up across
+  // different screen sizes rather than being tied to whatever window
+  // it was dragged in.
+  if(x !== undefined) bay.x = x;
+  if(y !== undefined) bay.y = y;
   saveDb();
   broadcast("bays");
   const title = db.titles.find(t => t.id === bay.titleId);
@@ -1437,6 +1443,45 @@ app.post("/api/system-update", (req, res) => {
       }
     });
   });
+});
+
+// Just a restart, no update — same systemd-aware exit as above, minus
+// the git pull/npm install steps.
+app.post("/api/restart-server", (req, res) => {
+  const willAutoRestart = !!process.env.INVOCATION_ID;
+  res.json({ ok: true, willAutoRestart });
+  if(willAutoRestart) setTimeout(() => process.exit(1), 800);
+});
+
+// WLED's own JSON API accepts a reboot flag directly in a state
+// update — well-documented, stable behavior, unlike the ESPHome
+// button below.
+app.post("/api/restart-wled", (req, res) => {
+  let wledUrl = ((db.settings && db.settings.wledUrl) || "").trim();
+  if(!wledUrl) return res.status(400).json({ error: "No WLED URL configured yet." });
+  if(!/^https?:\/\//i.test(wledUrl)) wledUrl = "http://" + wledUrl;
+  const url = wledUrl.replace(/\/+$/, "") + "/json/state";
+  httpsPostJson(url, JSON.stringify({ rb: true }), { "Content-Type": "application/json" })
+    .then(() => res.json({ ok: true }))
+    .catch(() => res.status(500).json({ error: "Couldn't reach WLED at that address." }));
+});
+
+// The bay-switch ESP32 only ever makes outbound calls to this server —
+// nothing about its normal operation needs it to listen for anything
+// back. Restarting it remotely needs ESPHome's optional web_server
+// component plus a restart button, both added specifically for this
+// (see esphome-bays.yaml) — and ESPHome's exact REST URL convention for
+// pressing an entity varies enough across versions that this is a
+// best-effort attempt, not a guarantee. It's paired with a fallback
+// link to the device's own dashboard in the UI for exactly that reason.
+app.post("/api/restart-esp32-bays", (req, res) => {
+  let deviceUrl = ((db.settings && db.settings.esp32BaysUrl) || "").trim();
+  if(!deviceUrl) return res.status(400).json({ error: "No bay ESP32 address configured yet." });
+  if(!/^https?:\/\//i.test(deviceUrl)) deviceUrl = "http://" + deviceUrl;
+  const url = deviceUrl.replace(/\/+$/, "") + "/button/restart/press";
+  httpsPostJson(url, "", {})
+    .then(() => res.json({ ok: true }))
+    .catch(() => res.status(500).json({ error: "Couldn't reach the ESP32, or its restart button uses a different URL than expected — try the device's own dashboard link instead." }));
 });
 
 // ---------- TV selection ----------
