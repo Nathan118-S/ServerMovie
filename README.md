@@ -314,18 +314,106 @@ Adding a game (**Manage inventory → Add a title**, Media type: Game):
 - The Blu-ray/DVD format field and the TV-series fields both disappear
   for games — neither applies.
 
-**No auto-fill for games.** OMDb and TMDb are movie/TV databases —
-there's no game metadata source wired up, so the "Look up on OMDb" and
-"Wrong match?" buttons don't appear for games in Manage inventory. Add
-the poster the same way as everything else here: a photo of the case.
-[IGDB](https://www.igdb.com/) is a real API that covers games
-specifically, if this is worth wiring up later — it wasn't in scope for
-this pass.
+**Games get auto-fill too, via IGDB.** OMDb and TMDb only cover
+movies/TV — games use [IGDB](https://www.igdb.com/) (run by Twitch),
+which needs a **Client ID and Client Secret** rather than a single API
+key. Create a free app at
+[dev.twitch.tv/console/apps](https://dev.twitch.tv/console/apps) to get
+both, then paste them under **Manage inventory → Auto-Fill**, same
+place as the OMDb/TMDb keys. "Look up on IGDB" and "Wrong match?" work
+the same way they do for movies — the picker shows real cover art so a
+title-name collision (a common problem with sequels and remasters) is
+easy to spot before committing to it.
+
+One honest gap, worth knowing, and left this way deliberately: **ESRB
+rating stays manual.** IGDB does have age-rating data, but its own
+schema documents the numeric rating fields as deprecated with the
+replacement not consistently documented — for a feature that directly
+feeds rating restrictions (a parental control), guessing at an uncertain
+mapping risked silently mis-rating a game, which is worse than just
+asking a person to set it once. A freshly auto-filled game defaults to
+**T** and needs a manual check in the rating dropdown.
+
+The landscape checkout-modal header does work for games now, though —
+IGDB doesn't have a separate "backdrop" field the way TMDb does for
+movies, but it does have game screenshots, which are genuinely
+landscape-oriented, so the first screenshot fills that role.
 
 **Also scoped out of this pass**: the admin's manual-checkout dropdown
 (All rentals) lists movies and games together rather than being split
 too, and TV kiosk mode ("Send to Kiosk") stays movie-only, consistent
 with what that feature was already for.
+
+## Fixing animations that replayed constantly, and writes that blocked requests
+
+Two real bugs, not cosmetic ones:
+
+**The Browse grid was rebuilding itself from scratch on every state
+change anywhere in the app** — someone else's checkout, a return
+completing at the kiosk, any live update — even when nothing about
+*your* screen actually needed to change. Every rebuild destroyed and
+recreated every poster card, which replayed the scroll-reveal and
+stagger-in animations each time, on top of being wasted work. It now
+compares a signature of everything that actually affects the grid
+(stock status, poster presence, condition, format/platform, genre, and
+search text) against what it last rendered, and skips the rebuild
+entirely when nothing in that signature changed. New content still
+animates in exactly like before — this only stops the pointless
+replays.
+
+**Every single checkout, return, or edit used to write the whole
+database to disk synchronously**, blocking that request until the write
+finished. Harmless when this file was tiny; less so now that it carries
+base64 poster/backdrop images for both movies and games on a Pi's SD
+card. Saves are asynchronous now, but write-ordered — never two writes
+racing each other, and if changes pile up while one's still writing,
+exactly one more save happens right after, so nothing gets lost or
+written out of order. A graceful-shutdown handler (`systemctl restart`,
+Ctrl+C, a Pi reboot) does one guaranteed synchronous flush of whatever's
+in memory before the process actually exits, so the only real remaining
+risk is a hard crash in the literal instant between responding and the
+write landing — a narrow window, and no worse than what a synchronous
+save always risked in that same scenario.
+
+## Recently Added, and Surprise Me
+
+A **Recently Added** row now shows up above the main grid in both Browse
+Movies and Browse Games — whichever titles were added most recently,
+newest first. It only appears once something's actually been added
+since this feature shipped; titles already in the catalog before this
+don't have the timestamp it needs, so they simply don't show up in that
+row (nothing wrong, just nothing to sort by).
+
+**Surprise Me**, in the top bar next to search, picks a random in-stock
+title and opens it directly — for the "we have 200 things and can't
+decide" problem. It respects whichever tab you're actually looking at:
+hit it from Browse Movies and it only picks movies, from Browse Games
+only games, never mixed.
+
+## A couple of decluttering passes
+
+The Browse view had grown a stack of small colored dots on every poster
+(stock, bay status, damaged) that needed a tooltip to even understand —
+now it's just one dot (available or not) plus plain-language badges
+(⚠️ Damaged, Blu-ray, a platform name) where something's actually worth
+knowing. Bay-assignment status moved to **Manage inventory** instead,
+where it's genuinely useful — a customer browsing has no reason to know
+or care whether a title has a bay assigned, that's a staff concern.
+
+**Add a title** also got shorter — barcode, IMDb id, and the TV-series
+fields now sit behind a collapsed "More options" section, so adding a
+plain movie is just title, genre, year, rating, format, stock, and a
+photo. Nothing was removed, just tucked away until it's needed.
+
+## Rating-restricted accounts
+
+**Manage users** has a row of checkboxes under each person — PG-13, R,
+and the game-equivalent T, M, AO — for ratings that account simply can't
+check out. It's a hard block, not a suggestion: enforced on the server
+for every checkout path there is (the normal Rent button, the admin's
+manual checkout, the pending-checkout flow, all of it), so there's no
+path that quietly skips it. Leave every box unchecked for an account
+with no restrictions, which is the default for a new user.
 
 ## Marking a disc as Blu-ray
 
@@ -446,13 +534,16 @@ place that actually shows what was already being tracked.
 
 The moment any return actually completes — a physical bay pull, a
 scanned barcode, or a manual admin return, doesn't matter which — a
-small "How was the disc?" prompt appears with three choices: Good,
-Damaged, or Missing. It fires while it's fresh instead of relying on
-someone remembering to flag it later.
+full-screen "How was the disc?" prompt appears with three choices: Good,
+Damaged, or Missing, matching the same full-screen treatment as the
+pending-checkout/return screens rather than a small popup easy to miss
+on a kiosk. It fires while it's fresh instead of relying on someone
+remembering to flag it later.
 
-- **Damaged** just flags it — a small red dot shows up on that title's
-  poster card everywhere in Browse, but stock isn't touched, since a
-  scratch doesn't always mean unrentable. Pull it from rotation manually
+- **Damaged** just flags it — a small "⚠️ Damaged" badge shows up on
+  that title's poster card everywhere in Browse, but stock isn't
+  touched, since a scratch doesn't always mean unrentable. Pull it from
+  rotation manually
   with the usual +/- stock buttons if it warrants that.
 - **Missing** actually reduces stock by one, undoing the bump the return
   itself just gave it — since a missing copy genuinely isn't available

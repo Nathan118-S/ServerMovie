@@ -159,8 +159,6 @@
   .poster-card:hover{transform:scale(1.08) translateY(-6px);box-shadow:0 16px 40px rgba(0,0,0,0.6),0 0 0 2px var(--red),0 0 24px var(--glow);z-index:2;}
   .poster-title{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.15;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.7);}
   .poster-dot{position:absolute;top:8px;right:8px;width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 2px rgba(0,0,0,0.4);}
-  .nobay-dot{position:absolute;top:8px;right:22px;width:9px;height:9px;border-radius:50%;background:#E8B800;box-shadow:0 0 0 2px rgba(0,0,0,0.4);}
-  .damaged-dot{position:absolute;top:8px;right:36px;width:9px;height:9px;border-radius:50%;background:#E03C3C;box-shadow:0 0 0 2px rgba(0,0,0,0.4);}
   .bluray-badge{position:absolute;bottom:34px;left:8px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.4px;color:#0A0C10;background:linear-gradient(135deg,#4FC3F7,#0288D1);padding:2px 7px;border-radius:4px;}
   .poster-dot.in-stock{animation:breathe 2.4s ease-in-out infinite;}
 
@@ -313,6 +311,7 @@
     <input id="searchBox" placeholder="Search titles... (press / to focus)" />
     <button id="searchClearBtn" title="Clear search" type="button" style="display:none;">×</button>
   </div>
+  <button class="secondary" id="surpriseMeBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Surprise Me</button>
   <button class="secondary" id="topBarReturnBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 1 1 2.3 5.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 17v-5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Return</button>
   <button class="secondary" id="adminConsoleBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;display:none;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Admin Console</button>
   <button class="theme-toggle" id="scanBarToggleBtn" title="Show/hide barcode scanner &amp; login" type="button">
@@ -380,11 +379,7 @@
     <div class="modal-body" id="matchPickerBody" style="padding:22px;"></div>
   </div>
 </div>
-<div id="conditionOverlay" class="modal-overlay">
-  <div class="modal-card" style="width:380px;">
-    <div class="modal-body" id="conditionBody" style="padding:26px 22px;text-align:center;"></div>
-  </div>
-</div>
+<div id="conditionOverlay" class="pending-return-overlay"></div>
 
 </div><!-- /appRoot -->
 <div id="adminConsole" style="display:none;">
@@ -487,20 +482,25 @@
               <option value="Wii">Wii</option>
             </select>
             <input id="newStockInput" type="number" min="0" placeholder="Starting stock" value="1" />
-            <input id="newCodeInput" placeholder="Existing barcode (optional — scan or type)" />
-            <input id="newImdbInput" placeholder="IMDb id, e.g. tt1234567 (optional)" />
-            <div id="newSeriesSection">
-              <div style="border-top:1px solid var(--line);margin:4px 0;padding-top:8px;font-size:11px;color:var(--muted);">TV series disc? (optional)</div>
-              <input id="newSeriesInput" placeholder="Series name, e.g. Breaking Bad" />
-              <div style="display:flex;gap:8px;">
-                <input id="newSeasonInput" type="number" min="1" placeholder="Season #" style="flex:1;" />
-                <input id="newDiscInput" type="number" min="1" placeholder="Disc #" style="flex:1;" />
-              </div>
-            </div>
             <label class="file-label"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12.5" r="3.5" stroke="currentColor" stroke-width="2"/></svg> Attach a photo of the case
               <input type="file" accept="image/*" capture="environment" id="newPosterInput" />
             </label>
             <span id="newPosterStatus" style="font-size:11px;color:var(--muted);"></span>
+            <details style="margin-top:2px;">
+              <summary style="font-size:12px;color:var(--muted);cursor:pointer;user-select:none;">More options (barcode, IMDb id, TV series)</summary>
+              <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px;">
+                <input id="newCodeInput" placeholder="Existing barcode (optional — scan or type)" />
+                <input id="newImdbInput" placeholder="IMDb id, e.g. tt1234567 (optional)" />
+                <div id="newSeriesSection">
+                  <div style="border-top:1px solid var(--line);margin:4px 0;padding-top:8px;font-size:11px;color:var(--muted);">TV series disc? (optional)</div>
+                  <input id="newSeriesInput" placeholder="Series name, e.g. Breaking Bad" />
+                  <div style="display:flex;gap:8px;margin-top:10px;">
+                    <input id="newSeasonInput" type="number" min="1" placeholder="Season #" style="flex:1;" />
+                    <input id="newDiscInput" type="number" min="1" placeholder="Disc #" style="flex:1;" />
+                  </div>
+                </div>
+              </div>
+            </details>
             <button class="primary" id="addTitleBtn">Add to catalog</button>
           </div>
         </div>
@@ -577,6 +577,22 @@
             <button class="secondary" id="saveTmdbKeyBtn" style="padding:9px 14px;font-size:12px;">Save key</button>
           </div>
           <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Don't have one yet? <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener" style="color:var(--muted);">Get a free TMDb key</a> — this is also the only source of the title-logo image, and is much better than OMDb for TV series.</div>
+          <div class="display" style="font-size:14px;margin-bottom:6px;">Games (IGDB)</div>
+          <div class="scan-msg" style="margin-top:0;">OMDb and TMDb only cover movies and TV — games use IGDB (run by Twitch), which needs a Client ID and Client Secret rather than a single key. Fills in poster art, genre, and a description the same way the fields above do for movies.</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+            <input type="password" id="igdbClientIdInput" placeholder="IGDB Client ID" style="min-width:220px;flex:1;" />
+            <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;">
+              <input type="checkbox" id="igdbClientIdShow" style="width:auto;" /> Show
+            </label>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+            <input type="password" id="igdbClientSecretInput" placeholder="IGDB Client Secret" style="min-width:220px;flex:1;" />
+            <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;">
+              <input type="checkbox" id="igdbClientSecretShow" style="width:auto;" /> Show
+            </label>
+            <button class="secondary" id="saveIgdbKeysBtn" style="padding:9px 14px;font-size:12px;">Save</button>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Don't have these yet? Create an app at <a href="https://dev.twitch.tv/console/apps" target="_blank" rel="noopener" style="color:var(--muted);">dev.twitch.tv/console/apps</a> (free) — IGDB runs on Twitch's developer platform.</div>
           <button class="primary" id="autofillBtn"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Auto-fill missing titles</button>
           <span id="autofillStatus" style="font-size:11px;color:var(--muted);margin-left:8px;"></span>
         </div>
@@ -661,9 +677,17 @@
             <label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;">
               <input type="checkbox" id="newUserIsAdmin" style="width:auto;" /> Admin (can open the Admin Console)
             </label>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px;">Can't check out:</div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;">
+              <label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:4px;"><input type="checkbox" class="newUserRestrict" value="PG-13" style="width:auto;" /> PG-13</label>
+              <label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:4px;"><input type="checkbox" class="newUserRestrict" value="R" style="width:auto;" /> R</label>
+              <label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:4px;"><input type="checkbox" class="newUserRestrict" value="T" style="width:auto;" /> T (games)</label>
+              <label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:4px;"><input type="checkbox" class="newUserRestrict" value="M" style="width:auto;" /> M (games)</label>
+              <label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:4px;"><input type="checkbox" class="newUserRestrict" value="AO" style="width:auto;" /> AO (games)</label>
+            </div>
             <button class="primary" id="addUserBtn">Add user</button>
           </div>
-          <div class="scan-msg">A 4-digit PIN just identifies who's checking out a disc — it's a friendly gate for the household, not real account security.</div>
+          <div class="scan-msg">A 4-digit PIN just identifies who's checking out a disc — it's a friendly gate for the household, not real account security. The restriction checkboxes are a hard block, though — a checked-out title with that rating just won't complete for this person, on any checkout path.</div>
         </div>
         <div style="flex:2 1 360px;">
           <div class="display" style="font-size:16px;margin-bottom:10px;">Users</div>
@@ -820,6 +844,8 @@
   let maxCheckouts = 3;
   let omdbApiKey = "";
   let tmdbApiKey = "";
+  let igdbClientId = "";
+  let igdbClientSecret = "";
   let wledUrl = "";
   let bayWindowSeconds = 90;
   let wledOpenEffect = 9;
@@ -850,7 +876,7 @@
       if(resource==="titles") catalog = data;
       else if(resource==="rentals") updateRentalsAndDetectReturns(data);
       else if(resource==="users") users = data;
-      else if(resource==="settings"){ maxCheckouts = data.maxCheckouts || 3; omdbApiKey = data.omdbApiKey || ""; tmdbApiKey = data.tmdbApiKey || ""; wledUrl = data.wledUrl || ""; bayWindowSeconds = data.bayWindowSeconds || 90; wledOpenEffect = data.wledOpenEffect ?? 9; wledCloseEffect = data.wledCloseEffect ?? 2; wledEffectSeconds = data.wledEffectSeconds || 6; doorCloseDelaySeconds = data.doorCloseDelaySeconds || 60; maxRenewals = data.maxRenewals ?? 2; }
+      else if(resource==="settings"){ maxCheckouts = data.maxCheckouts || 3; omdbApiKey = data.omdbApiKey || ""; tmdbApiKey = data.tmdbApiKey || ""; igdbClientId = data.igdbClientId || ""; igdbClientSecret = data.igdbClientSecret || ""; wledUrl = data.wledUrl || ""; bayWindowSeconds = data.bayWindowSeconds || 90; wledOpenEffect = data.wledOpenEffect ?? 9; wledCloseEffect = data.wledCloseEffect ?? 2; wledEffectSeconds = data.wledEffectSeconds || 6; doorCloseDelaySeconds = data.doorCloseDelaySeconds || 60; maxRenewals = data.maxRenewals ?? 2; }
       else if(resource==="tv-selection") tvSelection = data && data.movieId ? data : null;
       else if(resource==="bays") bays = data;
       else if(resource==="pending-return") pendingReturn = data;
@@ -885,6 +911,8 @@
       maxCheckouts = (state.settings && state.settings.maxCheckouts) || 3;
       omdbApiKey = (state.settings && state.settings.omdbApiKey) || "";
       tmdbApiKey = (state.settings && state.settings.tmdbApiKey) || "";
+      igdbClientId = (state.settings && state.settings.igdbClientId) || "";
+      igdbClientSecret = (state.settings && state.settings.igdbClientSecret) || "";
       wledUrl = (state.settings && state.settings.wledUrl) || "";
       bayWindowSeconds = (state.settings && state.settings.bayWindowSeconds) || 90;
       wledOpenEffect = (state.settings && state.settings.wledOpenEffect) ?? 9;
@@ -955,6 +983,10 @@
     if(okInput && document.activeElement !== okInput) okInput.value = omdbApiKey;
     const tkInput = $("#tmdbKeyInput");
     if(tkInput && document.activeElement !== tkInput) tkInput.value = tmdbApiKey;
+    const igciInput = $("#igdbClientIdInput");
+    if(igciInput && document.activeElement !== igciInput) igciInput.value = igdbClientId;
+    const igcsInput = $("#igdbClientSecretInput");
+    if(igcsInput && document.activeElement !== igcsInput) igcsInput.value = igdbClientSecret;
     const wuInput = $("#wledUrlInput");
     if(wuInput && document.activeElement !== wuInput) wuInput.value = wledUrl;
     const bwInput = $("#bayWindowInput");
@@ -1109,16 +1141,20 @@
     const isGame = m.mediaType === 'game';
     const color = (isGame ? GAME_GENRE_COLORS[m.genre] : GENRE_COLORS[m.genre]) || "#333";
     const out = m.stock<=0;
-    const hasBay = bays.some(b => b.titleId === m.id);
     const bg = m.poster
       ? `background-image:linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,0.85) 100%), url('${m.poster}');`
       : `background-image:linear-gradient(160deg, ${color}, #141414 85%);`;
     const tag = seriesTag(m);
+    // Only one signal on top: available or not. Bay-assignment status is
+    // a staff/fulfillment concern, not something a customer browsing
+    // needs to parse — that only shows in Manage Inventory now. Damaged
+    // gets a plain-language badge instead of an unlabeled colored dot,
+    // since a customer shouldn't need to hover a tooltip to know what a
+    // dot means.
     return `<div class="poster-card" data-openmovie="${m.id}" style="${bg}">
       <span class="poster-dot${out?'':' in-stock'}" style="background:${out?'#737373':'#46D369'};" title="${out?'Out of stock':'In stock'}"></span>
-      ${!hasBay ? `<span class="nobay-dot" title="Not assigned to a bay"></span>` : ""}
-      ${m.condition==='damaged' ? `<span class="damaged-dot" title="Flagged as damaged"></span>` : ""}
       ${tag ? `<span style="position:absolute;top:8px;left:8px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,0.55);padding:2px 7px;border-radius:6px;">${tag}</span>` : ""}
+      ${m.condition==='damaged' ? `<span class="bluray-badge" style="background:linear-gradient(135deg,#E57373,#B71C1C);${tag?'bottom:56px;':''}">⚠️ Damaged</span>` : ""}
       ${isGame && m.platform ? `<span class="bluray-badge" style="background:linear-gradient(135deg,#66BB6A,#2E7D32);">${m.platform}</span>` : ""}
       ${!isGame && m.format==='Blu-ray' ? `<span class="bluray-badge">Blu-ray</span>` : ""}
       <span class="poster-title">${m.title}</span>
@@ -1134,11 +1170,9 @@
       ? `background-image:linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,0.85) 100%), url('${rep.poster}');`
       : `background-image:linear-gradient(160deg, ${color}, #141414 85%);`;
     const totalStock = discs.reduce((s,d) => s+(d.stock||0), 0);
-    const anyMissingBay = discs.some(d => !bays.some(b => b.titleId === d.id));
     const allBluray = discs.every(d => d.format==='Blu-ray');
     return `<div class="poster-card" data-openseries="${encodeURIComponent(seriesName)}" style="${bg}">
       <span class="poster-dot${totalStock>0?' in-stock':''}" style="background:${totalStock>0?'#46D369':'#737373'};" title="${totalStock>0?'In stock':'Out of stock'}"></span>
-      ${anyMissingBay ? `<span class="nobay-dot" title="At least one disc isn't assigned to a bay"></span>` : ""}
       <span style="position:absolute;top:8px;left:8px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,0.55);padding:2px 7px;border-radius:6px;">${discs.length} disc${discs.length===1?'':'s'}</span>
       ${allBluray ? `<span class="bluray-badge">Blu-ray</span>` : ""}
       <span class="poster-title">${seriesName}</span>
@@ -1250,12 +1284,58 @@
     return pick;
   }
 
+  // Picks a random in-stock title from whichever Browse tab is currently
+  // showing (movies or games) and opens it straight up — "we have 200
+  // titles and can't decide" solved with one click, respecting the tab
+  // the person's actually looking at rather than mixing both pools.
+  function surpriseMe(){
+    const activePanel = document.querySelector(".panel.active");
+    const isGamesTab = !!(activePanel && activePanel.dataset.panel === "browsegames");
+    const pool = catalog.filter(m => (isGamesTab ? m.mediaType === "game" : m.mediaType !== "game") && m.stock > 0);
+    if(pool.length === 0){
+      toast(`No in-stock ${isGamesTab ? "games" : "movies"} to surprise you with right now.`);
+      return;
+    }
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    openMovieModal(pick.id);
+  }
+
+  // A recent-first slice, shown as its own row above the main grid —
+  // shared by both Browse views since the logic (has a createdAt, sort
+  // desc, take a handful) doesn't differ between movies and games.
+  function recentlyAddedRowHtml(items){
+    const recent = items.filter(m => m.createdAt).sort((a,b) => b.createdAt - a.createdAt).slice(0, 12);
+    if(recent.length === 0) return "";
+    return rowHtml("Recently Added", recent, 0);
+  }
+
+  // Everything that could actually change what the Browse grid looks
+  // like, compressed into one comparable string — poster/backdrop data
+  // itself is excluded (huge, and irrelevant to *whether* something
+  // should re-render, only to what it looks like once it does).
+  function browseSignature(items, q){
+    return q + "|" + items.map(m =>
+      m.id+":"+(m.stock>0?1:0)+":"+(m.poster?1:0)+":"+(m.condition||"")+":"+(m.format||"")+":"+(m.platform||"")+":"+m.title+":"+(m.seriesName||"")+":"+(m.season||"")+":"+(m.discNumber||"")+":"+(m.createdAt||"")+":"+m.genre
+    ).join(",");
+  }
+  let lastBrowseSig = "";
+  let lastGamesSig = "";
+
   function renderBrowse(){
     const heroEl = $("#browseHero");
     const rowsEl = $("#browseRows");
     if(!heroEl || !rowsEl) return;
     const movieItems = catalog.filter(m => m.mediaType !== 'game');
     const q = query.trim().toLowerCase();
+
+    // Skip the (expensive, and DOM-destroying) rebuild entirely when
+    // nothing that actually affects this grid has changed since last
+    // time — this is what stops the poster stagger-in and scroll-reveal
+    // animations from replaying every time an unrelated checkout/return
+    // happens anywhere in the app and triggers a global render() pass.
+    const sig = browseSignature(movieItems, q);
+    if(sig === lastBrowseSig) return;
+    lastBrowseSig = sig;
 
     if(q){
       heroEl.innerHTML = "";
@@ -1282,7 +1362,7 @@
     const actionBtn = heroEl.querySelector("[data-hero-action]");
     if(actionBtn && !actionBtn.disabled) actionBtn.onclick = () => openMovieModal(featured.id);
 
-    rowsEl.innerHTML = gridHtml("", movieItems);
+    rowsEl.innerHTML = recentlyAddedRowHtml(movieItems) + gridHtml("", movieItems);
     wireBrowseCards(rowsEl, openMovieModal);
     wireSeriesCards(rowsEl);
     setupScrollReveal(rowsEl);
@@ -1297,6 +1377,10 @@
     if(!heroEl || !rowsEl) return;
     const gameItems = catalog.filter(m => m.mediaType === 'game');
     const q = query.trim().toLowerCase();
+
+    const sig = browseSignature(gameItems, q);
+    if(sig === lastGamesSig) return;
+    lastGamesSig = sig;
 
     if(q){
       heroEl.innerHTML = "";
@@ -1322,7 +1406,7 @@
     const actionBtn = heroEl.querySelector("[data-hero-action]");
     if(actionBtn && !actionBtn.disabled) actionBtn.onclick = () => openMovieModal(featured.id);
 
-    rowsEl.innerHTML = gridHtml("", gameItems);
+    rowsEl.innerHTML = recentlyAddedRowHtml(gameItems) + gridHtml("", gameItems);
     wireBrowseCards(rowsEl, openMovieModal);
     setupScrollReveal(rowsEl);
   }
@@ -1462,7 +1546,7 @@
       <img class="poster-thumb" src="${m.poster || ''}" style="${m.poster?'':'visibility:hidden;'}" />
       <div style="flex:1;">
         <span style="font-size:14px;">${isGame ? '🎮 ' : ''}${m.title}</span>
-        <span style="font-size:12px;color:var(--muted);margin-left:8px;">${m.genre} · ${m.year} · code: ${m.code}${seriesTag(m) ? ' · '+seriesTag(m) : ''}</span>
+        <span style="font-size:12px;color:var(--muted);margin-left:8px;">${m.genre} · ${m.year} · code: ${m.code}${seriesTag(m) ? ' · '+seriesTag(m) : ''}${!bays.some(b=>b.titleId===m.id) ? ' · <span style="color:#E8B800;">no bay assigned</span>' : ''}</span>
         <div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
           ${isGame ? `<select class="platformInput" data-platform="${m.id}" style="font-size:11px;padding:4px 8px;width:auto;">
             ${GAME_PLATFORMS.map(p => `<option value="${p}" ${m.platform===p?'selected':''}>${p}</option>`).join("")}
@@ -1480,8 +1564,8 @@
           <label class="file-label"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12.5" r="3.5" stroke="currentColor" stroke-width="2"/></svg> ${m.poster?'Replace photo':'Add photo'}
             <input type="file" accept="image/*" capture="environment" class="posterInput" data-poster="${m.id}" />
           </label>
-          ${!isGame ? `<button class="secondary" data-lookup="${m.id}" style="padding:5px 9px;font-size:11px;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Look up on OMDb</button>
-          <button class="secondary" data-pickmatch="${m.id}" style="padding:5px 9px;font-size:11px;" title="Picked the wrong movie/show? Choose a different match.">Wrong match?</button>` : ''}
+          <button class="secondary" data-lookup="${m.id}" style="padding:5px 9px;font-size:11px;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Look up on ${isGame ? 'IGDB' : 'OMDb'}</button>
+          <button class="secondary" data-pickmatch="${m.id}" style="padding:5px 9px;font-size:11px;" title="Picked the wrong movie/show/game? Choose a different match.">Wrong match?</button>
           ${m.seriesName ? `<label class="file-label"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M9 18V5l11-2v13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" stroke="currentColor" stroke-width="2"/><circle cx="17.5" cy="16" r="2.5" stroke="currentColor" stroke-width="2"/></svg> ${m.themeSong?'Replace theme':'Add theme'}
             <input type="file" accept="audio/*" class="themeInput" data-theme="${m.id}" />
           </label>` : ''}
@@ -1612,6 +1696,8 @@
     el.innerHTML = `<div class="list-group">` + users.map(u => {
       const active = rentals.filter(r => r.renterName===u.name);
       const activeText = active.length===0 ? "Nothing checked out" : `Has: ${active.map(r=>r.title).join(", ")}`;
+      const restricted = new Set(u.restrictedRatings || []);
+      const restrictOptions = ["PG-13","R","T","M","AO"];
       return `<div class="row" style="align-items:flex-start;">
         <div style="flex:1;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <input class="userNameInput" data-user="${u.id}" value="${u.name}" style="width:130px;" />
@@ -1620,6 +1706,10 @@
             <input type="checkbox" class="userAdminInput" data-user="${u.id}" style="width:auto;" ${u.isAdmin?'checked':''} /> Admin
           </label>
           <button class="secondary" data-saveuser="${u.id}" style="padding:8px 12px;font-size:12px;">Save</button>
+          <div style="width:100%;display:flex;gap:10px;flex-wrap:wrap;margin-top:2px;">
+            <span style="font-size:11px;color:var(--muted);">Can't check out:</span>
+            ${restrictOptions.map(r => `<label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:3px;"><input type="checkbox" class="userRestrictInput" data-user="${u.id}" value="${r}" style="width:auto;" ${restricted.has(r)?'checked':''} /> ${r}</label>`).join("")}
+          </div>
           <div style="width:100%;font-size:11px;color:var(--muted);margin-top:2px;">${activeText}</div>
         </div>
         <button class="adjbtn" style="color:#E87C03;border-color:#5A3A20;" data-removeuser="${u.id}">×</button>
@@ -1631,7 +1721,8 @@
       const name = el.querySelector(`.userNameInput[data-user="${id}"]`).value;
       const pin = el.querySelector(`.userPinInput[data-user="${id}"]`).value;
       const isAdmin = el.querySelector(`.userAdminInput[data-user="${id}"]`).checked;
-      updateUser(id, name, pin, isAdmin);
+      const restrictedRatings = Array.from(el.querySelectorAll(`.userRestrictInput[data-user="${id}"]:checked`)).map(cb => cb.value);
+      updateUser(id, name, pin, isAdmin, restrictedRatings);
     });
   }
 
@@ -2008,6 +2099,14 @@
     toast(key ? "TMDb API key saved" : "TMDb API key cleared");
   }
 
+  async function setIgdbKeys(clientId, clientSecret){
+    clientId = (clientId||"").trim();
+    clientSecret = (clientSecret||"").trim();
+    try{ await api.send("PUT", "/api/settings", { igdbClientId: clientId, igdbClientSecret: clientSecret }); igdbClientId = clientId; igdbClientSecret = clientSecret; render(); }
+    catch(e){ toast("Couldn't save IGDB credentials"); return; }
+    toast(clientId ? "IGDB credentials saved" : "IGDB credentials cleared");
+  }
+
   async function setWledUrl(url){
     url = (url||"").trim();
     try{ await api.send("PUT", "/api/settings", { wledUrl: url }); wledUrl = url; render(); }
@@ -2191,13 +2290,13 @@
     });
   }
 
-  async function addUser(name, pin, isAdmin){
+  async function addUser(name, pin, isAdmin, restrictedRatings){
     name = (name||"").trim();
     pin = (pin||"").trim();
     if(!name){ toast("Enter a name"); return; }
     if(!/^\d{4}$/.test(pin)){ toast("PIN must be exactly 4 digits"); return; }
     if(users.some(u => u.pin === pin)){ toast("That PIN is already in use — pick another"); return; }
-    try{ await api.send("POST", "/api/users", { name, pin, isAdmin: !!isAdmin }); }
+    try{ await api.send("POST", "/api/users", { name, pin, isAdmin: !!isAdmin, restrictedRatings: restrictedRatings || [] }); }
     catch(e){ toast("Couldn't add user"); return; }
     await refetch("users");
     toast(`Added ${name}`);
@@ -2211,14 +2310,14 @@
     toast("User removed");
   }
 
-  async function updateUser(id, name, pin, isAdmin){
+  async function updateUser(id, name, pin, isAdmin, restrictedRatings){
     name = (name||"").trim();
     pin = (pin||"").trim();
     isAdmin = !!isAdmin;
     if(!name){ toast("Name can't be empty"); return; }
     if(!/^\d{4}$/.test(pin)){ toast("PIN must be exactly 4 digits"); return; }
     if(users.some(u => u.pin === pin && u.id !== id)){ toast("That PIN is already in use — pick another"); return; }
-    try{ await api.send("PATCH", "/api/users/"+id, { name, pin, isAdmin }); }
+    try{ await api.send("PATCH", "/api/users/"+id, { name, pin, isAdmin, restrictedRatings: restrictedRatings || [] }); }
     catch(e){ toast("Couldn't save changes"); return; }
     await refetch("users");
     await refetch("rentals"); // the server renames matching rental records too
@@ -2232,10 +2331,23 @@
   // checkout immediately — it only actually finishes once that disc
   // leaves its bay (microswitch, or a scanned bay barcode as a manual
   // fallback), mirroring how returns work.
+  // Shared by both checkout paths — checked client-side first for
+  // immediate feedback (no round trip needed to find out), with the
+  // server enforcing the same rule authoritatively either way.
+  function isRatingRestricted(movie, renterName){
+    const u = users.find(x => x.name === renterName);
+    if(!u || !Array.isArray(u.restrictedRatings)) return false;
+    return u.restrictedRatings.includes(movie.rating);
+  }
+
   async function startRentByMovie(movie, renterName){
     if(movie.stock<=0) return;
     renterName = (renterName||"").trim();
     if(!renterName){ toast("Enter a renter name first"); return; }
+    if(isRatingRestricted(movie, renterName)){
+      toast(`${renterName}'s account can't check out ${movie.rating}-rated titles.`);
+      return;
+    }
     const currentCount = rentals.filter(r => r.renterName===renterName).length;
     if(currentCount >= maxCheckouts){
       toast(`${renterName} already has ${currentCount} disc${currentCount===1?'':'s'} out — the limit is ${maxCheckouts}`);
@@ -2255,6 +2367,10 @@
     if(movie.stock<=0) return;
     renterName = (renterName||"").trim();
     if(!renterName){ toast("Enter a renter name first"); return; }
+    if(isRatingRestricted(movie, renterName)){
+      toast(`${renterName}'s account can't check out ${movie.rating}-rated titles.`);
+      return;
+    }
     const currentCount = rentals.filter(r => r.renterName===renterName).length;
     if(currentCount >= maxCheckouts){
       toast(`${renterName} already has ${currentCount} disc${currentCount===1?'':'s'} out — the limit is ${maxCheckouts}`);
@@ -2265,7 +2381,7 @@
     try{
       await api.send("PATCH", "/api/titles/"+movie.id, { stock: movie.stock - 1 });
       await api.send("POST", "/api/rentals", { movieId: movie.id, title: movie.title, genre: movie.genre, renterName, rentedOn: now, dueOn });
-    }catch(e){ toast("Couldn't save rental"); return; }
+    }catch(e){ toast(e.message || "Couldn't save rental"); return; }
     await refetch("titles");
     await refetch("rentals");
     api.send("POST", "/api/locate-bay", { titleId: movie.id }).catch(()=>{}); // best-effort — helps find the bay, never blocks the rental
@@ -2429,7 +2545,7 @@
     if(!title || !title.trim()) return null;
     const id = "t"+Date.now()+Math.floor(Math.random()*1000)+Math.floor(Math.random()*1000);
     const finalCode = (code && code.trim()) ? code.trim() : id;
-    const data = { code: finalCode, title: title.trim(), genre, year: Number(year)||new Date().getFullYear(), rating, stock: Number(stock)||0, imdbId: (imdbId||"").trim() };
+    const data = { code: finalCode, title: title.trim(), genre, year: Number(year)||new Date().getFullYear(), rating, stock: Number(stock)||0, imdbId: (imdbId||"").trim(), createdAt: Date.now() };
     data.mediaType = mediaType || "movie";
     if(data.mediaType === "game"){
       if(platform) data.platform = platform;
@@ -2604,10 +2720,12 @@
   async function lookupTitle(id){
     const m = catalog.find(x=>x.id===id);
     if(!m) return;
+    const isGame = m.mediaType === 'game';
     toast(`Looking up "${m.title}"...`);
     try{
       let url = "/api/lookup?title="+encodeURIComponent(m.title)+"&year="+encodeURIComponent(m.year||"");
-      if(m.seriesName) url += "&type=series";
+      if(isGame) url += "&type=game";
+      else if(m.seriesName) url += "&type=series";
       const result = await api.get(url);
       const patch = {};
       if(result.poster) patch.poster = result.poster;
@@ -2621,7 +2739,7 @@
       await refetch("titles");
       toast(`Updated "${m.title}"`);
     }catch(e){
-      toast(e.message.indexOf("404")!==-1 ? `"${m.title}" wasn't found` : "Couldn't reach OMDb/TMDb — check the server has a key and internet access");
+      toast(e.message.indexOf("404")!==-1 ? `"${m.title}" wasn't found` : `Couldn't reach ${isGame?'IGDB':'OMDb/TMDb'} — check the server has ${isGame?'a Client ID/Secret':'a key'} and internet access`);
     }
   }
 
@@ -2632,12 +2750,14 @@
   async function openMatchPicker(titleId){
     const m = catalog.find(x=>x.id===titleId);
     if(!m) return;
+    const isGame = m.mediaType === 'game';
+    const source = isGame ? "IGDB" : "TMDb";
     const overlay = $("#matchPickerOverlay");
     const body = $("#matchPickerBody");
     overlay.style.display = "flex";
     body.innerHTML = `
       <div class="t" style="font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:18px;font-weight:700;color:var(--white);margin-bottom:4px;">Which one is "${m.title}"?</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Picking one replaces the poster, backdrop, description, logo, and trailer with that match's real details.</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Picking one replaces the poster${isGame ? ' and description' : ', backdrop, description, logo, and trailer'} with that match's real details.</div>
       <div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">Searching…</div>
       <button class="secondary" id="matchPickerCloseBtn" style="width:100%;margin-top:10px;">Cancel</button>
     `;
@@ -2645,12 +2765,12 @@
     overlay.onclick = (e) => { if(e.target===overlay) closeMatchPicker(); };
 
     try{
-      const type = m.seriesName ? "series" : "";
+      const type = isGame ? "game" : (m.seriesName ? "series" : "");
       let url = "/api/search-candidates?title="+encodeURIComponent(m.title);
       if(type) url += "&type="+type;
       const { candidates } = await api.get(url);
       if(!candidates || candidates.length===0){
-        body.innerHTML = `<div style="font-size:13px;color:var(--muted);padding:10px 0;">No matches found on TMDb for "${m.title}".</div>
+        body.innerHTML = `<div style="font-size:13px;color:var(--muted);padding:10px 0;">No matches found on ${source} for "${m.title}".</div>
           <button class="secondary" id="matchPickerCloseBtn2" style="width:100%;margin-top:10px;">Close</button>`;
         $("#matchPickerCloseBtn2").onclick = closeMatchPicker;
         return;
@@ -2712,24 +2832,25 @@
   // later and remembering to flag it.
   function promptDiscCondition(rental){
     const overlay = $("#conditionOverlay");
-    const body = $("#conditionBody");
     overlay.style.display = "flex";
-    body.innerHTML = `
-      <div class="t" style="font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:19px;font-weight:700;color:var(--white);margin-bottom:6px;">How was the disc?</div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">"${rental.title}" — just returned</div>
-      <div style="display:flex;flex-direction:column;gap:10px;">
+    overlay.innerHTML = `
+      <div class="t">How was the disc?</div>
+      <div class="g">"${rental.title}" — just returned</div>
+      <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:360px;">
         <button class="primary" data-cond="good" style="width:100%;">✅ Good — ready to rent again</button>
         <button class="secondary" data-cond="damaged" style="width:100%;">⚠️ Damaged — scratched, won't play right</button>
         <button class="secondary" data-cond="missing" style="width:100%;">❌ Missing — case was empty / lost</button>
       </div>
     `;
-    body.querySelectorAll("[data-cond]").forEach(b => {
+    overlay.querySelectorAll("[data-cond]").forEach(b => {
       b.onclick = () => setDiscCondition(rental, b.dataset.cond);
     });
   }
 
   function closeConditionPrompt(){
-    $("#conditionOverlay").style.display = "none";
+    const overlay = $("#conditionOverlay");
+    overlay.style.display = "none";
+    overlay.innerHTML = "";
   }
 
   async function setDiscCondition(rental, condition){
@@ -3009,6 +3130,7 @@
       if(hidden) $("#barcodeInput").focus();
     };
     $("#topBarReturnBtn").onclick = () => openReturnFlow();
+    $("#surpriseMeBtn").onclick = surpriseMe;
     $("#adminConsoleBtn").onclick = () => enterAdminConsole();
     $("#exitAdminConsoleBtn").onclick = exitAdminConsole;
     $("#manualCheckoutBtn").onclick = () => {
@@ -3186,6 +3308,9 @@
     $("#omdbKeyShow").onchange = (e) => { $("#omdbKeyInput").type = e.target.checked ? "text" : "password"; };
     $("#saveTmdbKeyBtn").onclick = () => setTmdbApiKey($("#tmdbKeyInput").value);
     $("#tmdbKeyShow").onchange = (e) => { $("#tmdbKeyInput").type = e.target.checked ? "text" : "password"; };
+    $("#saveIgdbKeysBtn").onclick = () => setIgdbKeys($("#igdbClientIdInput").value, $("#igdbClientSecretInput").value);
+    $("#igdbClientIdShow").onchange = (e) => { $("#igdbClientIdInput").type = e.target.checked ? "text" : "password"; };
+    $("#igdbClientSecretShow").onchange = (e) => { $("#igdbClientSecretInput").type = e.target.checked ? "text" : "password"; };
     $("#saveWledUrlBtn").onclick = () => setWledUrl($("#wledUrlInput").value);
     $("#saveBayWindowBtn").onclick = () => setBayWindowSeconds($("#bayWindowInput").value);
     $("#saveDoorSettingsBtn").onclick = () => setDoorSettings({
@@ -3198,8 +3323,10 @@
     $("#printBayBarcodesBtn").onclick = printBayBarcodes;
 
     $("#addUserBtn").onclick = async () => {
-      await addUser($("#newUserName").value, $("#newUserPin").value, $("#newUserIsAdmin").checked);
+      const restricted = Array.from(document.querySelectorAll(".newUserRestrict:checked")).map(cb => cb.value);
+      await addUser($("#newUserName").value, $("#newUserPin").value, $("#newUserIsAdmin").checked, restricted);
       $("#newUserName").value=""; $("#newUserPin").value=""; $("#newUserIsAdmin").checked=false;
+      document.querySelectorAll(".newUserRestrict").forEach(cb => cb.checked=false);
     };
 
     $("#saveMaxCheckoutBtn").onclick = () => setMaxCheckouts($("#maxCheckoutInput").value);

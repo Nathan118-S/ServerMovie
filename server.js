@@ -69,6 +69,31 @@ function httpsGetImageAsDataUri(url){
   });
 }
 
+// IGDB's own API needs POST for both its OAuth token exchange and its
+// Apicalypse-query search endpoint — httpsGetJson above only does GET.
+function httpsPostJson(url, body, headers){
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const payload = typeof body === "string" ? body : JSON.stringify(body);
+    const req = https.request({
+      hostname: u.hostname,
+      path: u.pathname + u.search,
+      method: "POST",
+      headers: { "Content-Length": Buffer.byteLength(payload), ...headers }
+    }, res => {
+      let data = "";
+      res.on("data", chunk => data += chunk);
+      res.on("end", () => {
+        try{ resolve(JSON.parse(data)); }
+        catch(e){ reject(new Error("Bad response")); }
+      });
+    });
+    req.on("error", reject);
+    req.write(payload);
+    req.end();
+  });
+}
+
 // ---------- WLED bay lighting ----------
 // Best-effort, fire-and-forget: a light not updating should never block or
 // break a checkout/return. Uses WLED's JSON API to set one individual LED.
@@ -235,6 +260,103 @@ function getOmdbKey(){
 function getTmdbKey(){
   return (db.settings && db.settings.tmdbApiKey) || process.env.TMDB_API_KEY || "";
 }
+function getIgdbClientId(){
+  return (db.settings && db.settings.igdbClientId) || "";
+}
+function getIgdbClientSecret(){
+  return (db.settings && db.settings.igdbClientSecret) || "";
+}
+
+// IGDB genres are far more specific than the app's game genre buckets
+// (Action, Adventure, Sports, Racing, Fighting, Party, RPG, Shooter,
+// Platformer, Puzzle) — this collapses IGDB's list down to the closest
+// bucket, first match wins.
+function mapGameGenre(igdbGenreNames){
+  const names = (igdbGenreNames || []).map(n => n.toLowerCase());
+  const has = kw => names.some(n => n.includes(kw));
+  if(has("shooter")) return "Shooter";
+  if(has("fighting")) return "Fighting";
+  if(has("racing")) return "Racing";
+  if(has("sport")) return "Sports";
+  if(has("puzzle")) return "Puzzle";
+  if(has("platform")) return "Platformer";
+  if(has("role-playing") || has("rpg")) return "RPG";
+  if(has("party") || has("family")) return "Party";
+  if(has("adventure")) return "Adventure";
+  return "Action";
+}
+
+// IGDB (run by Twitch) uses OAuth client-credentials, not a plain API
+// key — this exchanges the Client ID/Secret for a short-lived access
+// token and caches it in memory (no need to persist; it's cheap and
+// safe to just fetch a new one after a restart or once this one expires).
+let igdbTokenCache = { token: "", expiresAt: 0 };
+async function getIgdbToken(){
+  if(igdbTokenCache.token && igdbTokenCache.expiresAt > Date.now() + 60000) return igdbTokenCache.token;
+  const clientId = getIgdbClientId();
+  const secret = getIgdbClientSecret();
+  if(!clientId || !secret) return "";
+  const url = `https://id.twitch.tv/oauth2/token?client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(secret)}&grant_type=client_credentials`;
+  let result;
+  try{ result = await httpsPostJson(url, "", { "Content-Type": "application/x-www-form-urlencoded" }); }
+  catch(e){ return ""; }
+  if(!result || !result.access_token) return "";
+  igdbTokenCache = { token: result.access_token, expiresAt: Date.now() + (result.expires_in || 3600) * 1000 };
+  return igdbTokenCache.token;
+}
+
+function igdbCoverUrl(imageId, size){
+  return `https://images.igdb.com/igdb/image/upload/t_${size}/${imageId}.jpg`;
+}
+
+async function igdbQuery(endpoint, apicalypseBody){
+  const clientId = getIgdbClientId();
+  const token = await getIgdbToken();
+  if(!clientId || !token) return null;
+  try{
+    return await httpsPostJson(`https://api.igdb.com/v4/${endpoint}`, apicalypseBody, {
+      "Client-ID": clientId,
+      "Authorization": "Bearer " + token,
+      "Content-Type": "text/plain"
+    });
+  }catch(e){ return null; }
+}
+
+// Best-guess single lookup, same shape/role as lookupOmdb/lookupTmdb —
+// searches, takes the top result, fetches its cover as a data URI.
+async function lookupIgdb(title, year){
+  const results = await igdbQuery("games",
+    `search "${title.replace(/"/g,'\\"')}"; fields name,summary,cover.image_id,genres.name,first_release_date,screenshots.image_id; limit 1;`);
+  const best = results && results[0];
+  if(!best) return null;
+  return igdbResultToFields(best, year);
+}
+
+async function igdbResultToFields(r, fallbackYear){
+  let poster = "";
+  if(r.cover && r.cover.image_id){
+    try{ poster = await httpsGetImageAsDataUri(igdbCoverUrl(r.cover.image_id, "cover_big")); }catch(e){}
+  }
+  // Games don't have a landscape "backdrop" the way TMDb provides for
+  // movies — the closest real equivalent IGDB has is a screenshot, which
+  // actually is landscape-oriented, so the first one stands in for it.
+  let backdrop = "";
+  const shot = r.screenshots && r.screenshots[0];
+  if(shot && shot.image_id){
+    try{ backdrop = await httpsGetImageAsDataUri(igdbCoverUrl(shot.image_id, "screenshot_big")); }catch(e){}
+  }
+  const releaseYear = r.first_release_date ? new Date(r.first_release_date * 1000).getFullYear() : (fallbackYear || new Date().getFullYear());
+  return {
+    title: r.name,
+    year: releaseYear,
+    genre: mapGameGenre((r.genres||[]).map(g=>g.name)),
+    description: r.summary || "",
+    poster,
+    backdrop,
+    logo: "",
+    trailerKey: ""
+  };
+}
 
 async function lookupOmdb(title, year, type){
   const key = getOmdbKey();
@@ -374,6 +496,26 @@ async function lookupTmdbSeasonEpisodes(title, season){
 
 
 async function lookupMetadata(title, year, type){
+  if(type === "game"){
+    const igdb = await lookupIgdb(title, year);
+    if(!igdb){
+      const err = new Error(`"${title}" wasn't found on IGDB (or no Client ID/Secret is configured) — see README.md.`);
+      err.code = "NOT_FOUND";
+      throw err;
+    }
+    return {
+      title: igdb.title || title,
+      year: igdb.year || year,
+      genre: igdb.genre || "Action",
+      rating: "T", // IGDB doesn't expose ESRB in a simple way on this endpoint — leave it for the person to adjust
+      description: igdb.description || "",
+      imdbId: "",
+      poster: igdb.poster || "",
+      backdrop: "",
+      logo: "",
+      trailerKey: ""
+    };
+  }
   const [omdb, tmdb] = await Promise.all([
     lookupOmdb(title, year, type),
     lookupTmdb(title, year, type)
@@ -460,8 +602,30 @@ function loadDb(){
 
 let db = loadDb();
 
+// Writes used to block the event loop on every single mutation
+// (fs.writeFileSync) — harmless when this file was small, but it now
+// carries base64 poster/backdrop images for both movies and games, so a
+// checkout or return could stall on Pi-class SD card I/O. This queues
+// writes instead: never more than one save in flight, and if changes
+// pile up while one's writing, exactly one more save happens right
+// after — so writes stay in order and nothing is lost, without ever
+// blocking the request that triggered them.
+let dbSaveInProgress = false;
+let dbSavePending = false;
 function saveDb(){
-  fs.writeFileSync(DATA_FILE, JSON.stringify(db, null, 2));
+  dbSavePending = true;
+  if(dbSaveInProgress) return;
+  performDbSave();
+}
+function performDbSave(){
+  dbSaveInProgress = true;
+  dbSavePending = false;
+  const data = JSON.stringify(db, null, 2);
+  fs.writeFile(DATA_FILE, data, (err) => {
+    dbSaveInProgress = false;
+    if(err) console.error("Failed to save database:", err.message);
+    if(dbSavePending) performDbSave();
+  });
 }
 
 // ---------- live updates (Server-Sent Events) ----------
@@ -658,12 +822,37 @@ app.get("/api/lookup", async (req, res) => {
 
 // Returns several candidate matches (instead of just the best guess) so a
 // mismatched auto-fill can be corrected — e.g. a title that shares its
-// name with a more famous, unrelated movie/show. TMDb only (it's the
-// source with posters to visually tell candidates apart; OMDb's search
-// endpoint returns far less to go on).
+// name with a more famous, unrelated movie/show/game. Movies/TV use
+// TMDb; games use IGDB — each is the source with posters to visually
+// tell candidates apart.
 app.get("/api/search-candidates", async (req, res) => {
   const { title, type } = req.query;
   if(!title) return res.status(400).json({ error: "title is required" });
+
+  if(type === "game"){
+    if(!getIgdbClientId() || !getIgdbClientSecret()){
+      return res.status(500).json({ error: "Needs an IGDB Client ID and Secret to show alternate matches — paste them under Manage inventory.", code: "NO_API_KEY" });
+    }
+    const results = await igdbQuery("games",
+      `search "${title.replace(/"/g,'\\"')}"; fields name,summary,cover.image_id,first_release_date; limit 8;`);
+    if(!results) return res.status(500).json({ error: "Couldn't reach IGDB." });
+    const candidates = await Promise.all(results.map(async r => {
+      let thumb = "";
+      if(r.cover && r.cover.image_id){
+        try{ thumb = await httpsGetImageAsDataUri(igdbCoverUrl(r.cover.image_id, "cover_small")); }catch(e){}
+      }
+      return {
+        id: r.id,
+        kind: "game",
+        title: r.name || title,
+        year: r.first_release_date ? String(new Date(r.first_release_date * 1000).getFullYear()) : "",
+        overview: (r.summary || "").slice(0, 150),
+        thumb
+      };
+    }));
+    return res.json({ candidates });
+  }
+
   const key = getTmdbKey();
   if(!key) return res.status(500).json({ error: "Needs a TMDb key to show alternate matches — paste one under Manage inventory.", code: "NO_API_KEY" });
   const kind = type === "series" ? "tv" : "movie";
@@ -690,11 +879,19 @@ app.get("/api/search-candidates", async (req, res) => {
   res.json({ candidates });
 });
 
-// Fetches full details for one specific TMDb id/kind directly — the
+// Fetches full details for one specific id/kind directly — the
 // completion step once the person has picked the right candidate above.
 app.get("/api/lookup-by-id", async (req, res) => {
   const { id, kind, title, year } = req.query;
   if(!id || !kind) return res.status(400).json({ error: "id and kind are required" });
+  if(kind === "game"){
+    const results = await igdbQuery("games",
+      `fields name,summary,cover.image_id,genres.name,first_release_date,screenshots.image_id; where id = ${parseInt(id,10)};`);
+    const r = results && results[0];
+    if(!r) return res.status(404).json({ error: "Couldn't fetch details for that title." });
+    const result = await igdbResultToFields(r, year);
+    return res.json({ ...result, rating: "T", imdbId: "", logo: "", trailerKey: "" });
+  }
   const result = await fetchTmdbDetailsById(id, kind, title || "", year);
   if(!result) return res.status(404).json({ error: "Couldn't fetch details for that title." });
   res.json(result);
@@ -720,14 +917,20 @@ app.get("/api/series-episodes", async (req, res) => {
 // Discs that share a series name are looked up once and the result reused
 // across all of them, instead of repeating the same search per disc.
 app.post("/api/autofill", async (req, res) => {
-  if(!getOmdbKey() && !getTmdbKey()){
-    return res.status(500).json({ error: "No OMDb or TMDb API key configured — paste one under Manage inventory.", code: "NO_API_KEY" });
+  if(!getOmdbKey() && !getTmdbKey() && !(getIgdbClientId() && getIgdbClientSecret())){
+    return res.status(500).json({ error: "No OMDb/TMDb key or IGDB Client ID+Secret configured — paste them under Manage inventory.", code: "NO_API_KEY" });
   }
-  const targets = db.titles.filter(t => !t.poster || !t.backdrop || !t.description || !t.trailerKey || (t.seriesName && !t.logo));
+  // Games get a poster + backdrop (via IGDB screenshots) + description —
+  // no logo or trailer, since IGDB doesn't track those the way TMDb does
+  // for movies, so checking for those on a game would make it look
+  // perpetually incomplete and get re-queried every run for no reason.
+  const targets = db.titles.filter(t => t.mediaType === 'game'
+    ? (!t.poster || !t.backdrop || !t.description)
+    : (!t.poster || !t.backdrop || !t.description || !t.trailerKey || (t.seriesName && !t.logo)));
   let updated = 0, notFound = 0, failed = 0;
   const cache = new Map();
   for(const t of targets){
-    const type = t.seriesName ? "series" : undefined;
+    const type = t.mediaType === 'game' ? "game" : (t.seriesName ? "series" : undefined);
     const cacheKey = (type || "movie") + "::" + t.title.toLowerCase();
     try{
       let result;
@@ -1011,6 +1214,12 @@ app.post("/api/bay-return", (req, res) => {
 
 // ---------- rentals ----------
 app.post("/api/rentals", (req, res) => {
+  const { movieId, renterName } = req.body;
+  const title = movieId ? db.titles.find(t => t.id === movieId) : null;
+  const renterUser = renterName ? db.users.find(u => u.name === renterName) : null;
+  if(title && renterUser && Array.isArray(renterUser.restrictedRatings) && renterUser.restrictedRatings.includes(title.rating)){
+    return res.status(403).json({ error: `${renterName}'s account can't check out ${title.rating}-rated titles.` });
+  }
   const rental = { id: newId("r"), ...req.body };
   db.rentals.push(rental);
   saveDb();
@@ -1136,3 +1345,19 @@ app.listen(PORT, () => {
   console.log(`Sandy Server running at http://localhost:${PORT}`);
   console.log(`TV page:            http://localhost:${PORT}/#tv`);
 });
+
+// The async save above trades a tiny window of risk (a crash between
+// responding and the write actually landing on disk) for never blocking
+// a request on disk I/O. This closes that window for the common,
+// intentional case — `systemctl restart`, Ctrl+C, a Pi reboot — by
+// doing one guaranteed synchronous write of whatever's in memory right
+// now before the process actually exits. `db` is always current
+// regardless of whether the last async write finished, so this can't
+// lose anything newer than what a synchronous save always could anyway.
+function flushDbAndExit(){
+  try{ fs.writeFileSync(DATA_FILE, JSON.stringify(db, null, 2)); }
+  catch(e){ console.error("Couldn't flush database on shutdown:", e.message); }
+  process.exit(0);
+}
+process.on("SIGTERM", flushDbAndExit);
+process.on("SIGINT", flushDbAndExit);
