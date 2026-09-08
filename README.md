@@ -538,6 +538,164 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## A real bug found: restoring a backup silently wiped the wishlist
+
+Went looking for issues rather than waiting for a specific complaint
+this time, and found one worth fixing immediately: `/api/import`
+rebuilds the entire in-memory database from the uploaded backup file,
+one field at a time — and `wishlist` had been left out of that list
+the whole time it's existed. Not just "the wishlist doesn't come back"
+either — I actually reproduced it rather than just reasoning about it:
+restoring *any* backup set `db.wishlist` to `undefined` (not even an
+empty array), and the very next time anyone tried to submit a new
+title request afterward, the server would throw `Cannot read
+properties of undefined (reading 'unshift')` and the request would
+fail outright, with nothing about the error pointing at "you imported
+a backup a while ago" as the actual cause.
+
+Cross-checked every other top-level field against the full db schema
+while I was in there, specifically to make sure this wasn't one of
+several — `wishlist` was the only one missing; everything else
+(titles, rentals, rental history, users, settings, bays, and the rest)
+was already handled correctly. Fixed, and gave it its own broadcast on
+import completing, matching every other field, so other open tabs or
+devices pick up a restored wishlist immediately rather than only the
+one that actually ran the import.
+
+## A personal activity view — tap your own avatar
+
+Clicking your own colored avatar in the login widget (next to "Checking
+out as [name]") opens a small personal view: total discs watched,
+what's currently checked out, your favorite genre by rental count, and
+a short recently-watched list. Entirely your own data — nothing here
+touches or exposes anyone else's activity, and it needs no admin
+access, unlike the full Rentals → History view.
+
+I need to flag something plainly rather than just fix it quietly:
+while building this, I made the exact same mistake I made a few rounds
+back with the shelf-map print feature — a find-and-replace aimed at
+inserting this new function ahead of an existing one
+(`openRequestTitleModal`) accidentally deleted that function's own
+declaration line, leaving its body orphaned with nothing calling it.
+Same failure shape as before: it wouldn't have thrown an error
+immediately, just quietly broken the "Request a Title" button the next
+time someone actually clicked it. I caught it the same way — checking
+that the function I'd edited around still existed and was still
+callable — but the fact that this happened twice in the same project
+is worth being honest about rather than glossing over, since it's a
+real pattern in how I was making these particular edits, not
+random bad luck. Verified fixed before anything shipped, same as last
+time.
+
+## "On This Day," inserted partway down the catalog
+
+Browse Movies now shows an "📅 On This Day" row roughly halfway through
+the grid — titles rented on this exact calendar date in a past year,
+pulled straight from rental history. Only shows up at all on days that
+actually have a match; most days, the grid renders exactly as before.
+
+One thing worth being careful about, and the actual reason this took
+more than just slicing the array in half: the grid already groups a
+whole series into one tile, scanning by series name across however
+much of the list it's handed. Splitting the raw title list at an
+arbitrary index could cut a series' discs across both halves — with
+the series tile then getting built twice, once in each half, since
+each half's grid-builder scans only what it was given and has no idea
+the other half exists. Fixed by splitting at the level of whole
+*display units* instead of raw items — a series (every disc, wherever
+it happens to sit in the original list) counts as one unit that always
+stays together, the same as it always renders as one tile.
+
+## A spin animation, private staff notes, and a printable shelf map
+
+**Surprise Me now actually spins** — 8 quick flips through random
+posters from the same pool at decreasing speed (fast at first,
+slowing down like a slot machine), landing on the real pick last with
+a beat to actually see it before the modal takes over. Purely visual;
+the pick itself is chosen up front the same way it always was, this
+just makes the reveal feel like something happened instead of an
+instant jump.
+
+**Private staff notes per title** — a small field in Catalog →
+Inventory only, never shown anywhere customer-facing (the poster
+grid, the hero, the detail modal, TV mode — none of them touch it).
+For "sleeve's a little worn" or "kids love this one," that kind of
+thing.
+
+**A printable shelf map** — Bays & Lighting → Bay layout has a
+"🖨️ Print shelf map" button that generates a plain black-and-white
+diagram version of the exact same drag-and-drop layout you already set
+up, meant to be printed and taped up near the actual shelf as a
+physical reference. Reuses the same stored bay positions rather than
+needing its own separate layout — nothing to keep in sync between the
+two, since there's only one source of position data.
+
+Worth being upfront about something I caught building the shelf map,
+not after: a careless find-and-replace nearly deleted the
+`generateLabels` function's own declaration line while inserting the
+new print function next to it — the kind of mistake that wouldn't
+throw an error immediately, just quietly break the "Generate & print"
+labels button the next time someone clicked it. Caught by checking
+that the function I'd just edited around still actually existed and
+was still callable, not by assuming the edit landed cleanly — verified
+in the file, then fixed, before any of this shipped.
+
+## An activity feed, and one-tap mood filters
+
+**A "Recent activity" box on Dashboard** — the last several checkouts
+and returns, newest first, each with a relative timestamp ("2 min
+ago"). Distinct on purpose from Rentals → History, which already
+existed and does the deeper job (popularity ranking, a longer log) —
+this is the quick version, for a pulse-check without digging in. Built
+entirely from data already loaded (the active rentals list plus
+rental history), not a new log the server has to separately maintain,
+so it stays live through the app's normal update cycle automatically.
+
+**Browse Movies gets one-tap mood filters** — Family Night, Need a
+Laugh, Something Scary, Throwback, New Arrivals — sitting right below
+the hero. Tapping an active one again clears it, rather than needing a
+separate "clear filter" control to hunt for. Deliberately built from
+data every title already has (genre, rating, year, when it was added)
+rather than adding something like a runtime field, which would have
+meant a new Add Title input and no way to backfill it for anything
+already in the catalog. Scoped to Movies only for now — games' ESRB
+ratings and genre set don't map cleanly onto "Family Night," and
+Digital Copies' relationship to genre/rating works the same way movies'
+does, so it could reasonably be extended there later.
+
+## Double Feature, a backup reminder, and genre-colored glows
+
+**Double Feature** — a new button in the top bar picks two in-stock
+titles for an actual movie-night pairing, preferring a shared genre
+(falling back to any second in-stock title if nothing else matches, so
+a small catalog never comes up empty). "🎲 Different pairing" re-rolls
+without closing the card. Scoped to whichever of Movies/Games is the
+active tab, same as Surprise Me — not offered from Digital Copies,
+since "pick two physical things for movie night" doesn't map onto a
+streaming link, and clicking it there says so plainly rather than
+silently suggesting movies instead.
+
+**A backup reminder** on Dashboard — shows up only once it's actually
+been a while (30 days) since the last export, or if one's never been
+made at all; says nothing the rest of the time. "Back up now" jumps to
+System and starts the download in one click. The server now records a
+timestamp on every successful export specifically to support this,
+rather than the app having no idea when — or whether — a backup ever
+happened.
+
+**Every poster now has a soft glow in its own genre's color** —
+scannable across a whole grid at a glance, without reading each title's
+genre tag individually. Worth knowing how this was actually built,
+since the direct approach would have quietly broken something else:
+setting the glow as a plain inline `box-shadow` would have had higher
+CSS specificity than the existing `.poster-card:hover`/`:focus` rules,
+silently blocking their own (different, interaction-specific) glow
+from ever showing once a card had an inline one. Passed as a CSS custom
+property instead — the inline part only supplies a color value, the
+actual `box-shadow` declaration stays in the stylesheet, so hover and
+focus states continue to override the resting glow exactly as they did
+before any of this was added.
+
 ## Digital Copies — a third, genuinely separate catalog tab
 
 A new **Digital Copies** tab, alongside Browse Movies and Browse Games —

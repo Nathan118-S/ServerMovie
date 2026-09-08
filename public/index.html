@@ -198,7 +198,7 @@
     mask-image:linear-gradient(to right, transparent 0, black 40px, black calc(100% - 40px), transparent 100%);}
   .row-scroller::-webkit-scrollbar{display:none;}
   .poster-grid{display:flex;flex-wrap:wrap;gap:16px;padding:6px 40px 20px;}
-  .poster-card{position:relative;flex-shrink:0;width:150px;height:225px;border-radius:14px;cursor:pointer;display:flex;align-items:flex-end;padding:10px;background-size:cover;background-position:center;box-shadow:0 4px 16px rgba(0,0,0,0.35);transition:transform 0.25s cubic-bezier(.25,.8,.35,1),box-shadow 0.25s ease;animation:fadeInUp 0.4s ease both;}
+  .poster-card{position:relative;flex-shrink:0;width:150px;height:225px;border-radius:14px;cursor:pointer;display:flex;align-items:flex-end;padding:10px;background-size:cover;background-position:center;box-shadow:0 4px 16px rgba(0,0,0,0.35), 0 0 22px -2px var(--glow-color, transparent);transition:transform 0.25s cubic-bezier(.25,.8,.35,1),box-shadow 0.25s ease;animation:fadeInUp 0.4s ease both;}
   /* TV-remote navigation needs a focus ring that reads clearly from
      across a room — the default thin browser outline doesn't cut it. */
   #tvRoot .poster-card:focus, #tvRoot .poster-card:focus-visible{outline:none;transform:scale(1.08);box-shadow:0 0 0 4px #fff, 0 0 0 8px var(--red), 0 12px 32px rgba(0,0,0,0.5);z-index:5;}
@@ -288,6 +288,8 @@
     body *{visibility:hidden;}
     #label-sheet, #label-sheet *{visibility:visible;}
     #label-sheet{display:block!important;position:absolute;top:0;left:0;}
+    #shelf-map-sheet, #shelf-map-sheet *{visibility:visible;}
+    #shelf-map-sheet{display:block!important;position:absolute;top:0;left:0;width:100%;}
   }
 
   .adjbtn{background:var(--surf2);border:1px solid var(--line);color:var(--white);border-radius:10px;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;transition:background 0.18s ease,transform 0.1s ease;}
@@ -399,6 +401,7 @@
   <div class="logo" id="logoHome">SANDY SERVER</div>
   <button class="secondary" id="surpriseMeBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Surprise Me</button>
   <button class="secondary" id="requestTitleBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.3 7-11.5A7 7 0 0 0 5 9.5C5 14.7 12 21 12 21Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 6v7M8.5 9.5h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Request a Title</button>
+  <button class="secondary" id="doubleFeatureBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="2.5" y="6" width="10" height="13" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="11.5" y="6" width="10" height="13" rx="1.5" stroke="currentColor" stroke-width="2"/></svg> Double Feature</button>
   <button class="secondary" id="topBarReturnBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 1 1 2.3 5.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 17v-5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Return</button>
   <button class="secondary" id="adminConsoleBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;display:none;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Admin Console</button>
   <button class="theme-toggle" id="themeToggleBtn" title="Switch light/dark" type="button">
@@ -430,6 +433,7 @@
 
   <div class="panel active" data-panel="browse">
     <div id="browseHero"></div>
+    <div id="moodRow" style="display:flex;gap:8px;flex-wrap:wrap;padding:0 40px 18px;position:relative;z-index:1;"></div>
     <div id="browseRows"></div>
   </div>
 
@@ -456,6 +460,12 @@
   <div class="label-sheet-grid" id="labelSheetGrid"></div>
 </div>
 
+<div id="shelf-map-sheet" style="display:none;padding:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#000;">
+  <div style="font-size:20px;font-weight:700;margin-bottom:4px;">Sandy Server — Shelf Map</div>
+  <div style="font-size:12px;color:#555;margin-bottom:20px;" id="shelfMapPrintedAt"></div>
+  <div id="shelfMapDiagram" style="position:relative;width:100%;height:600px;border:2px solid #000;"></div>
+</div>
+
 <div id="movieModal" class="modal-overlay"></div>
 <div id="pendingReturnOverlay" class="pending-return-overlay"></div>
 <div id="pendingCheckoutOverlay" class="pending-return-overlay"></div>
@@ -467,6 +477,20 @@
   <div class="modal-card" style="width:380px;">
     <div class="modal-body" id="requestTitleBody" style="padding:26px 22px;"></div>
   </div>
+</div>
+<div id="doubleFeatureOverlay" class="modal-overlay">
+  <div class="modal-card" style="width:460px;">
+    <div class="modal-body" id="doubleFeatureBody" style="padding:26px 22px;"></div>
+  </div>
+</div>
+<div id="myActivityOverlay" class="modal-overlay">
+  <div class="modal-card" style="width:460px;max-height:80vh;">
+    <div class="modal-body" id="myActivityBody" style="padding:26px 22px;"></div>
+  </div>
+</div>
+<div id="surpriseSpinOverlay" class="pending-return-overlay">
+  <div id="surpriseSpinBox" style="width:200px;aspect-ratio:2/3;border-radius:14px;background-size:cover;background-position:center;box-shadow:0 20px 50px rgba(0,0,0,0.5);margin-bottom:18px;"></div>
+  <div id="surpriseSpinLabel" class="t" style="font-size:18px;"></div>
 </div>
 <div id="returnFlowOverlay" class="modal-overlay">
   <div class="modal-card" style="width:360px;">
@@ -516,6 +540,8 @@
       <div id="dashboardStats" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;"></div>
       <div id="dashboardAttention" style="margin-bottom:20px;"></div>
       <div id="dashboardHealth" style="margin-bottom:20px;"></div>
+      <div id="backupReminder" style="margin-bottom:20px;"></div>
+      <div id="activityFeed" style="margin-bottom:20px;"></div>
       <div class="bulk-box" style="margin-top:0;max-width:520px;">
         <div class="display" style="font-size:15px;margin-bottom:6px;">Check out a disc manually</div>
         <div class="scan-msg" style="margin-top:0;">Skips the pending/bay-confirmation flow entirely and completes right away — same idea as the instant Return button here, for when you're standing at the counter handling it directly.</div>
@@ -800,6 +826,7 @@
             <div class="display" style="font-size:15px;">Bay layout</div>
             <div style="display:flex;gap:10px;align-items:center;">
               <span id="wledLiveStatus" style="font-size:12px;color:var(--muted);"></span>
+              <button class="secondary" id="printShelfMapBtn" style="padding:7px 12px;font-size:11px;">🖨️ Print shelf map</button>
               <button class="secondary" id="bayLayoutResetBtn" style="padding:7px 12px;font-size:11px;">Reset to grid</button>
             </div>
           </div>
@@ -972,6 +999,19 @@
     Action:"#8B1E1E", Comedy:"#8A6A16", Drama:"#2E3E63", Horror:"#3E1420",
     "Sci-Fi":"#175349", Animation:"#8C4A1F", Thriller:"#3E2F63"
   };
+  // One-tap mood presets for Browse Movies — built entirely from data
+  // titles already have (genre, rating, year, when it was added), not
+  // a new field like runtime that would've needed its own Add Title
+  // input and a way to backfill it for everything already in the
+  // catalog. Each "test" gets the movie-only pool already filtered by
+  // stock; returning false excludes it from that mood.
+  const MOOD_PRESETS = {
+    family: { label: "🍿 Family Night", test: m => m.rating === "G" || m.rating === "PG" },
+    laugh: { label: "😂 Need a Laugh", test: m => m.genre === "Comedy" },
+    scary: { label: "😱 Something Scary", test: m => m.genre === "Horror" },
+    throwback: { label: "🕰️ Throwback", test: m => m.year && m.year < 2005 },
+    new: { label: "✨ New Arrivals", test: m => m.createdAt && (Date.now() - m.createdAt) < 30*86400000 }
+  };
   // Games get their own genre set and color palette, kept visually
   // distinct from the movie genres above — reused in Browse Games,
   // Add Title's game fields, and poster tiles.
@@ -1111,6 +1151,7 @@
   let tvSelection = null; // {movieId, title, genre, year, poster, sentAt} — last thing sent from the TV page
   let query = "";
   let featuredBrowseId = null;
+  let moodFilter = null; // one of MOOD_PRESETS' keys, or null for no mood filter active
   let featuredGamesId = null;
   let featuredDigitalId = null;
   let featuredTvId = null;
@@ -1332,6 +1373,7 @@
     // once on the way in instead.
     if(adminMode){
       renderDashboard();
+      renderActivityFeed();
       renderRentals();
       renderActivityPanel();
       renderAdminList();
@@ -1400,6 +1442,7 @@
     requestAnimationFrame(() => console_.classList.add("visible"));
     renderDashboard();
     renderServerHealth();
+    renderBackupReminder();
     renderRentals();
     renderActivityPanel();
     renderAdminList();
@@ -1523,14 +1566,34 @@
     return parts.length ? parts.join(" · ") : "";
   }
 
+  // Converts a "#RRGGBB" hex color to an rgba() string at the given
+  // opacity — used for the genre glow below, since a hardcoded hex at
+  // full opacity would read as a neon outline rather than a soft glow.
+  function hexToRgba(hex, alpha){
+    const h = (hex||"#333333").replace("#","");
+    const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+    return `rgba(${r||51},${g||51},${b||51},${alpha})`;
+  }
+
   function posterTileHtml(m){
     const isGame = m.mediaType === 'game';
     const isDigital = m.mediaType === 'digital';
     const color = (isGame ? GAME_GENRE_COLORS[m.genre] : GENRE_COLORS[m.genre]) || "#333";
     const out = m.stock<=0;
+    // A soft glow in the genre's own color around the resting card —
+    // makes genre scannable across a whole grid at a glance without
+    // reading every title's genre tag individually. Passed as a CSS
+    // custom property, not an inline box-shadow directly: an inline
+    // box-shadow would have higher specificity than the existing
+    // .poster-card:hover/:focus rules and would silently block their
+    // own (differently-colored, interaction-specific) glow from ever
+    // showing. The custom property just supplies a value; the actual
+    // box-shadow declaration stays in the stylesheet, so hover/focus
+    // continue to override the resting state exactly as before.
+    const glowVar = `--glow-color:${hexToRgba(color, 0.55)};`;
     const bg = m.poster
-      ? `background-image:linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,0.85) 100%), url('${m.poster}');`
-      : `background-image:linear-gradient(160deg, ${color}, #141414 85%);`;
+      ? `background-image:linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,0.85) 100%), url('${m.poster}');${glowVar}`
+      : `background-image:linear-gradient(160deg, ${color}, #141414 85%);${glowVar}`;
     const tag = seriesTag(m);
     // Only one signal on top: available or not. Bay-assignment status is
     // a staff/fulfillment concern, not something a customer browsing
@@ -1577,6 +1640,52 @@
   // Mixes standalone movies with one consolidated tile per series, built
   // from whichever subset of the catalog is currently in view (all of it,
   // or a search's matches) — series grouping always uses the full disc set.
+  // Splits a list roughly in half by DISPLAY UNIT, not by raw item
+  // count — a whole series (every disc, wherever it falls in the
+  // original list) counts as one unit, same as it renders as one tile.
+  // Splitting by raw index instead could cut a series' discs across
+  // both halves, and buildMixedGridHtml groups by series name across
+  // whatever list it's given, so that would render the same series as
+  // two separate (and duplicated) tiles — one in each half.
+  function splitByDisplayUnit(items){
+    const units = [];
+    const usedSeries = new Set();
+    items.forEach(m => {
+      if(m.seriesName){
+        if(usedSeries.has(m.seriesName)) return;
+        usedSeries.add(m.seriesName);
+        units.push(items.filter(x => x.seriesName === m.seriesName));
+      } else {
+        units.push([m]);
+      }
+    });
+    const mid = Math.ceil(units.length / 2);
+    return {
+      first: units.slice(0, mid).flat(),
+      second: units.slice(mid).flat()
+    };
+  }
+
+  // Titles rented on this exact calendar date in a past year — one
+  // per title, most recent past occurrence if it happened more than
+  // once. Only ever includes titles still actually in the passed-in
+  // pool, so a title that's since been removed from the catalog can't
+  // show up here just because it's still sitting in rental history.
+  function computeOnThisDay(pool){
+    const today = new Date();
+    const seen = new Set();
+    const results = [];
+    [...rentals, ...rentalHistory].forEach(r => {
+      if(!r.rentedOn || seen.has(r.movieId)) return;
+      const d = new Date(r.rentedOn);
+      if(d.getMonth() === today.getMonth() && d.getDate() === today.getDate() && d.getFullYear() < today.getFullYear()){
+        const title = pool.find(m => m.id === r.movieId);
+        if(title){ results.push(title); seen.add(r.movieId); }
+      }
+    });
+    return results;
+  }
+
   function buildMixedGridHtml(list){
     const movies = list.filter(m => !m.seriesName);
     const seriesNames = Array.from(new Set(list.filter(m => m.seriesName).map(m => m.seriesName)));
@@ -1750,6 +1859,12 @@
   // showing (movies or games) and opens it straight up — "we have 200
   // titles and can't decide" solved with one click, respecting the tab
   // the person's actually looking at rather than mixing both pools.
+  // A brief "spin" before landing on the pick — cycles through a
+  // handful of random posters from the same pool at decreasing speed
+  // (fast at first, slowing down like a slot machine), landing on the
+  // actual pick last, pausing on it, then opening it for real. Makes
+  // the reveal feel like something happened rather than an instant
+  // jump straight to a modal.
   function surpriseMe(){
     const activePanel = document.querySelector(".panel.active");
     const tabName = activePanel && activePanel.dataset.panel;
@@ -1766,8 +1881,148 @@
       return;
     }
     const pick = pool[Math.floor(Math.random() * pool.length)];
-    openMovieModal(pick.id);
+    if(pool.length === 1){ openMovieModal(pick.id); return; } // nothing to actually spin through
+
+    const overlay = $("#surpriseSpinOverlay");
+    const box = $("#surpriseSpinBox");
+    const label = $("#surpriseSpinLabel");
+    overlay.style.display = "flex";
+    label.textContent = "Picking something…";
+
+    const colorMap = isGamesTab ? GAME_GENRE_COLORS : GENRE_COLORS;
+    const showTitle = (m) => {
+      box.style.backgroundImage = m.poster
+        ? `url('${m.poster}')`
+        : `linear-gradient(160deg, ${colorMap[m.genre]||'#333'}, #141414 85%)`;
+    };
+    // Decreasing speed across 8 quick flips, landing on the real pick
+    // on the last one — everything before that is just other random
+    // titles from the same pool for the spin effect itself.
+    const delays = [90, 100, 120, 150, 190, 250, 340, 480];
+    let elapsed = 0;
+    delays.forEach((delay, i) => {
+      elapsed += delay;
+      setTimeout(() => {
+        const isLast = i === delays.length - 1;
+        showTitle(isLast ? pick : pool[Math.floor(Math.random() * pool.length)]);
+        if(isLast) label.textContent = pick.title;
+      }, elapsed);
+    });
+    setTimeout(() => {
+      overlay.style.display = "none";
+      openMovieModal(pick.id);
+    }, elapsed + 550); // a beat to actually see the landed title before the modal takes over
   }
+
+
+  // Picks two in-stock titles for an actual movie-night pairing —
+  // same genre preferred (falls back to any second in-stock title if
+  // nothing else shares a genre with the first pick, so it always
+  // finds a pair rather than failing outright with a small catalog).
+  // Scoped to whichever of Movies/Games is the active tab, same as
+  // Surprise Me — not offered from Digital Copies, since "pick two
+  // physical things for movie night" doesn't map cleanly onto
+  // something that's just a streaming link.
+  function openDoubleFeature(){
+    const activePanel = document.querySelector(".panel.active");
+    const tabName = activePanel && activePanel.dataset.panel;
+    if(tabName === "browsedigital"){
+      toast("Double Feature isn't available for Digital Copies — switch to Browse Movies or Browse Games first.");
+      return;
+    }
+    const isGamesTab = tabName === "browsegames";
+    const pool = catalog.filter(m => (isGamesTab ? m.mediaType === "game" : (m.mediaType !== "game" && m.mediaType !== "digital")) && m.stock > 0);
+    if(pool.length < 2){
+      toast(`Not enough in-stock ${isGamesTab ? 'games' : 'movies'} for a pairing yet — need at least two.`);
+      return;
+    }
+    const first = pool[Math.floor(Math.random() * pool.length)];
+    const sameGenrePool = pool.filter(m => m.id !== first.id && m.genre === first.genre);
+    const secondPool = sameGenrePool.length > 0 ? sameGenrePool : pool.filter(m => m.id !== first.id);
+    const second = secondPool[Math.floor(Math.random() * secondPool.length)];
+    const pairReason = sameGenrePool.length > 0 ? `Both ${first.genre}` : "A pairing for tonight";
+
+    const overlay = $("#doubleFeatureOverlay");
+    const body = $("#doubleFeatureBody");
+    overlay.style.display = "flex";
+    const posterHtml = (m) => `<div data-openpair="${m.id}" style="cursor:pointer;text-align:center;flex:1;">
+        <div style="width:100%;aspect-ratio:2/3;border-radius:10px;background-size:cover;background-position:center;background-image:${m.poster ? `url('${m.poster}')` : `linear-gradient(160deg, ${(isGamesTab?GAME_GENRE_COLORS:GENRE_COLORS)[m.genre]||'#333'}, #141414 85%)`};margin-bottom:8px;box-shadow:0 8px 20px rgba(0,0,0,0.4);"></div>
+        <div style="font-size:13px;color:var(--white);">${m.title}</div>
+      </div>`;
+    body.innerHTML = `
+      <div class="t" style="font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:19px;font-weight:700;color:var(--white);margin-bottom:4px;">🎬 Double Feature</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">${pairReason} — tap either to open it.</div>
+      <div style="display:flex;gap:14px;margin-bottom:18px;">${posterHtml(first)}${posterHtml(second)}</div>
+      <button class="secondary" id="doubleFeatureRerollBtn" style="width:100%;">🎲 Different pairing</button>
+    `;
+    body.querySelectorAll("[data-openpair]").forEach(el => {
+      el.onclick = () => { closeDoubleFeature(); openMovieModal(el.dataset.openpair); };
+    });
+    $("#doubleFeatureRerollBtn").onclick = openDoubleFeature;
+    overlay.onclick = (e) => { if(e.target===overlay) closeDoubleFeature(); };
+  }
+
+  function closeDoubleFeature(){
+    const overlay = $("#doubleFeatureOverlay");
+    overlay.style.display = "none";
+    $("#doubleFeatureBody").innerHTML = "";
+  }
+
+  // A personal view for whoever's logged in — their own history only,
+  // never anyone else's, and nothing here needs admin access. Distinct
+  // from the admin-only Rentals → History view, which sees everyone.
+  function openMyActivity(){
+    if(!loggedInUser) return;
+    const overlay = $("#myActivityOverlay");
+    const body = $("#myActivityBody");
+    overlay.style.display = "flex";
+
+    const mine = rentalHistory.filter(r => r.renterName === loggedInUser.name);
+    const active = rentals.filter(r => r.renterName === loggedInUser.name);
+    const allMine = mine.concat(active);
+
+    const genreCounts = new Map();
+    allMine.forEach(r => genreCounts.set(r.genre, (genreCounts.get(r.genre)||0) + 1));
+    let favoriteGenre = null, favoriteCount = 0;
+    genreCounts.forEach((count, genre) => { if(count > favoriteCount){ favoriteCount = count; favoriteGenre = genre; } });
+
+    const recent = mine.slice().sort((a,b) => (b.returnedOn||0) - (a.returnedOn||0)).slice(0, 8);
+
+    const stat = (label, value) => `<div style="flex:1;min-width:100px;text-align:center;">
+      <div style="font-size:22px;font-weight:700;color:var(--white);">${value}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px;">${label}</div>
+    </div>`;
+
+    body.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;background:${loggedInUser.color||'#B3261E'};font-size:${loggedInUser.avatar?'18px':'15px'};font-weight:700;color:#fff;flex-shrink:0;">${loggedInUser.avatar || loggedInUser.name.trim().charAt(0).toUpperCase()}</span>
+        <div class="t" style="font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:19px;font-weight:700;color:var(--white);">${loggedInUser.name}'s activity</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:20px;padding:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);">
+        ${stat("discs watched", mine.length)}
+        ${stat("checked out now", active.length)}
+        ${stat("favorite genre", favoriteGenre || "—")}
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Recently watched</div>
+      ${recent.length === 0
+        ? `<div style="font-size:13px;color:var(--muted);">Nothing returned yet — check something out to get started.</div>`
+        : `<div class="list-group">${recent.map(r => `<div class="row" style="padding:8px 0;">
+            <span style="font-size:13px;">${r.title}</span>
+            <span style="font-size:11px;color:var(--muted);flex-shrink:0;">${r.returnedOn ? new Date(r.returnedOn).toLocaleDateString() : ''}</span>
+          </div>`).join("")}</div>`
+      }
+      <button class="secondary" id="myActivityCloseBtn" style="width:100%;margin-top:18px;">Close</button>
+    `;
+    $("#myActivityCloseBtn").onclick = closeMyActivity;
+    overlay.onclick = (e) => { if(e.target===overlay) closeMyActivity(); };
+  }
+
+  function closeMyActivity(){
+    const overlay = $("#myActivityOverlay");
+    overlay.style.display = "none";
+    $("#myActivityBody").innerHTML = "";
+  }
+
 
   function openRequestTitleModal(){
     const overlay = $("#requestTitleOverlay");
@@ -1818,19 +2073,44 @@
   let lastGamesSig = "";
   let lastDigitalSig = "";
 
+  // Tapping an already-active mood clears it — a toggle, not a
+  // one-way filter you have to hunt for an "X" to escape.
+  function renderMoodRow(){
+    const el = $("#moodRow");
+    if(!el) return;
+    el.innerHTML = Object.entries(MOOD_PRESETS).map(([key, mood]) =>
+      `<button class="secondary${moodFilter===key?' active':''}" data-mood="${key}" style="padding:8px 14px;font-size:12.5px;white-space:nowrap;${moodFilter===key?'background:var(--red);color:#fff;border-color:var(--red);':''}">${mood.label}</button>`
+    ).join("");
+    el.querySelectorAll("[data-mood]").forEach(btn => {
+      btn.onclick = () => {
+        moodFilter = (moodFilter === btn.dataset.mood) ? null : btn.dataset.mood;
+        lastBrowseSig = ""; // force the grid to actually rebuild even if browseSignature would otherwise match
+        renderBrowse();
+      };
+    });
+  }
+
   function renderBrowse(){
     const heroEl = $("#browseHero");
     const rowsEl = $("#browseRows");
     if(!heroEl || !rowsEl) return;
-    const movieItems = catalog.filter(m => m.mediaType !== 'game' && m.mediaType !== 'digital');
+    let movieItems = catalog.filter(m => m.mediaType !== 'game' && m.mediaType !== 'digital');
     const q = query.trim().toLowerCase();
+
+    // The mood row itself always reflects the current selection,
+    // whether or not the grid below actually needs rebuilding this
+    // pass — a stale-looking "active" state on the wrong button would
+    // be a worse experience than the small cost of updating it here on
+    // every call.
+    renderMoodRow();
+    if(moodFilter && MOOD_PRESETS[moodFilter]) movieItems = movieItems.filter(MOOD_PRESETS[moodFilter].test);
 
     // Skip the (expensive, and DOM-destroying) rebuild entirely when
     // nothing that actually affects this grid has changed since last
     // time — this is what stops the poster stagger-in and scroll-reveal
     // animations from replaying every time an unrelated checkout/return
     // happens anywhere in the app and triggers a global render() pass.
-    const sig = browseSignature(movieItems, q);
+    const sig = (moodFilter||"") + "|" + browseSignature(movieItems, q);
     if(sig === lastBrowseSig) return;
     lastBrowseSig = sig;
 
@@ -1849,7 +2129,9 @@
 
     if(movieItems.length===0){
       heroEl.innerHTML = "";
-      rowsEl.innerHTML = `<div style="color:var(--muted);font-size:14px;padding:24px 40px;">No movies yet — add some under Manage inventory.</div>`;
+      rowsEl.innerHTML = moodFilter
+        ? `<div style="color:var(--muted);font-size:14px;padding:24px 40px;">Nothing matches ${MOOD_PRESETS[moodFilter].label} right now.</div>`
+        : `<div style="color:var(--muted);font-size:14px;padding:24px 40px;">No movies yet — add some under Manage inventory.</div>`;
       return;
     }
 
@@ -1862,7 +2144,14 @@
     const actionBtn = heroEl.querySelector("[data-hero-action]");
     if(actionBtn && !actionBtn.disabled) actionBtn.onclick = () => openMovieModal(featured.id);
 
-    rowsEl.innerHTML = gridHtml("", movieItems);
+    const onThisDayTitles = computeOnThisDay(movieItems);
+    if(onThisDayTitles.length > 0){
+      const { first, second } = splitByDisplayUnit(movieItems);
+      const dateLabel = new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
+      rowsEl.innerHTML = gridHtml("", first) + rowHtml(`📅 On This Day — ${dateLabel}`, onThisDayTitles, 0) + gridHtml("", second);
+    } else {
+      rowsEl.innerHTML = gridHtml("", movieItems);
+    }
     wireBrowseCards(rowsEl, openMovieModal);
     wireSeriesCards(rowsEl);
     setupScrollReveal(rowsEl);
@@ -2086,12 +2375,80 @@
     </div>`;
   }
 
+  // A soft nudge, not a nag — only shows up at all once it's been a
+  // while, and says nothing if a backup happened recently. The point
+  // is catching this before something's already gone wrong, not
+  // pestering on every single Dashboard visit.
+  const BACKUP_REMINDER_DAYS = 30;
+  async function renderBackupReminder(){
+    const el = $("#backupReminder");
+    if(!el) return;
+    let status;
+    try{ status = await api.get("/api/backup-status"); }
+    catch(e){ return; }
+    const daysSince = status.lastBackupAt ? Math.floor((Date.now() - status.lastBackupAt) / 86400000) : null;
+    if(daysSince !== null && daysSince < BACKUP_REMINDER_DAYS){ el.innerHTML = ""; return; }
+    const message = daysSince === null
+      ? "No backup has been made yet."
+      : `It's been ${daysSince} days since the last backup.`;
+    el.innerHTML = `<div class="bulk-box" style="margin-top:0;border-color:#5A4A20;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;">
+        <div>
+          <div class="display" style="font-size:14px;margin-bottom:4px;color:#E8B800;">💾 ${message}</div>
+          <div style="font-size:12px;color:var(--muted);">Your whole catalog, rentals, users, and settings live in one file worth keeping a copy of somewhere else.</div>
+        </div>
+        <button class="secondary" id="backupReminderBtn" style="flex-shrink:0;">Back up now</button>
+      </div>
+    </div>`;
+    $("#backupReminderBtn").onclick = () => {
+      setTab("system");
+      window.location.href = "/api/export";
+      setTimeout(renderBackupReminder, 1500); // the export itself doesn't navigate away, so re-check once the server's had time to record it
+    };
+  }
+
+  function relativeTimeAgo(ts){
+    const seconds = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+    if(seconds < 60) return "just now";
+    const minutes = Math.floor(seconds / 60);
+    if(minutes < 60) return `${minutes} min ago`;
+    const hours = Math.floor(minutes / 60);
+    if(hours < 24) return `${hours} hour${hours===1?'':'s'} ago`;
+    const days = Math.floor(hours / 24);
+    if(days < 7) return `${days} day${days===1?'':'s'} ago`;
+    return new Date(ts).toLocaleDateString();
+  }
+
+  // A quick pulse-check distinct from the full Rentals tab — the last
+  // handful of checkouts and returns, newest first, entirely derived
+  // from data already loaded (rentals + rentalHistory) rather than a
+  // separate log the server has to maintain. Naturally stays live
+  // through the app's normal render() cycle, no extra polling needed.
+  function renderActivityFeed(){
+    const el = $("#activityFeed");
+    if(!el) return;
+    const checkoutEvents = rentals.map(r => ({ type: "checkout", at: r.rentedOn, title: r.title, who: r.renterName }));
+    const returnEvents = rentalHistory.map(r => ({ type: "return", at: r.returnedOn, title: r.title, who: r.renterName }));
+    const events = checkoutEvents.concat(returnEvents)
+      .filter(e => e.at)
+      .sort((a,b) => b.at - a.at)
+      .slice(0, 8);
+    if(events.length === 0){ el.innerHTML = ""; return; }
+    el.innerHTML = `<div class="bulk-box" style="margin-top:0;">
+      <div class="display" style="font-size:15px;margin-bottom:10px;">Recent activity</div>
+      <div class="list-group">${events.map(e => `<div class="row" style="padding:8px 0;">
+        <span style="font-size:13px;">${e.type==='checkout' ? '📤' : '📥'} <b>${e.who}</b> ${e.type==='checkout' ? 'checked out' : 'returned'} ${e.title}</span>
+        <span style="font-size:11px;color:var(--muted);flex-shrink:0;">${relativeTimeAgo(e.at)}</span>
+      </div>`).join("")}</div>
+    </div>`;
+  }
+
   let serverHealthPollTimer = null;
   function startServerHealthPolling(){
     if(serverHealthPollTimer) return;
     serverHealthPollTimer = setInterval(() => {
       const activePanel = document.querySelector(".panel.active");
-      if(adminMode && activePanel && activePanel.dataset.panel === "dashboard") renderServerHealth();
+      if(adminMode && activePanel && activePanel.dataset.panel === "dashboard"){ renderServerHealth(); renderBackupReminder(); }
     }, 10000);
   }
 
@@ -2233,6 +2590,7 @@
             <input type="file" accept="audio/*" class="themeInput" data-theme="${m.id}" />
           </label>` : ''}
         </div>
+        <input class="notesInput" data-notes="${m.id}" placeholder="📝 Private note (staff only — never shown to customers)" value="${m.notes||''}" style="font-size:11px;padding:5px 8px;width:100%;margin-top:6px;color:var(--muted);" />
       </div>
       ${isDigital
         ? `<div style="display:flex;gap:8px;align-items:center;">
@@ -2259,6 +2617,9 @@
     el.querySelectorAll("[data-pickmatch]").forEach(b => b.onclick = () => openMatchPicker(b.dataset.pickmatch));
     el.querySelectorAll(".imdbInput").forEach(inp => {
       inp.onchange = () => setImdbId(inp.dataset.imdb, inp.value);
+    });
+    el.querySelectorAll(".notesInput").forEach(inp => {
+      inp.onchange = () => setNotes(inp.dataset.notes, inp.value);
     });
     el.querySelectorAll(".formatInput").forEach(sel => {
       sel.onchange = () => setFormat(sel.dataset.format, sel.value);
@@ -2350,12 +2711,14 @@
     if(loggedInUser){
       const count = rentals.filter(r => r.renterName===loggedInUser.name).length;
       const initial = loggedInUser.name.trim().charAt(0).toUpperCase() || "?";
-      const avatarHtml = `<span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:${loggedInUser.color||'#B3261E'};font-size:${loggedInUser.avatar?'14px':'12px'};font-weight:700;color:#fff;flex-shrink:0;">${loggedInUser.avatar || initial}</span>`;
+      const avatarHtml = `<span id="myActivityAvatarBtn" title="See your activity" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:${loggedInUser.color||'#B3261E'};font-size:${loggedInUser.avatar?'14px':'12px'};font-weight:700;color:#fff;flex-shrink:0;cursor:pointer;">${loggedInUser.avatar || initial}</span>`;
       el.innerHTML = `<div class="login-box">
         <span class="who" style="display:flex;align-items:center;gap:8px;">${avatarHtml} Checking out as ${loggedInUser.name} <span style="font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:12px;color:var(--muted);">(${count}/${maxCheckouts} discs out)</span></span>
         <button class="secondary" data-logout>Not you? Log out</button>
       </div>`;
       el.querySelector("[data-logout]").onclick = pinLogout;
+      const avatarBtn = el.querySelector("#myActivityAvatarBtn");
+      if(avatarBtn) avatarBtn.onclick = openMyActivity;
     } else {
       el.innerHTML = `<button class="primary" data-openlogin style="width:100%;">Log in to rent</button>`;
       el.querySelector("[data-openlogin]").onclick = openLoginGate;
@@ -4173,6 +4536,14 @@
     catch(e){ toast("Couldn't save IMDb id"); }
   }
 
+  async function setNotes(id, notes){
+    notes = (notes||"").trim();
+    const m = catalog.find(x=>x.id===id);
+    if(!m) return;
+    try{ await api.send("PATCH", "/api/titles/"+id, { notes }); await refetch("titles"); }
+    catch(e){ toast("Couldn't save that note"); }
+  }
+
   async function setFormat(id, format){
     const m = catalog.find(x=>x.id===id);
     if(!m) return;
@@ -4562,6 +4933,28 @@
   }
 
   // ---------- labels ----------
+  // A simple, print-friendly diagram version of the drag-and-drop bay
+  // layout — same underlying x/y position data, reused rather than
+  // duplicated, just rendered as plain black-on-white boxes instead of
+  // the interactive colored cards, meant to be printed and taped up
+  // near the actual shelf as a physical reference.
+  function printShelfMap(){
+    if(bays.length === 0){ toast("No bays set up yet — nothing to map."); return; }
+    const diagram = $("#shelfMapDiagram");
+    diagram.innerHTML = bays.map(bay => {
+      const title = catalog.find(m => m.id === bay.titleId);
+      const x = (bay.x !== undefined && bay.x !== null) ? bay.x : 50;
+      const y = (bay.y !== undefined && bay.y !== null) ? bay.y : 50;
+      return `<div style="position:absolute;left:${x}%;top:${y}%;transform:translate(-50%,-50%);width:110px;padding:6px;border:1.5px solid #000;border-radius:6px;text-align:center;background:#fff;">
+        <div style="font-size:10px;font-weight:700;">BAY ${bay.number}</div>
+        <div style="font-size:11px;line-height:1.25;">${title ? title.title : '(empty)'}</div>
+      </div>`;
+    }).join("");
+    $("#shelfMapPrintedAt").textContent = "Printed " + new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    window.print();
+  }
+
+
   async function generateLabels(){
     const ids = $$(".labelCheck:checked").map(c=>c.value);
     const items = catalog.filter(m => ids.includes(m.id));
@@ -4665,6 +5058,7 @@
     $("#topBarReturnBtn").onclick = () => openReturnFlow();
     $("#surpriseMeBtn").onclick = surpriseMe;
     $("#requestTitleBtn").onclick = openRequestTitleModal;
+    $("#doubleFeatureBtn").onclick = openDoubleFeature;
     $("#adminConsoleBtn").onclick = () => enterAdminConsole();
     $("#exitAdminConsoleBtn").onclick = exitAdminConsole;
     $("#manualCheckoutBtn").onclick = () => {
@@ -4981,6 +5375,7 @@
     $("#selectAllLabels").onclick = () => $$(".labelCheck").forEach(c=>c.checked=true);
     $("#selectNoneLabels").onclick = () => $$(".labelCheck").forEach(c=>c.checked=false);
     $("#generateLabelsBtn").onclick = generateLabels;
+    $("#printShelfMapBtn").onclick = printShelfMap;
   });
 })();
 </script>

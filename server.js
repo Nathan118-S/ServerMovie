@@ -1446,6 +1446,18 @@ app.get("/api/export", (req, res) => {
   res.setHeader("Content-Type", "application/json");
   res.setHeader("Content-Disposition", `attachment; filename="sandy-server-backup-${stamp}.json"`);
   res.send(JSON.stringify(db, null, 2));
+  // Recorded after the response is already sent — a slow/failed
+  // download shouldn't get counted as a successful backup, but since
+  // there's no real way to confirm the browser actually saved the
+  // file either, this is "the export was generated," the best signal
+  // actually available here.
+  db.settings = db.settings || {};
+  db.settings.lastBackupAt = Date.now();
+  saveDb();
+});
+
+app.get("/api/backup-status", (req, res) => {
+  res.json({ lastBackupAt: (db.settings && db.settings.lastBackupAt) || null });
 });
 
 app.post("/api/import", (req, res) => {
@@ -1457,6 +1469,7 @@ app.post("/api/import", (req, res) => {
     titles: incoming.titles || [],
     rentals: incoming.rentals || [],
     rentalHistory: incoming.rentalHistory || [],
+    wishlist: incoming.wishlist || [],
     users: (incoming.users && incoming.users.length) ? incoming.users : db.users,
     settings: { ...db.settings, ...(incoming.settings || {}) },
     tvSelection: incoming.tvSelection || null,
@@ -1469,6 +1482,7 @@ app.post("/api/import", (req, res) => {
   broadcast("titles");
   broadcast("rentals");
   broadcast("rental-history");
+  broadcast("wishlist");
   broadcast("users");
   broadcast("settings");
   broadcast("bays");
