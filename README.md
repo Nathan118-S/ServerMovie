@@ -538,6 +538,97 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## Fixed: the label generator was listing Digital Copies too
+
+Checked the whole label-printing path carefully before touching
+anything — the checkbox list, the print function itself, the barcode
+image endpoint, and the print-only CSS — since "fix the label
+generator" didn't come with specifics and I wanted to actually find
+the real issue rather than guess at one. Everything else checked out
+correctly; the one genuine defect was in the checkbox list: it
+included every title in the catalog, Digital Copies included, with no
+distinction made.
+
+That matters because a digital copy has no physical disc or case to
+put a barcode label on at all — it's just a streaming link. Printing
+one generated a real, scannable barcode for something that will never
+actually get scanned, mixed in indistinguishably with the labels that
+matter. This is the same shape of bug that's shown up a few times
+before whenever Digital Copies got added as a third catalog type —
+Browse Movies, the TV kiosk display, and Surprise Me all needed the
+same kind of fix earlier for the same underlying reason: a
+catalog-wide list that needs to exclude one type didn't, until
+something explicitly checked for and excluded it.
+
+## Bulk assign — scan a bay, then a movie, repeat
+
+A new box under Bays &amp; Lighting → Assignment: scan a bay barcode,
+then scan a movie barcode, and they're linked immediately — the field
+stays ready for the next bay right away, so a whole shelf's worth of
+discs can get assigned in one pass without touching a single dropdown
+in between. A running log shows what got assigned this session.
+
+Worth explaining a real design decision here, not just the happy path:
+this needed its own dedicated scan input, entirely separate from the
+existing customer-facing barcode bar and its disc-then-bay flow (scan
+a disc, then a bay, the reverse order from this). That existing bar
+lives inside the customer view, which is completely hidden the whole
+time the Admin Console is open — it was never actually reachable from
+here, checked before assuming it could be reused. A USB barcode
+scanner just types into whatever's focused, so a plain text field
+inside this new box works exactly the same way once it has focus,
+without touching or risking the existing customer-facing scan flow at
+all.
+
+## The LED test sweep now follows the actual shelf layout
+
+"Test all bay LEDs" used to light bays up in whatever order they
+happened to sit in storage — creation order, which has nothing to do
+with where they actually are on the shelf. Now it uses the exact same
+x/y positions saved from the drag-and-drop Bay Layout view to sweep in
+real physical order: row by row, left to right within each row, top
+row first — so watching the test actually reads as movement across the
+shelf instead of jumping around unpredictably.
+
+Rows are grouped with a tolerance band rather than requiring an exact
+y match, since a free-form drag will rarely land two bays at the exact
+same y even when they're clearly meant to be side by side. Verified
+this against a simulated shelf layout (five bays across two rows,
+deliberately stored in a random, non-layout order) before shipping it,
+not just reasoned about whether the grouping logic would work — the
+sweep came out in the correct physical order.
+
+## Multi-LED bays, and overhead/area lighting
+
+**A bay can now have more than one LED.** The LED index field accepts
+either a single number or a comma-separated list (`5,6,7`) for a bay
+whose physical slot spans more than one LED on the strip — every
+function that touches bay LEDs (the normal in-stock/checked-out
+colors, the locate-bay flash, the LED test sweep) now treats a bay's
+whole group of LEDs as one unit, lighting them together in a single
+WLED request rather than one round-trip per LED.
+
+Two real bugs came out of building this, both caught and fixed before
+shipping, not after:
+
+- The bay dashboard's LED input was `type="number"`, which browsers
+  won't even let you type a comma into in the first place.
+- Separately, the save function ran the typed value through `Number()`
+  — which returns `NaN` for anything with a comma in it, unlike
+  `parseInt`, which only needs the *start* of the string to be a valid
+  number. That would have silently saved `null` for any multi-LED bay
+  the moment someone tried to actually use the feature. Fixed by
+  sending the raw string and letting the server's own parsing handle
+  it, which is where the actual list-parsing logic belongs.
+
+**A separate spot for overhead/area lighting** — LEDs that aren't tied
+to any one bay at all, in Bays &amp; Lighting → Setup → Door
+animations. These light up bright white when the cabinet door opens
+(alongside the normal per-bay colors and the whole-strip effect that
+was already there) and turn off again once the door's been closed a
+while, same as everything else. Comma-separated, same format as a
+multi-LED bay; leave it blank if there's nothing wired for this.
+
 ## A real bug: "Test connection" could never work for WLED at all
 
 Found and fixed the actual cause behind WLED's Test connection button

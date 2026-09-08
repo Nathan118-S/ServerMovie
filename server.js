@@ -119,12 +119,29 @@ function httpsPostJson(url, body, headers){
 // not just inferred from lights that silently never change.
 let lastLedPush = { ok: null, at: null, error: null };
 
-function pushBayLed(ledIndex, colorHex){
+// A bay's ledIndex is stored as a plain string that can hold either one
+// index ("5") or several, comma-separated ("5,6,7") — for a bay whose
+// physical slot spans more than one LED on the strip. This is the one
+// place that string gets parsed, so every caller sees the same list of
+// valid integers regardless of stray spaces or a trailing comma.
+function parseLedIndexes(ledIndexStr){
+  if(ledIndexStr === undefined || ledIndexStr === null || ledIndexStr === "") return [];
+  return String(ledIndexStr).split(",").map(s => parseInt(s.trim(), 10)).filter(n => Number.isInteger(n));
+}
+
+function pushBayLed(ledIndexes, colorHex){
   let wledUrl = ((db.settings && db.settings.wledUrl) || "").trim();
-  if(!wledUrl || ledIndex === undefined || ledIndex === null || ledIndex === "") return;
+  const indexes = (Array.isArray(ledIndexes) ? ledIndexes : [ledIndexes]).filter(n => Number.isInteger(n));
+  if(!wledUrl || indexes.length === 0) return;
   if(!/^https?:\/\//i.test(wledUrl)) wledUrl = "http://" + wledUrl;
   const url = wledUrl.replace(/\/+$/, "") + "/json/state";
-  const body = JSON.stringify({ seg: [{ i: [ledIndex, colorHex] }] });
+  // One request sets every LED in the list, not one round-trip per LED —
+  // WLED's "i" array is just alternating [index, color, index, color...]
+  // pairs, so a multi-LED bay's whole group updates together atomically
+  // rather than visibly filling in one at a time.
+  const iArray = [];
+  indexes.forEach(idx => { iArray.push(idx, colorHex); });
+  const body = JSON.stringify({ seg: [{ i: iArray }] });
   try{
     const client = url.startsWith("https") ? https : require("http");
     const req = client.request(url, {
@@ -150,13 +167,23 @@ function pushBayLed(ledIndex, colorHex){
   }
 }
 
+// Lights whatever LEDs are configured as general/overhead area lighting
+// (not tied to any one bay) — currently only ever called around the
+// cabinet door opening and closing, alongside the whole-strip door
+// animation effect, so the area's lit while someone's actually there.
+function pushOverheadLeds(colorHex){
+  const indexes = parseLedIndexes((db.settings && db.settings.overheadLedIndexes) || "");
+  if(indexes.length === 0) return;
+  pushBayLed(indexes, colorHex);
+}
+
 function updateBayLedForTitle(title){
   if(!title) return;
   const bay = db.bays.find(b => b.titleId === title.id);
   if(!bay) return;
-  const idx = parseInt(bay.ledIndex, 10);
-  if(!Number.isInteger(idx)) return;
-  pushBayLed(idx, title.stock > 0 ? "00FF00" : "FF0000");
+  const idxs = parseLedIndexes(bay.ledIndex);
+  if(idxs.length === 0) return;
+  pushBayLed(idxs, title.stock > 0 ? "00FF00" : "FF0000");
 }
 
 // Whenever a bay opens up (added, or cleared) or a title ends up with no
@@ -194,13 +221,13 @@ function archiveRentalToHistory(rental){
 // individual per-bay colors.
 function refreshAllBayLeds(){
   db.bays.forEach(bay => {
-    const idx = parseInt(bay.ledIndex, 10);
-    if(!Number.isInteger(idx)) return;
+    const idxs = parseLedIndexes(bay.ledIndex);
+    if(idxs.length === 0) return;
     if(bay.titleId){
       const t = db.titles.find(x => x.id === bay.titleId);
-      if(t) pushBayLed(idx, t.stock > 0 ? "00FF00" : "FF0000");
+      if(t) pushBayLed(idxs, t.stock > 0 ? "00FF00" : "FF0000");
     } else {
-      pushBayLed(idx, "000000"); // empty bay, no title assigned — lights off
+      pushBayLed(idxs, "000000"); // empty bay, no title assigned — lights off
     }
   });
 }
@@ -209,9 +236,10 @@ function refreshAllBayLeds(){
 // door opens again, rather than reverting to per-bay status colors.
 function turnOffAllBayLeds(){
   db.bays.forEach(bay => {
-    const idx = parseInt(bay.ledIndex, 10);
-    if(Number.isInteger(idx)) pushBayLed(idx, "000000");
+    const idxs = parseLedIndexes(bay.ledIndex);
+    if(idxs.length > 0) pushBayLed(idxs, "000000");
   });
+  pushOverheadLeds("000000");
 }
 
 // Plays a WLED built-in effect across the whole strip (not per-LED), then
@@ -285,13 +313,13 @@ function flashBayForTitle(title){
   if(!title) return;
   const bay = db.bays.find(b => b.titleId === title.id);
   if(!bay) return;
-  const idx = parseInt(bay.ledIndex, 10);
-  if(!Number.isInteger(idx)) return;
+  const idxs = parseLedIndexes(bay.ledIndex);
+  if(idxs.length === 0) return;
 
   const blinks = 5;
   let step = 0;
   const timer = setInterval(() => {
-    pushBayLed(idx, step % 2 === 0 ? "FFFFFF" : "000000");
+    pushBayLed(idxs, step % 2 === 0 ? "FFFFFF" : "000000");
     step++;
     if(step >= blinks * 2){
       clearInterval(timer);
@@ -301,20 +329,51 @@ function flashBayForTitle(title){
   }, 300);
 }
 
-// Lights each configured bay's LED in turn (cyan — distinct from the
+// Orders bays the way they actually sit on the shelf — row by row,
+// left to right within each row — using the same x/y positions saved
+// from the drag-and-drop Bay Layout view, rather than whatever order
+// they happen to be in storage (creation order, which has nothing to
+// do with physical position). Groups bays into rows with a tolerance
+// band rather than an exact y match, since a free-form drag will
+// rarely land two bays at the exact same y even when they're clearly
+// meant to be side by side on the same shelf.
+function sortBaysByLayoutPosition(bays){
+  const withPos = bays.filter(b => b.x !== undefined && b.x !== null && b.y !== undefined && b.y !== null);
+  const withoutPos = bays.filter(b => !withPos.includes(b));
+  const rowTolerance = 8; // percentage points of the layout canvas's height
+  const rows = [];
+  withPos.slice().sort((a,b) => a.y - b.y).forEach(bay => {
+    let row = rows.find(r => Math.abs(r.y - bay.y) <= rowTolerance);
+    if(!row){ row = { y: bay.y, bays: [] }; rows.push(row); }
+    row.bays.push(bay);
+  });
+  rows.sort((a,b) => a.y - b.y);
+  const ordered = rows.flatMap(row => row.bays.slice().sort((a,b) => a.x - b.x));
+  // Bays with no saved position at all shouldn't normally happen (the
+  // layout view auto-assigns one to every bay the first time it
+  // renders), but fall back to plain bay-number order rather than
+  // being silently dropped from the sweep if it ever does.
+  return ordered.concat(withoutPos.slice().sort((a,b) => Number(a.number)-Number(b.number)));
+}
+
+// Lights each configured bay's LED(s) in turn (cyan — distinct from the
 // normal green/red in-stock colors) so wiring can be verified by eye
-// without needing to trigger a real checkout/return first.
+// without needing to trigger a real checkout/return first. A bay with
+// more than one LED lights all of them together as one group, then
+// moves on to the next bay — in physical shelf order (see
+// sortBaysByLayoutPosition above), so the sweep actually reads as
+// moving across the shelf rather than jumping around unpredictably.
 function testAllBayLeds(){
-  const baysWithLeds = db.bays.filter(b => Number.isInteger(parseInt(b.ledIndex, 10)));
+  const baysWithLeds = sortBaysByLayoutPosition(db.bays.filter(b => parseLedIndexes(b.ledIndex).length > 0));
   let i = 0;
   const timer = setInterval(() => {
-    if(i > 0) pushBayLed(parseInt(baysWithLeds[i-1].ledIndex, 10), "000000");
+    if(i > 0) pushBayLed(parseLedIndexes(baysWithLeds[i-1].ledIndex), "000000");
     if(i >= baysWithLeds.length){
       clearInterval(timer);
       db.titles.forEach(t => updateBayLedForTitle(t)); // restore normal per-title colors
       return;
     }
-    pushBayLed(parseInt(baysWithLeds[i].ledIndex, 10), "00FFFF");
+    pushBayLed(parseLedIndexes(baysWithLeds[i].ledIndex), "00FFFF");
     i++;
   }, 600);
 }
@@ -630,7 +689,7 @@ function loadDb(){
       rentalHistory: [],
       wishlist: [],
       users: [{ id: newId("u"), name: "Admin", pin: "0000", isAdmin: true }],
-      settings: { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90, wledOpenEffect: 9, wledCloseEffect: 2, wledEffectSeconds: 6, doorCloseDelaySeconds: 60, maxRenewals: 2 },
+      settings: { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90, wledOpenEffect: 9, wledCloseEffect: 2, wledEffectSeconds: 6, doorCloseDelaySeconds: 60, maxRenewals: 2, overheadLedIndexes: "" },
       tvSelection: null,
       kioskSelection: null,
       activeSession: null,
@@ -660,6 +719,7 @@ function loadDb(){
   if(parsed.settings.wledUrl === undefined) parsed.settings.wledUrl = "";
   if(parsed.settings.bayWindowSeconds === undefined) parsed.settings.bayWindowSeconds = 90;
   if(parsed.settings.maxRenewals === undefined) parsed.settings.maxRenewals = 2;
+  if(parsed.settings.overheadLedIndexes === undefined) parsed.settings.overheadLedIndexes = "";
   if(parsed.tvSelection === undefined) parsed.tvSelection = null;
   if(parsed.kioskSelection === undefined) parsed.kioskSelection = null;
   if(parsed.activeSession === undefined) parsed.activeSession = null;
@@ -1203,7 +1263,7 @@ app.post("/api/test-bay-leds", (req, res) => {
   if(!((db.settings && db.settings.wledUrl) || "").trim()){
     return res.status(400).json({ error: "No WLED URL configured yet." });
   }
-  const count = db.bays.filter(b => Number.isInteger(parseInt(b.ledIndex, 10))).length;
+  const count = db.bays.filter(b => parseLedIndexes(b.ledIndex).length > 0).length;
   if(count === 0) return res.status(400).json({ error: "No bays have an LED index set." });
   testAllBayLeds();
   res.json({ ok: true, count });
@@ -1241,6 +1301,7 @@ app.post("/api/door-opened", logHardwareCall("door-opened"), (req, res) => {
   clearTimeout(doorCloseTimer);
   doorCloseTimer = null;
   playDoorAnimation((db.settings && db.settings.wledOpenEffect) || 9);
+  pushOverheadLeds("FFFFFF"); // general area lighting, separate from the per-bay status colors and the whole-strip door effect above
   // The whole point of the cabinet door sensor existing is knowing when
   // someone's actually standing there — if nobody's logged in at that
   // exact moment, that's worth a direct prompt rather than assuming

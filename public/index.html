@@ -803,6 +803,10 @@
             <input id="wledEffectSecondsInput" type="number" min="1" placeholder="Effect duration (sec)" style="width:170px;" />
             <input id="doorCloseDelayInput" type="number" min="5" placeholder="Delay after close (sec)" style="width:170px;" />
           </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+            <input id="overheadLedIndexesInput" type="text" inputmode="numeric" placeholder="Overhead/area LED indexes, e.g. 40,41,42" title="LEDs that light up the general area rather than any one bay — comma-separated if there's more than one" style="flex:1;min-width:220px;" />
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">LEDs not tied to any bay — lights up bright white when the door opens (alongside the per-bay colors and the whole-strip effect above) and turns off along with everything else once the door's been closed a while. Leave blank if you don't have any wired for this.</div>
           <button class="secondary" id="saveDoorSettingsBtn" style="padding:9px 14px;font-size:12px;">Save</button>
         </div>
       </div>
@@ -832,6 +836,14 @@
           </div>
           <div class="scan-msg" style="margin-top:0;margin-bottom:14px;">Drag each bay to where it actually sits on the shelf, so this matches reality instead of just listing numbers in order. Shows what's really assigned there, its stock status, and a damaged/missing flag — computed the same way Sandy Server decides what color to send WLED, not a true per-LED read-back (WLED's simple API doesn't support that). The indicator above <em>is</em> a genuine live check, though — it actually asks WLED right now whether it's on and reachable.</div>
           <div id="bayLayoutCanvas"></div>
+        </div>
+
+        <div class="bulk-box">
+          <div class="display" style="font-size:15px;margin-bottom:6px;">Bulk assign</div>
+          <div class="scan-msg" style="margin-top:0;margin-bottom:14px;">Scan a bay barcode, then scan a movie barcode — it's linked immediately and this stays ready for the next bay, so a whole shelf can be assigned in one pass without touching a dropdown. Click into the field below first so a USB scanner's input lands here.</div>
+          <input id="bulkAssignInput" placeholder="Scan a bay barcode to begin…" style="width:100%;font-size:15px;padding:12px 14px;margin-bottom:12px;" autocomplete="off" />
+          <div id="bulkAssignStatus" style="font-size:13px;margin-bottom:14px;"></div>
+          <div id="bulkAssignLog"></div>
         </div>
       </div>
 
@@ -1175,6 +1187,7 @@
   let wledEffectSeconds = 6;
   let doorCloseDelaySeconds = 60;
   let maxRenewals = 2;
+  let overheadLedIndexes = "";
   let bays = []; // [{number, ledIndex, titleId}]
   let pendingReturn = null; // {titleId, title, expiresAt} — set until the disc lands back in a bay
   let pendingCheckout = null; // {titleId, title, renterName, expiresAt} — set until the disc leaves its bay
@@ -1208,7 +1221,7 @@
       if(resource==="titles") updateCatalogAndDetectChanges(data);
       else if(resource==="rentals") updateRentalsAndDetectReturns(data);
       else if(resource==="users") users = data;
-      else if(resource==="settings"){ maxCheckouts = data.maxCheckouts || 3; omdbApiKey = data.omdbApiKey || ""; tmdbApiKey = data.tmdbApiKey || ""; igdbClientId = data.igdbClientId || ""; igdbClientSecret = data.igdbClientSecret || ""; wledUrl = data.wledUrl || ""; esp32BaysUrl = data.esp32BaysUrl || ""; bayWindowSeconds = data.bayWindowSeconds || 90; wledOpenEffect = data.wledOpenEffect ?? 9; wledCloseEffect = data.wledCloseEffect ?? 2; wledEffectSeconds = data.wledEffectSeconds || 6; doorCloseDelaySeconds = data.doorCloseDelaySeconds || 60; maxRenewals = data.maxRenewals ?? 2; }
+      else if(resource==="settings"){ maxCheckouts = data.maxCheckouts || 3; omdbApiKey = data.omdbApiKey || ""; tmdbApiKey = data.tmdbApiKey || ""; igdbClientId = data.igdbClientId || ""; igdbClientSecret = data.igdbClientSecret || ""; wledUrl = data.wledUrl || ""; esp32BaysUrl = data.esp32BaysUrl || ""; bayWindowSeconds = data.bayWindowSeconds || 90; wledOpenEffect = data.wledOpenEffect ?? 9; wledCloseEffect = data.wledCloseEffect ?? 2; wledEffectSeconds = data.wledEffectSeconds || 6; doorCloseDelaySeconds = data.doorCloseDelaySeconds || 60; maxRenewals = data.maxRenewals ?? 2; overheadLedIndexes = data.overheadLedIndexes || ""; }
       else if(resource==="tv-selection") tvSelection = data && data.movieId ? data : null;
       else if(resource==="kiosk-selection") kioskSelection = data && data.movieId ? data : null;
       else if(resource==="bays") bays = data;
@@ -1319,6 +1332,7 @@
       wledEffectSeconds = (state.settings && state.settings.wledEffectSeconds) || 6;
       doorCloseDelaySeconds = (state.settings && state.settings.doorCloseDelaySeconds) || 60;
       maxRenewals = (state.settings && state.settings.maxRenewals) ?? 2;
+      overheadLedIndexes = (state.settings && state.settings.overheadLedIndexes) || "";
       tvSelection = state.tvSelection && state.tvSelection.movieId ? state.tvSelection : null;
       kioskSelection = state.kioskSelection && state.kioskSelection.movieId ? state.kioskSelection : null;
       bays = state.bays || [];
@@ -1420,6 +1434,8 @@
     if(esInput && document.activeElement !== esInput) esInput.value = wledEffectSeconds;
     const dcInput = $("#doorCloseDelayInput");
     if(dcInput && document.activeElement !== dcInput) dcInput.value = doorCloseDelaySeconds;
+    const ohInput = $("#overheadLedIndexesInput");
+    if(ohInput && document.activeElement !== ohInput) ohInput.value = overheadLedIndexes;
   }
 
   let adminMode = false;
@@ -2696,7 +2712,10 @@
 
   function renderLabelList(){
     const el = $("#labelList");
-    el.innerHTML = catalog.map(m => `<div class="row">
+    // Digital copies have no physical disc or case to put a barcode
+    // label on — including them here just generates a meaningless
+    // barcode for a streaming link, mixed in with the real ones.
+    el.innerHTML = catalog.filter(m => m.mediaType !== 'digital').map(m => `<div class="row">
       <label><input type="checkbox" class="labelCheck" value="${m.id}" checked /> ${m.title} <span style="color:var(--muted);font-size:12px;">(${m.genre}, code: ${m.code})</span></label>
     </div>`).join("");
   }
@@ -3462,7 +3481,7 @@
     toast(`Bay attribution window set to ${n}s`);
   }
 
-  async function setDoorSettings({openEffect, closeEffect, effectSeconds, closeDelaySeconds}){
+  async function setDoorSettings({openEffect, closeEffect, effectSeconds, closeDelaySeconds, overheadLeds}){
     const patch = {
       wledOpenEffect: parseInt(openEffect, 10),
       wledCloseEffect: parseInt(closeEffect, 10),
@@ -3470,6 +3489,7 @@
       doorCloseDelaySeconds: parseInt(closeDelaySeconds, 10)
     };
     for(const k in patch){ if(!Number.isInteger(patch[k]) || patch[k] < 0){ toast("Enter valid numbers for all four fields"); return; } }
+    patch.overheadLedIndexes = (overheadLeds||"").trim(); // a comma-separated list, not a single integer — kept out of the strict-number check above
     try{ await api.send("PUT", "/api/settings", patch); }
     catch(e){ toast("Couldn't save door settings"); return; }
     await refetch("settings");
@@ -3525,7 +3545,13 @@
   }
 
   async function setBayLedIndex(number, ledIndex){
-    try{ await api.send("PUT", "/api/bays/"+number, { ledIndex: ledIndex===""?"":Number(ledIndex) }); await refetch("bays"); }
+    // Sent as the raw string, not run through Number() — that would
+    // return NaN for anything with a comma in it (unlike parseInt,
+    // Number() requires the WHOLE string to be a valid number), which
+    // would have silently saved null for any multi-LED bay. The
+    // server's own parseLedIndexes() is what actually turns this
+    // string into a list of valid indexes.
+    try{ await api.send("PUT", "/api/bays/"+number, { ledIndex: (ledIndex||"").trim() }); await refetch("bays"); }
     catch(e){ toast("Couldn't save LED index"); }
   }
 
@@ -3533,6 +3559,69 @@
     try{ await api.send("PUT", "/api/bays/"+number, { titleId: titleId||"" }); await refetch("bays"); await refetch("titles"); }
     catch(e){ toast("Couldn't save assignment"); return; }
     toast(titleId ? "Assigned" : "Cleared");
+  }
+
+  // ---------- bulk assign: scan a bay, then scan a movie, repeat ----------
+  // Deliberately its own scan input and state, entirely separate from the
+  // customer-facing barcode bar and its disc-then-bay flow — that bar
+  // lives in #appRoot, which is hidden the whole time the Admin Console
+  // is showing, so it was never reachable from here in the first place.
+  // A USB barcode scanner just types into whatever's focused, so this
+  // dedicated field works the same way once it has focus.
+  let bulkAssignBay = null; // bay number currently waiting on a movie scan
+  let bulkAssignLog = []; // session-only log of what got assigned, newest first
+
+  function renderBulkAssignStatus(){
+    const statusEl = $("#bulkAssignStatus");
+    if(statusEl){
+      statusEl.innerHTML = bulkAssignBay
+        ? `<span style="color:var(--green);">●</span> Bay ${bulkAssignBay} selected — now scan a movie barcode.`
+        : `<span style="color:var(--muted);">Scan a bay barcode to begin.</span>`;
+    }
+    const logEl = $("#bulkAssignLog");
+    if(logEl){
+      logEl.innerHTML = bulkAssignLog.length === 0 ? "" : `<div class="list-group">${bulkAssignLog.slice(0, 15).map(e => `<div class="row" style="padding:6px 0;">
+        <span style="font-size:13px;">Bay ${e.bayNumber} → ${e.title}</span>
+        <span style="font-size:11px;color:var(--muted);flex-shrink:0;">${new Date(e.time).toLocaleTimeString()}</span>
+      </div>`).join("")}</div>`;
+    }
+  }
+
+  async function handleBulkAssignScan(code){
+    code = (code||"").trim();
+    if(!code) return;
+    const statusEl = $("#bulkAssignStatus");
+    if(!statusEl) return;
+
+    if(code.indexOf("BAY:")===0){
+      const bayNumber = code.slice(4);
+      const bay = bays.find(b => String(b.number) === String(bayNumber));
+      if(!bay){
+        statusEl.innerHTML = `<span style="color:#E87C03;">Bay ${bayNumber} hasn't been added yet — add it under Bay dashboard first.</span>`;
+        return;
+      }
+      bulkAssignBay = bayNumber;
+      renderBulkAssignStatus();
+      return;
+    }
+
+    if(code.indexOf("SANDYSERVER:")===0) code = code.slice(12);
+    else if(code.indexOf("REELBOX:")===0) code = code.slice(8);
+
+    if(!bulkAssignBay){
+      statusEl.innerHTML = `<span style="color:#E87C03;">Scan a bay barcode first, before a movie.</span>`;
+      return;
+    }
+    const match = catalog.find(m => m.code === code);
+    if(!match){
+      statusEl.innerHTML = `<span style="color:#E87C03;">No title matches that barcode — Bay ${bulkAssignBay} is still selected, try scanning it again.</span>`;
+      return;
+    }
+    const bayNumber = bulkAssignBay;
+    bulkAssignBay = null;
+    await assignBayTitle(bayNumber, match.id);
+    bulkAssignLog.unshift({ bayNumber, title: match.title, time: Date.now() });
+    renderBulkAssignStatus();
   }
 
   // Called when a scanned barcode turns out to be a bay label ("BAY:N").
@@ -3612,7 +3701,7 @@
           ${titleOptions}
         </select>
         <div class="bay-row">
-          <input class="ledIndexInput" data-bayled="${bay.number}" type="number" min="0" placeholder="LED #" value="${bay.ledIndex!==null&&bay.ledIndex!==undefined?bay.ledIndex:''}" style="flex:1;font-size:12px;padding:7px 8px;" />
+          <input class="ledIndexInput" data-bayled="${bay.number}" type="text" inputmode="numeric" placeholder="LED #, or 5,6,7" title="One LED index, or several separated by commas if this bay spans more than one LED" value="${bay.ledIndex!==null&&bay.ledIndex!==undefined?bay.ledIndex:''}" style="flex:1;font-size:12px;padding:7px 8px;" />
           <button class="adjbtn" data-removebay="${bay.number}" style="color:#E87C03;border-color:#5A3A20;" title="Remove this bay">×</button>
         </div>
       </div>`;
@@ -5287,6 +5376,10 @@
     $("#barcodeInput").addEventListener("keydown", e => {
       if(e.key==="Enter"){ handleScannedCode($("#barcodeInput").value); $("#barcodeInput").value=""; }
     });
+    $("#bulkAssignInput").addEventListener("keydown", e => {
+      if(e.key==="Enter"){ handleBulkAssignScan($("#bulkAssignInput").value); $("#bulkAssignInput").value=""; }
+    });
+    renderBulkAssignStatus();
 
     $("#addTitleBtn").onclick = async () => {
       const isGame = $("#newMediaTypeInput").value === "game";
@@ -5400,7 +5493,8 @@
       openEffect: $("#wledOpenEffectInput").value,
       closeEffect: $("#wledCloseEffectInput").value,
       effectSeconds: $("#wledEffectSecondsInput").value,
-      closeDelaySeconds: $("#doorCloseDelayInput").value
+      closeDelaySeconds: $("#doorCloseDelayInput").value,
+      overheadLeds: $("#overheadLedIndexesInput").value
     });
     $("#addBayBtn").onclick = () => { addBay($("#newBayNumberInput").value); $("#newBayNumberInput").value=""; };
     $("#printBayBarcodesBtn").onclick = printBayBarcodes;
