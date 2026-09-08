@@ -538,6 +538,35 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## A real bug: "Test connection" could never work for WLED at all
+
+Found and fixed the actual cause behind WLED's Test connection button
+never succeeding, even with a completely correct address, WLED fully
+reachable, and the setting genuinely saved — none of that was ever the
+problem. `httpsGetJson()`, the function `getWledStatus()` uses to check
+WLED, unconditionally used Node's `https` module regardless of the
+URL's real scheme. WLED runs on plain HTTP, essentially always — and
+Node's `https` module throws immediately (`ERR_INVALID_PROTOCOL`) the
+moment it's handed an `http://` URL, before a request is even
+attempted. That throw happens inside the promise executor, so it
+correctly rejected the promise — which the calling code's `.catch()`
+quietly turned into an ordinary-looking "couldn't reach it," with
+nothing to suggest the real cause was a protocol mismatch in the code
+itself rather than anything about the network or the address.
+
+Every other caller of this same function was fine and always had
+been — they're all genuine external HTTPS APIs (TMDb, IGDB), which
+never touch this path at all. WLED's local, plain-HTTP address was the
+only caller that ever hit it, which is exactly why this went unnoticed
+until someone actually tried using it.
+
+Reproduced the exact failure directly (the same `ERR_INVALID_PROTOCOL`
+throw) before writing a fix, and verified the fix afterward against a
+real local plain-HTTP server built specifically to mimic WLED's own
+response shape — not just reasoned about it. Also confirmed the fix
+can't regress the other callers: they all pass genuine `https://` URLs,
+which still correctly route to the `https` client exactly as before.
+
 ## Every emoji replaced with a proper icon
 
 Went through the whole app and replaced every pictorial emoji — 24

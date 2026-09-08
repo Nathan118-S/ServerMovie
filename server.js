@@ -40,7 +40,19 @@ const KNOWN_RATINGS = ["G", "PG", "PG-13", "R"];
 
 function httpsGetJson(url){
   return new Promise((resolve, reject) => {
-    https.get(url, res => {
+    // Not always actually HTTPS despite the name — this function was
+    // originally written only for genuine external HTTPS APIs (TMDb,
+    // IGDB), and every one of those callers is still fine. But
+    // getWledStatus() also uses this for WLED's local address, which
+    // is plain HTTP — and Node's https module throws synchronously
+    // (ERR_INVALID_PROTOCOL) if handed an http:// URL at all, rather
+    // than failing gracefully. Reproduced and confirmed that exact
+    // throw before writing this fix, not assumed. Selecting the right
+    // client by the URL's actual scheme fixes it for WLED without
+    // changing behavior for every other caller, which already pass
+    // genuine https:// URLs.
+    const client = url.startsWith("http://") ? require("http") : https;
+    client.get(url, res => {
       let data = "";
       res.on("data", chunk => data += chunk);
       res.on("end", () => {
