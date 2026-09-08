@@ -296,7 +296,13 @@
   .login-box .who{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;}
 
   .modal-overlay{position:fixed;inset:0;background:rgba(5,6,9,0.75);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;animation:fadeIn 0.2s ease;}
-  .pending-return-overlay{position:fixed;inset:0;background:var(--bg);z-index:70;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;animation:fadeIn 0.25s ease;}
+  /* overflow-y:auto here (not just on modal-card below) matters on a
+     short viewport — without it, content taller than the available
+     space would center itself right off the top and bottom edges of
+     the screen with no way to reach it, since align-items:center alone
+     doesn't clip or scroll, it just centers around whatever natural
+     size the content wants to be. */
+  .pending-return-overlay{position:fixed;inset:0;background:var(--bg);z-index:70;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;animation:fadeIn 0.25s ease;overflow-y:auto;}
   #initialLoadOverlay{position:fixed;inset:0;background:var(--bg);z-index:90;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity 0.3s ease;}
   #initialLoadOverlay .spinner{width:48px;height:48px;border-radius:50%;border:4px solid var(--surf3);border-top-color:var(--red);animation:spin 0.9s linear infinite;}
   #initialLoadOverlay .t{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:14px;color:var(--muted);}
@@ -305,7 +311,16 @@
   .pending-return-overlay .t{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:28px;font-weight:700;color:var(--white);margin-bottom:8px;}
   .pending-return-overlay .g{font-size:15px;color:var(--muted);max-width:420px;margin-bottom:28px;}
   @keyframes spin{to{transform:rotate(360deg);}}
-  .modal-card{background:var(--glass);backdrop-filter:blur(24px) saturate(1.4);color:var(--white);border:1px solid var(--line);width:400px;max-width:100%;border-radius:20px;overflow:hidden;box-shadow:0 30px 80px var(--shadow);animation:modalIn 0.25s cubic-bezier(.25,.8,.35,1) both;}
+  /* max-height + overflow-y:auto (was a blanket overflow:hidden, which
+     clips both axes with no scroll at all) — the modal previously had
+     no ceiling on its own height, so on a short viewport (a small
+     kiosk screen, a phone in landscape) a tall enough modal — now
+     including a number pad on top of everything else it already had —
+     could render with its top and/or bottom genuinely past the edges
+     of the screen and no way to reach the rest of it. overflow-x stays
+     hidden so rounded corners and edge-to-edge images still clip
+     cleanly; only the vertical axis needed to become scrollable. */
+  .modal-card{background:var(--glass);backdrop-filter:blur(24px) saturate(1.4);color:var(--white);border:1px solid var(--line);width:400px;max-width:100%;max-height:90vh;border-radius:20px;overflow-x:hidden;overflow-y:auto;box-shadow:0 30px 80px var(--shadow);animation:modalIn 0.25s cubic-bezier(.25,.8,.35,1) both;}
   .modal-header{padding:26px 20px;position:relative;min-height:260px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;}
   .modal-header-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:brightness(0.5) blur(2px);transform:scale(1.08);}
   .modal-header-bg.sharp{filter:brightness(0.72);transform:scale(1);}
@@ -860,6 +875,12 @@
         <div class="display" style="font-size:15px;margin-bottom:6px;">"Who took this?" alert chime</div>
         <div class="scan-msg" style="margin-top:0;">Plays whenever a disc leaves without anyone logged in, repeating until someone enters a PIN. Preview it here without actually pulling anything.</div>
         <button class="secondary" id="testAlertChimeBtn">▶ Play once</button>
+      </div>
+
+      <div class="bulk-box" style="margin-bottom:24px;max-width:420px;">
+        <div class="display" style="font-size:15px;margin-bottom:6px;">Door-open welcome chime</div>
+        <div class="scan-msg" style="margin-top:0;">Plays once when the cabinet door opens with nobody logged in — deliberately its own sound, not the alert above, since this is a welcome nudge, not something urgent.</div>
+        <button class="secondary" id="testDoorChimeBtn">▶ Play once</button>
       </div>
       <div style="display:flex;gap:28px;flex-wrap:wrap;">
         <div style="flex:1 1 260px;max-width:300px;">
@@ -3469,26 +3490,64 @@
       if(!alertAudioCtx) alertAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
       const ctx = alertAudioCtx;
       const now = ctx.currentTime;
-      // A short rising 4-note motif (A5-C#6-E6-A6, a major triad plus
-      // octave) rather than a plain double-beep — reads as an actual
-      // little tune, not just a noise. Triangle wave instead of sine
-      // gives it a brighter, more piercing edge that cuts through
-      // background noise better and is harder to tune out, which is
-      // the whole point of an alert that's supposed to be annoying
-      // until it's dealt with.
-      const notes = [880, 1108.7, 1318.5, 1760];
-      notes.forEach((freq, i) => {
-        const offset = i * 0.1;
+      // A proper little 6-note phrase with real rhythmic shape — two
+      // "da-da-DAAA" groups (short, short, held) on a C-E-G major
+      // triad — rather than the previous 4 evenly-spaced notes running
+      // straight up in a line, which read more like a mechanical
+      // arpeggio scan than an actual tune. Varying note length (quick
+      // notes leading into a held one) is what makes something sound
+      // like a musical phrase instead of a scale being played back
+      // uniformly; still triangle wave, still repeating, so it hasn't
+      // given up any of its job as an alert — just has more character
+      // while doing it.
+      const notes = [
+        { freq: 1046.5, offset: 0.00, dur: 0.09 },  // C6
+        { freq: 1318.5, offset: 0.10, dur: 0.09 },  // E6
+        { freq: 1568.0, offset: 0.20, dur: 0.26 },  // G6, held
+        { freq: 1318.5, offset: 0.50, dur: 0.09 },  // E6
+        { freq: 1046.5, offset: 0.60, dur: 0.09 },  // C6
+        { freq: 1568.0, offset: 0.70, dur: 0.32 }   // G6, held — the "landing" note
+      ];
+      notes.forEach(({freq, offset, dur}) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = "triangle";
         osc.frequency.value = freq;
         gain.gain.setValueAtTime(0.0001, now + offset);
         gain.gain.exponentialRampToValueAtTime(0.28, now + offset + 0.015);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.11);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + dur);
         osc.connect(gain).connect(ctx.destination);
         osc.start(now + offset);
-        osc.stop(now + offset + 0.12);
+        osc.stop(now + offset + dur + 0.01);
+      });
+    }catch(e){ /* autoplay-restricted or unsupported — the visual prompt still works fine without it */ }
+  }
+
+  function playDoorChime(){
+    try{
+      if(!alertAudioCtx) alertAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = alertAudioCtx;
+      const now = ctx.currentTime;
+      // Deliberately the opposite character from playAlertBeep above:
+      // a classic descending two-note "ding-dong" doorbell (a perfect
+      // fourth down, C6 to G5) instead of a rising four-note motif,
+      // sine waves instead of triangle for a warmer/mellower tone, and
+      // each note held noticeably longer. This needs to read as a
+      // welcome, not an alert — someone's about to do something, not
+      // something that already went wrong and needs fixing.
+      const notes = [1046.5, 784];
+      notes.forEach((freq, i) => {
+        const offset = i * 0.32;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.0001, now + offset);
+        gain.gain.exponentialRampToValueAtTime(0.22, now + offset + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.4);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(now + offset);
+        osc.stop(now + offset + 0.42);
       });
     }catch(e){ /* autoplay-restricted or unsupported — the visual prompt still works fine without it */ }
   }
@@ -3587,7 +3646,7 @@
       <div id="doorLoginPinPad"></div>
       <button class="secondary" id="doorLoginBrowseBtn" style="width:100%;max-width:240px;margin-top:16px;">Just browsing</button>
     `;
-    playAlertBeep(); // one welcoming chime, not the repeating alarm the unattributed-checkout alert uses — this isn't urgent, just a nudge
+    playDoorChime(); // its own distinct sound, not the repeating alarm the unattributed-checkout alert uses — this isn't urgent, just a nudge
     const pinInput = $("#doorLoginPinInput");
     pinInput.focus();
     $("#doorLoginPinPad").innerHTML = pinPadHtml();
@@ -4602,6 +4661,7 @@
 
     $("#saveMaxCheckoutBtn").onclick = () => setMaxCheckouts($("#maxCheckoutInput").value);
     $("#testAlertChimeBtn").onclick = playAlertBeep;
+    $("#testDoorChimeBtn").onclick = playDoorChime;
 
     $("#selectAllLabels").onclick = () => $$(".labelCheck").forEach(c=>c.checked=true);
     $("#selectNoneLabels").onclick = () => $$(".labelCheck").forEach(c=>c.checked=false);

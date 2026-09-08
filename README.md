@@ -538,6 +538,59 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## Fixed: number pads could get clipped off-screen on a short viewport
+
+Every PIN entry point uses one of two shared containers — a modal card
+(the login gate, the Return flow) or a full-screen overlay (the "who
+took this?" claim prompt, the door-open welcome prompt) — and both had
+a real structural gap that only became likely to actually bite once
+the number pad added real height to each of them.
+
+The modal card had a blanket `overflow: hidden` with no maximum height
+of its own, centered in the viewport with only 20px of padding around
+it. On a short screen (a small kiosk display, a phone in landscape), if
+a modal's content — title, PIN field, number pad, buttons — was taller
+than the space available, the excess didn't just get visually
+squeezed; it rendered right off the top and/or bottom edge of the
+screen, genuinely unreachable, since `overflow: hidden` clips instead
+of scrolling and centering doesn't shrink content to fit. The
+full-screen overlay had the same underlying gap for the same reason,
+just without a fixed card size framing it.
+
+Fixed by giving the modal card a `max-height: 90vh` with `overflow-y:
+auto` (so it scrolls once content is taller than that, instead of
+clipping silently) while keeping `overflow-x: hidden` so rounded
+corners and edge-to-edge images still clip cleanly — and adding
+`overflow-y: auto` to the full-screen overlay for the same reason. All
+four PIN entry points inherit this fix from the two shared containers
+they already sit inside, rather than needing four separate patches.
+
+## The "who took this?" alert is more musical now
+
+It was 4 notes running straight up, evenly spaced — more like an
+arpeggio scan than an actual tune. Now it's a proper little 6-note
+phrase with real rhythmic shape: two "da-da-DAAA" groups (a quick note,
+another quick note, then one held longer) on a C-E-G major triad,
+instead of every note being the same length. Varying the note lengths
+is what actually makes something read as a musical phrase rather than
+a scale playing back uniformly. Still triangle wave, still repeating
+every 1.6 seconds — it hasn't given up its job as an attention-getting
+alert, it just has more character while doing it. Preview it with
+Household's existing "Play once" button, same as before.
+
+## The door-open chime is now its own sound, not a reused one
+
+It was borrowing the "who took this?" alert sound at first — worth
+fixing, since that one's deliberately bright and attention-grabbing
+(rising notes, a sharper triangle wave) because it's meant to nag until
+something gets resolved. This is the opposite situation: a welcome, not
+a problem. The door chime is a classic descending two-note "ding-dong"
+(a fourth down, not a rising motif) using warmer sine waves instead of
+triangle, each note held longer — genuinely a different character, not
+just a volume or pitch tweak on the same sound. Household now has a
+preview button for it too, right next to the existing alert-chime
+preview, so both can be checked without triggering the real thing.
+
 ## A welcome prompt when the door opens with nobody logged in
 
 If you've wired the separate cabinet door sensor (not a bay switch —
