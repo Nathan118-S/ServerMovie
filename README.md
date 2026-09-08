@@ -538,6 +538,58 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## The hero is now full-bleed and fades out as you scroll
+
+The featured banner used to be a discrete image card sitting next to
+the text, capped at a few hundred pixels wide. It's now a true
+full-bleed background — the landscape art spans the entire browser
+viewport edge to edge, with the title, rating, and buttons anchored
+over the bottom of it (a dark gradient scrim underneath keeps the text
+readable regardless of what's in the image), Netflix/Apple-TV style.
+
+Getting genuinely edge-to-edge took a specific trick, not just
+`width: 100%`: the page's content area is centered and capped at
+1600px wide, so on any screen wider than that, `100%` would only have
+reached the edge of that centered column, not the real edge of the
+browser window. The hero breaks out of that container entirely (`width:
+100vw` combined with negative margins pulling it back to center on the
+actual viewport) to reach the true screen edges regardless of how the
+page around it is laid out.
+
+**It also fades out as you scroll down toward the catalog**, rather
+than just sitting there statically or vanishing abruptly. A scroll
+listener (throttled with `requestAnimationFrame`, so it never adds
+per-frame jank) computes how far you've scrolled relative to the
+hero's own height and adjusts its opacity accordingly — fully faded by
+about two-thirds of the way through its own height, so it's already
+gone by the time the catalog grid is genuinely prominent rather than
+still lingering right up until it arrives. It also correctly
+re-syncs to your current scroll position the instant the featured
+title changes underneath you — a live stock update or a fresh pick
+replaces the hero's actual DOM element, and without that resync it
+would otherwise flash back to full opacity for a moment even while
+you're already scrolled halfway down the page.
+
+## Three more sounds — Rent, checkout complete, return complete
+
+All three genuinely distinct from each other and from the two that
+already existed (the "who took this?" alert, the door-open welcome
+chime) — not variations on one beep:
+
+- **Tapping Rent** — a quick, light 2-note blip. This fires constantly
+  (every single Rent tap), so it stays short and unobtrusive rather
+  than a whole musical phrase like the others.
+- **Checkout actually completing** (disc physically out of its bay) —
+  a bright ascending 3-note major arpeggio, climbing upward for a
+  genuine "success" feel.
+- **Return completing** — the deliberate mirror image: the same shape
+  but descending instead of ascending, warm sine instead of triangle.
+  Down reads as something coming back; up read as something going out.
+  Distinct on purpose, not just a different pitch on the same sound.
+
+All three preview from Household, right next to the existing alert and
+door-chime previews.
+
 ## Fixed: number pads could get clipped off-screen on a short viewport
 
 Every PIN entry point uses one of two shared containers — a modal card
