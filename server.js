@@ -228,6 +228,37 @@ function pushWledEffect(effectId){
   }catch(e){}
 }
 
+// Sets the whole strip to one flat color (fx:0 forces solid, overriding
+// whatever effect might already be running) rather than addressing bays
+// individually — used for the brief "welcome back" pulse in someone's
+// own avatar color right after they log in.
+function pushWledSolidColor(colorHex){
+  let wledUrl = ((db.settings && db.settings.wledUrl) || "").trim();
+  if(!wledUrl || !colorHex) return;
+  if(!/^https?:\/\//i.test(wledUrl)) wledUrl = "http://" + wledUrl;
+  const url = wledUrl.replace(/\/+$/, "") + "/json/state";
+  const hex = colorHex.replace("#", "");
+  const r = parseInt(hex.substring(0,2), 16) || 0, g = parseInt(hex.substring(2,4), 16) || 0, b = parseInt(hex.substring(4,6), 16) || 0;
+  const body = JSON.stringify({ seg: [{ fx: 0, col: [[r, g, b]] }] });
+  try{
+    const client = url.startsWith("https") ? https : require("http");
+    const req = client.request(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) },
+      timeout: 3000
+    }, res => { res.on("data", () => {}); });
+    req.on("error", () => {});
+    req.on("timeout", () => req.destroy());
+    req.write(body);
+    req.end();
+  }catch(e){}
+}
+
+function pulseWelcomeLights(colorHex){
+  pushWledSolidColor(colorHex);
+  setTimeout(refreshAllBayLeds, 2500); // back to normal per-bay in-stock/checked-out colors
+}
+
 function playDoorAnimation(effectId, afterFn){
   pushWledEffect(effectId);
   const seconds = (db.settings && db.settings.wledEffectSeconds) || 6;
@@ -589,6 +620,7 @@ function loadDb(){
       users: [{ id: newId("u"), name: "Admin", pin: "0000", isAdmin: true }],
       settings: { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90, wledOpenEffect: 9, wledCloseEffect: 2, wledEffectSeconds: 6, doorCloseDelaySeconds: 60, maxRenewals: 2 },
       tvSelection: null,
+      kioskSelection: null,
       activeSession: null,
       pendingReturn: null,
       pendingCheckout: null,
@@ -617,6 +649,7 @@ function loadDb(){
   if(parsed.settings.bayWindowSeconds === undefined) parsed.settings.bayWindowSeconds = 90;
   if(parsed.settings.maxRenewals === undefined) parsed.settings.maxRenewals = 2;
   if(parsed.tvSelection === undefined) parsed.tvSelection = null;
+  if(parsed.kioskSelection === undefined) parsed.kioskSelection = null;
   if(parsed.activeSession === undefined) parsed.activeSession = null;
   if(parsed.pendingReturn === undefined) parsed.pendingReturn = null;
   if(parsed.pendingCheckout === undefined) parsed.pendingCheckout = null;
@@ -711,7 +744,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // ---------- read endpoints ----------
 app.get("/api/state", (req, res) => {
-  res.json({ titles: db.titles, rentals: db.rentals, rentalHistory: db.rentalHistory, wishlist: db.wishlist, users: db.users, settings: db.settings, tvSelection: db.tvSelection, bays: db.bays, pendingReturn: db.pendingReturn, pendingCheckout: db.pendingCheckout });
+  res.json({ titles: db.titles, rentals: db.rentals, rentalHistory: db.rentalHistory, wishlist: db.wishlist, users: db.users, settings: db.settings, tvSelection: db.tvSelection, kioskSelection: db.kioskSelection, bays: db.bays, pendingReturn: db.pendingReturn, pendingCheckout: db.pendingCheckout });
 });
 app.get("/api/rental-history", (req, res) => res.json(db.rentalHistory));
 
@@ -1473,6 +1506,7 @@ app.post("/api/import", (req, res) => {
     users: (incoming.users && incoming.users.length) ? incoming.users : db.users,
     settings: { ...db.settings, ...(incoming.settings || {}) },
     tvSelection: incoming.tvSelection || null,
+    kioskSelection: incoming.kioskSelection || null,
     activeSession: null,   // a restored backup shouldn't resurrect a stale login session
     pendingReturn: null,
     pendingCheckout: null,
@@ -1486,6 +1520,8 @@ app.post("/api/import", (req, res) => {
   broadcast("users");
   broadcast("settings");
   broadcast("bays");
+  broadcast("tv-selection");
+  broadcast("kiosk-selection");
   res.json({ ok: true, titles: db.titles.length, rentals: db.rentals.length, users: db.users.length, bays: db.bays.length });
 });
 
@@ -1563,6 +1599,16 @@ app.post("/api/restart-wled", (req, res) => {
   httpsPostJson(url, JSON.stringify({ rb: true }), { "Content-Type": "application/json" })
     .then(() => res.json({ ok: true }))
     .catch(() => res.status(500).json({ error: "Couldn't reach WLED at that address." }));
+});
+
+// A brief whole-strip pulse in whoever's own avatar color, right after
+// they log in — silently does nothing without WLED configured, same as
+// every other WLED-touching endpoint here, since this is a nice-to-have
+// flourish, not something that should ever block or error out a login.
+app.post("/api/welcome-lights", (req, res) => {
+  const { color } = req.body;
+  if(color && /^#?[0-9a-fA-F]{6}$/.test(color)) pulseWelcomeLights(color);
+  res.json({ ok: true });
 });
 
 // A genuine live signal, not a derived one — actually asks WLED right
@@ -1664,6 +1710,28 @@ app.delete("/api/tv-selection", (req, res) => {
   db.tvSelection = null;
   saveDb();
   broadcast("tv-selection");
+  res.json({ ok: true });
+});
+
+// The opposite direction from tv-selection above: that one is "browsing
+// on the TV, come check this out on the kiosk" — this is "looking at
+// something on the kiosk, show it big on the TV." Deliberately a
+// separate field rather than reusing tvSelection for both directions,
+// which would give the same field two different meanings depending on
+// which device set it last.
+app.get("/api/kiosk-selection", (req, res) => res.json(db.kioskSelection || {}));
+
+app.put("/api/kiosk-selection", (req, res) => {
+  db.kioskSelection = req.body;
+  saveDb();
+  broadcast("kiosk-selection");
+  res.json(db.kioskSelection);
+});
+
+app.delete("/api/kiosk-selection", (req, res) => {
+  db.kioskSelection = null;
+  saveDb();
+  broadcast("kiosk-selection");
   res.json({ ok: true });
 });
 

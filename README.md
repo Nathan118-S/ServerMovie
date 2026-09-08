@@ -538,6 +538,42 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## Every emoji replaced with a proper icon
+
+Went through the whole app and replaced every pictorial emoji — 24
+distinct ones, roughly 40 occurrences — with inline SVG icons matching
+the style already used everywhere else (thin stroke, `currentColor`,
+the same `.btn-icon` convention). Scoped this to actual pictorial
+emoji; left plain typographic symbols (→, ✓ and the like) alone, since
+those aren't really "emoji" in the sense meant here and replacing every
+arrow in the app would have been a much bigger, lower-value change than
+what was actually asked for.
+
+Two genuine exceptions, both worth explaining rather than silently
+leaving as emoji with no comment:
+
+- **The condition dropdown's "Damaged"/"Missing" options**, and **the
+  private-note field's placeholder text** — native `<option>` elements
+  and `placeholder` attributes are both plain-text-only in HTML; a
+  browser will not render nested markup inside either one no matter
+  what's placed there. Removed the emoji outright rather than pretend
+  an icon substitute was possible where it structurally isn't.
+- **The avatar emoji input's own placeholder** (showing an example
+  emoji as ghost text) was left exactly as it was — that field's entire
+  purpose is typing an emoji for a household member's avatar, so an
+  emoji as the example text is the correct, necessary thing to show
+  there, not decorative UI standing in for something else.
+
+This zip also finally ships two features that were built and verified
+in the previous session but never actually presented: the door-open
+welcome now pulses the whole WLED strip in whoever's own avatar color
+right after they log in, and the movie modal has a "Continue on TV"
+button sending whatever's open on the kiosk to the TV display —
+deliberately its own separate field/endpoint from the existing
+(opposite-direction) TV-to-kiosk mechanism, rather than overloading one
+field with two different meanings depending on which device set it
+last.
+
 ## A real bug found: restoring a backup silently wiped the wishlist
 
 Went looking for issues rather than waiting for a specific complaint

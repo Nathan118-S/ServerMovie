@@ -519,7 +519,7 @@
 </div><!-- /appRoot -->
 <div id="adminConsole" style="display:none;">
   <div class="admin-mode-bar" id="adminModeBar">
-    <span>🔴 Admin mode — logged in as <strong id="adminModeBarName"></strong></span>
+    <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:currentColor;margin-right:6px;"></span>Admin mode — logged in as <strong id="adminModeBarName"></strong></span>
     <button class="secondary" id="exitAdminConsoleBtn">Exit to customer view</button>
   </div>
   <div class="topbar">
@@ -826,7 +826,7 @@
             <div class="display" style="font-size:15px;">Bay layout</div>
             <div style="display:flex;gap:10px;align-items:center;">
               <span id="wledLiveStatus" style="font-size:12px;color:var(--muted);"></span>
-              <button class="secondary" id="printShelfMapBtn" style="padding:7px 12px;font-size:11px;">🖨️ Print shelf map</button>
+              <button class="secondary" id="printShelfMapBtn" style="padding:7px 12px;font-size:11px;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M6 9V4h12v5M6 18H4a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-2" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><rect x="6" y="14" width="12" height="7" stroke="currentColor" stroke-width="2"/></svg> Print shelf map</button>
               <button class="secondary" id="bayLayoutResetBtn" style="padding:7px 12px;font-size:11px;">Reset to grid</button>
             </div>
           </div>
@@ -987,6 +987,7 @@
   <div class="tv-header">
     <div class="tv-logo">SANDY SERVER</div>
   </div>
+  <div id="tvKioskBanner"></div>
   <div id="tvHero"></div>
   <div id="tvRows"></div>
 </div>
@@ -1006,11 +1007,11 @@
   // catalog. Each "test" gets the movie-only pool already filtered by
   // stock; returning false excludes it from that mood.
   const MOOD_PRESETS = {
-    family: { label: "🍿 Family Night", test: m => m.rating === "G" || m.rating === "PG" },
-    laugh: { label: "😂 Need a Laugh", test: m => m.genre === "Comedy" },
-    scary: { label: "😱 Something Scary", test: m => m.genre === "Horror" },
-    throwback: { label: "🕰️ Throwback", test: m => m.year && m.year < 2005 },
-    new: { label: "✨ New Arrivals", test: m => m.createdAt && (Date.now() - m.createdAt) < 30*86400000 }
+    family: { label: `<svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M4 11 12 4l8 7M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Family Night`, test: m => m.rating === "G" || m.rating === "PG" },
+    laugh: { label: `<svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/><path d="M8.5 14c1 1.5 2.2 2 3.5 2s2.5-.5 3.5-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/></svg> Need a Laugh`, test: m => m.genre === "Comedy" },
+    scary: { label: `<svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 3a8 8 0 1 0 8.5 9.7A6.5 6.5 0 0 1 12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Something Scary`, test: m => m.genre === "Horror" },
+    throwback: { label: `<svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/><path d="M12 8v4l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Throwback`, test: m => m.year && m.year < 2005 },
+    new: { label: `<svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 5.4L19 10l-5.2 1.6L12 17l-1.8-5.4L5 10l5.2-1.6L12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> New Arrivals`, test: m => m.createdAt && (Date.now() - m.createdAt) < 30*86400000 }
   };
   // Games get their own genre set and color palette, kept visually
   // distinct from the movie genres above — reused in Browse Games,
@@ -1149,6 +1150,7 @@
   let modalSeriesName = null; // series opened from Browse (disc-picker view), or null
   let tvSendMovieId = null; // movie open in the TV "send to kiosk" box, or null
   let tvSelection = null; // {movieId, title, genre, year, poster, sentAt} — last thing sent from the TV page
+  let kioskSelection = null; // {movieId, title, genre, year, poster, backdrop, sentAt} — last thing sent FROM the kiosk TO the TV (opposite direction from tvSelection above)
   let query = "";
   let featuredBrowseId = null;
   let moodFilter = null; // one of MOOD_PRESETS' keys, or null for no mood filter active
@@ -1208,6 +1210,7 @@
       else if(resource==="users") users = data;
       else if(resource==="settings"){ maxCheckouts = data.maxCheckouts || 3; omdbApiKey = data.omdbApiKey || ""; tmdbApiKey = data.tmdbApiKey || ""; igdbClientId = data.igdbClientId || ""; igdbClientSecret = data.igdbClientSecret || ""; wledUrl = data.wledUrl || ""; esp32BaysUrl = data.esp32BaysUrl || ""; bayWindowSeconds = data.bayWindowSeconds || 90; wledOpenEffect = data.wledOpenEffect ?? 9; wledCloseEffect = data.wledCloseEffect ?? 2; wledEffectSeconds = data.wledEffectSeconds || 6; doorCloseDelaySeconds = data.doorCloseDelaySeconds || 60; maxRenewals = data.maxRenewals ?? 2; }
       else if(resource==="tv-selection") tvSelection = data && data.movieId ? data : null;
+      else if(resource==="kiosk-selection") kioskSelection = data && data.movieId ? data : null;
       else if(resource==="bays") bays = data;
       else if(resource==="pending-return"){
         if(pendingReturn && !data){
@@ -1317,6 +1320,7 @@
       doorCloseDelaySeconds = (state.settings && state.settings.doorCloseDelaySeconds) || 60;
       maxRenewals = (state.settings && state.settings.maxRenewals) ?? 2;
       tvSelection = state.tvSelection && state.tvSelection.movieId ? state.tvSelection : null;
+      kioskSelection = state.kioskSelection && state.kioskSelection.movieId ? state.kioskSelection : null;
       bays = state.bays || [];
       pendingReturn = state.pendingReturn && state.pendingReturn.expiresAt > Date.now() ? state.pendingReturn : null;
       pendingCheckout = state.pendingCheckout && state.pendingCheckout.expiresAt > Date.now() ? state.pendingCheckout : null;
@@ -1365,7 +1369,7 @@
     renderKioskTvBanner();
     renderPendingReturnOverlay();
     renderPendingCheckoutOverlay();
-    if(isTvMode()) renderTv();
+    if(isTvMode()){ renderTv(); renderTvKioskBanner(); }
     // The admin-only panels (inventory list, users, labels, bay dashboard,
     // all-rentals) are invisible whenever the customer view is showing —
     // regenerating their HTML on every single state change is wasted work
@@ -1611,7 +1615,7 @@
         ? `<span class="poster-dot" style="background:${STREAMING_SERVICES[m.streamingService]?.color || '#555'};" title="${m.streamingService || 'Streaming'}"></span>`
         : `<span class="poster-dot${out?'':' in-stock'}" style="background:${out?'#737373':'#46D369'};" title="${out?'Out of stock':'In stock'}"></span>`}
       ${tag ? `<span style="position:absolute;top:8px;left:8px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,0.55);padding:2px 7px;border-radius:6px;">${tag}</span>` : ""}
-      ${m.condition==='damaged' ? `<span class="bluray-badge" style="background:linear-gradient(135deg,#E57373,#B71C1C);${tag?'bottom:56px;':''}">⚠️ Damaged</span>` : ""}
+      ${m.condition==='damaged' ? `<span class="bluray-badge" style="background:linear-gradient(135deg,#E57373,#B71C1C);${tag?'bottom:56px;':''}"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="width:11px;height:11px;vertical-align:-1px;"><path d="M12 4 2 20h20L12 4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><line x1="12" y1="10" x2="12" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg> Damaged</span>` : ""}
       ${isGame && m.platform ? `<span class="bluray-badge" style="background:linear-gradient(135deg,#66BB6A,#2E7D32);">${m.platform}</span>` : ""}
       ${isDigital && m.streamingService ? `<span class="bluray-badge" style="background:${STREAMING_SERVICES[m.streamingService]?.color || '#555'};">${m.streamingService}</span>` : ""}
       ${!isGame && !isDigital && m.format==='Blu-ray' ? `<span class="bluray-badge">Blu-ray</span>` : ""}
@@ -1950,10 +1954,10 @@
         <div style="font-size:13px;color:var(--white);">${m.title}</div>
       </div>`;
     body.innerHTML = `
-      <div class="t" style="font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:19px;font-weight:700;color:var(--white);margin-bottom:4px;">🎬 Double Feature</div>
+      <div class="t" style="font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:19px;font-weight:700;color:var(--white);margin-bottom:4px;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="7" width="18" height="13" rx="1.5" stroke="currentColor" stroke-width="2"/><path d="M3 7l2-4h3l-2 4M9 7l2-4h3l-2 4M15 7l2-4h3l-2 4" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Double Feature</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">${pairReason} — tap either to open it.</div>
       <div style="display:flex;gap:14px;margin-bottom:18px;">${posterHtml(first)}${posterHtml(second)}</div>
-      <button class="secondary" id="doubleFeatureRerollBtn" style="width:100%;">🎲 Different pairing</button>
+      <button class="secondary" id="doubleFeatureRerollBtn" style="width:100%;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M3 12a9 9 0 1 1 3.5 7.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M3 17v-5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Different pairing</button>
     `;
     body.querySelectorAll("[data-openpair]").forEach(el => {
       el.onclick = () => { closeDoubleFeature(); openMovieModal(el.dataset.openpair); };
@@ -2148,7 +2152,7 @@
     if(onThisDayTitles.length > 0){
       const { first, second } = splitByDisplayUnit(movieItems);
       const dateLabel = new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
-      rowsEl.innerHTML = gridHtml("", first) + rowHtml(`📅 On This Day — ${dateLabel}`, onThisDayTitles, 0) + gridHtml("", second);
+      rowsEl.innerHTML = gridHtml("", first) + rowHtml(`<svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;"><rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"/><line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2"/><line x1="8" y1="3" x2="8" y2="7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="16" y1="3" x2="16" y2="7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> On This Day — ${dateLabel}`, onThisDayTitles, 0) + gridHtml("", second);
     } else {
       rowsEl.innerHTML = gridHtml("", movieItems);
     }
@@ -2322,7 +2326,7 @@
           ${note ? `<div style="font-size:11px;color:var(--muted2);margin-top:4px;">${note}</div>` : ""}
         </div>
       </div>`;
-    const rows = attentionRow("⚠️ Damaged", damaged) + attentionRow("❌ Missing", missing) +
+    const rows = attentionRow(`<svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;"><path d="M12 4 2 20h20L12 4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><line x1="12" y1="10" x2="12" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg> Damaged`, damaged) + attentionRow(`<svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Missing`, missing) +
       attentionRow("No bay assigned", noBay, "Fixable from Bays &amp; Lighting, or automatically the next time a return happens.");
     attentionEl.innerHTML = rows
       ? `<div class="bulk-box" style="margin-top:0;"><div class="display" style="font-size:15px;margin-bottom:10px;">Needs attention</div><div class="list-group">${rows}</div></div>`
@@ -2394,7 +2398,7 @@
     el.innerHTML = `<div class="bulk-box" style="margin-top:0;border-color:#5A4A20;">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;">
         <div>
-          <div class="display" style="font-size:14px;margin-bottom:4px;color:#E8B800;">💾 ${message}</div>
+          <div class="display" style="font-size:14px;margin-bottom:4px;color:#E8B800;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;"><path d="M5 4h11l3 3v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><rect x="8" y="4" width="7" height="5" stroke="currentColor" stroke-width="2"/><rect x="7" y="14" width="10" height="6" stroke="currentColor" stroke-width="2"/></svg> ${message}</div>
           <div style="font-size:12px;color:var(--muted);">Your whole catalog, rentals, users, and settings live in one file worth keeping a copy of somewhere else.</div>
         </div>
         <button class="secondary" id="backupReminderBtn" style="flex-shrink:0;">Back up now</button>
@@ -2437,7 +2441,7 @@
     el.innerHTML = `<div class="bulk-box" style="margin-top:0;">
       <div class="display" style="font-size:15px;margin-bottom:10px;">Recent activity</div>
       <div class="list-group">${events.map(e => `<div class="row" style="padding:8px 0;">
-        <span style="font-size:13px;">${e.type==='checkout' ? '📤' : '📥'} <b>${e.who}</b> ${e.type==='checkout' ? 'checked out' : 'returned'} ${e.title}</span>
+        <span style="font-size:13px;">${e.type==='checkout' ? '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px;"><path d="M12 19V5M6 11l6-6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px;"><path d="M12 5v14M6 13l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'} <b>${e.who}</b> ${e.type==='checkout' ? 'checked out' : 'returned'} ${e.title}</span>
         <span style="font-size:11px;color:var(--muted);flex-shrink:0;">${relativeTimeAgo(e.at)}</span>
       </div>`).join("")}</div>
     </div>`;
@@ -2562,7 +2566,7 @@
       return `<div class="row">
       <img class="poster-thumb" src="${m.poster || ''}" style="${m.poster?'':'visibility:hidden;'}" />
       <div style="flex:1;">
-        <span style="font-size:14px;">${isGame ? '🎮 ' : isDigital ? '📺 ' : ''}${m.title}</span>
+        <span style="font-size:14px;">${isGame ? '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;"><rect x="2" y="8" width="20" height="10" rx="4" stroke="currentColor" stroke-width="2"/><line x1="7" y1="11" x2="7" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="5" y1="13" x2="9" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="12" r="1" fill="currentColor"/><circle cx="18" cy="15" r="1" fill="currentColor"/></svg> ' : isDigital ? '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg> ' : ''}${m.title}</span>
         <span style="font-size:12px;color:var(--muted);margin-left:8px;">${m.genre} · ${m.year} · code: ${m.code}${seriesTag(m) ? ' · '+seriesTag(m) : ''}${(!isDigital && !bays.some(b=>b.titleId===m.id)) ? ' · <span style="color:#E8B800;">no bay assigned</span>' : ''}</span>
         <div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
           ${isGame ? `<select class="platformInput" data-platform="${m.id}" style="font-size:11px;padding:4px 8px;width:auto;">
@@ -2576,8 +2580,8 @@
           </select>`}
           <select class="conditionInput" data-condition="${m.id}" style="font-size:11px;padding:4px 8px;width:auto;" ${isDigital?'disabled title="Condition doesn\'t apply to a digital copy"':''}>
             <option value="" ${!m.condition?'selected':''}>Good condition</option>
-            <option value="damaged" ${m.condition==='damaged'?'selected':''}>⚠️ Damaged</option>
-            <option value="missing" ${m.condition==='missing'?'selected':''}>❌ Missing</option>
+            <option value="damaged" ${m.condition==='damaged'?'selected':''}>Damaged</option>
+            <option value="missing" ${m.condition==='missing'?'selected':''}>Missing</option>
           </select>
           ${!isGame ? `<input class="imdbInput" data-imdb="${m.id}" placeholder="tt1234567" value="${m.imdbId||''}" style="font-size:11px;padding:4px 8px;width:110px;" />
           ${imdbLinkHtml(m)}` : ''}
@@ -2590,7 +2594,7 @@
             <input type="file" accept="audio/*" class="themeInput" data-theme="${m.id}" />
           </label>` : ''}
         </div>
-        <input class="notesInput" data-notes="${m.id}" placeholder="📝 Private note (staff only — never shown to customers)" value="${m.notes||''}" style="font-size:11px;padding:5px 8px;width:100%;margin-top:6px;color:var(--muted);" />
+        <input class="notesInput" data-notes="${m.id}" placeholder="Private note (staff only — never shown to customers)" value="${m.notes||''}" style="font-size:11px;padding:5px 8px;width:100%;margin-top:6px;color:var(--muted);" />
       </div>
       ${isDigital
         ? `<div style="display:flex;gap:8px;align-items:center;">
@@ -2900,12 +2904,14 @@
         <div id="trailerSlot-modal" style="margin-bottom:16px;"></div>
         <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:16px;">${imdbLinkHtml(m)}${trailerButtonHtml(m, "trailerSlot-modal")}</div>
         ${actionHtml}
+        <button class="secondary" id="modalSendToTvBtn" style="width:100%;margin-top:10px;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg> Continue on TV</button>
       </div>
     </div>`;
     overlay.style.display = "flex";
 
     $("#modalCloseBtn").onclick = closeModal;
     overlay.onclick = (e) => { if(e.target===overlay) closeModal(); };
+    $("#modalSendToTvBtn").onclick = () => sendToTv(m);
     const themeStopBtn = $("#themeStopBtn");
     if(themeStopBtn) themeStopBtn.onclick = () => { stopThemeSong(); themeStopBtn.remove(); };
     const trailerBtn = overlay.querySelector("[data-playtrailer]");
@@ -3183,6 +3189,22 @@
     setTimeout(closeTvSendBox, 1200);
   }
 
+  // The opposite direction — whatever's open in the kiosk's own movie
+  // modal, shown big on the TV. A separate endpoint/field from
+  // sendToKiosk above rather than the same one reused both ways (see
+  // the server-side comment on /api/kiosk-selection for why).
+  async function sendToTv(movie){
+    if(!apiReady){ toast("Can't reach the local server right now."); return; }
+    try{
+      await api.send("PUT", "/api/kiosk-selection", {
+        movieId: movie.id, title: movie.title, genre: movie.genre, year: movie.year,
+        poster: movie.poster || "", backdrop: movie.backdrop || "", sentAt: Date.now()
+      });
+      kioskSelection = { movieId: movie.id, title: movie.title, genre: movie.genre, year: movie.year, poster: movie.poster || "", backdrop: movie.backdrop || "", sentAt: Date.now() };
+      toast(`Sent "${movie.title}" to the TV`);
+    }catch(e){ toast("Couldn't send to the TV"); }
+  }
+
   // ---------- kiosk-side banner showing what was sent from the TV page ----------
   function renderKioskTvBanner(){
     const el = $("#kioskTvBanner");
@@ -3205,6 +3227,30 @@
   async function clearTvSelection(){
     try{ await api.send("DELETE", "/api/tv-selection"); }catch(e){}
     tvSelection = null; render();
+  }
+
+  // The mirror of the banner above, shown on the TV page itself instead
+  // of the kiosk — whatever was sent via "Continue on TV" in the movie
+  // modal. No "View" button here the way the kiosk-side banner has one:
+  // the TV page isn't meant to be tapped through in the same way, so
+  // this is really just a prominent "here's what to look at" callout.
+  function renderTvKioskBanner(){
+    const el = $("#tvKioskBanner");
+    if(!el) return;
+    if(!kioskSelection){ el.innerHTML = ""; return; }
+    el.innerHTML = `<div class="kiosk-tv-banner">
+      <div>
+        <div class="label"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.3 7-11.5A7 7 0 0 0 5 9.5C5 14.7 12 21 12 21Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Continuing from the kiosk</div>
+        <div class="title">${kioskSelection.title}</div>
+      </div>
+      <button class="secondary" id="tvKioskBannerDismissBtn" style="padding:9px 14px;font-size:12px;">Dismiss</button>
+    </div>`;
+    $("#tvKioskBannerDismissBtn").onclick = clearKioskSelection;
+  }
+
+  async function clearKioskSelection(){
+    try{ await api.send("DELETE", "/api/kiosk-selection"); }catch(e){}
+    kioskSelection = null; render();
   }
 
   // ---------- idle screensaver ----------
@@ -3350,6 +3396,7 @@
     renderNavVisibility();
     resetAutoLogoutTimer();
     api.send("PUT", "/api/active-session", { userId: u.id, name: u.name }).catch(()=>{});
+    api.send("POST", "/api/welcome-lights", { color: loggedInUser.color }).catch(()=>{}); // a nice-to-have flourish — never worth surfacing an error over
     toast(u.isAdmin ? `Welcome, ${u.name} (admin)` : `Welcome, ${u.name}`);
   }
 
@@ -3990,7 +4037,7 @@
     const dueDate = new Date(Date.now() + RENTAL_DAYS*86400000).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
     el.style.display = "flex";
     el.innerHTML = `
-      <div style="font-size:56px;margin-bottom:16px;">✅</div>
+      <div style="margin-bottom:16px;"><svg viewBox="0 0 24 24" fill="none" style="width:56px;height:56px;"><circle cx="12" cy="12" r="10" stroke="var(--green)" stroke-width="2"/><path d="M7.5 12.5l3 3 6-6.5" stroke="var(--green)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <div class="t">You're all set!</div>
       <div class="g">"${completed.title}" is checked out${completed.renterName ? ' to '+completed.renterName : ''} — due back ${dueDate}.</div>
       <button class="primary" id="rentalCompleteDoneBtn">Continue browsing</button>
@@ -4008,7 +4055,7 @@
     clearTimeout(returnCompleteTimer);
     el.style.display = "flex";
     el.innerHTML = `
-      <div style="font-size:56px;margin-bottom:16px;">✅</div>
+      <div style="margin-bottom:16px;"><svg viewBox="0 0 24 24" fill="none" style="width:56px;height:56px;"><circle cx="12" cy="12" r="10" stroke="var(--green)" stroke-width="2"/><path d="M7.5 12.5l3 3 6-6.5" stroke="var(--green)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <div class="t">Thanks for returning it!</div>
       <div class="g">"${completed.title}" is back and available to rent again.</div>
       <button class="primary" id="returnCompleteDoneBtn">Continue browsing</button>
@@ -4199,7 +4246,7 @@
     currentUnattributedRentalId = data.rentalId;
     el.style.display = "flex";
     el.innerHTML = `
-      <div style="font-size:44px;margin-bottom:12px;">🔔</div>
+      <div style="margin-bottom:12px;"><svg viewBox="0 0 24 24" fill="none" style="width:44px;height:44px;color:#E87C03;"><path d="M6 10a6 6 0 0 1 12 0c0 4 1.5 5.5 2 6H4c.5-.5 2-2 2-6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M10 19a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
       <div class="t">Who took "${data.title}"?</div>
       <div class="g">It checked out fine, but nobody was logged in — enter your PIN so it's under the right name.</div>
       <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:280px;align-items:center;">
@@ -4265,7 +4312,7 @@
     if(!el) return;
     el.style.display = "flex";
     el.innerHTML = `
-      <div style="font-size:44px;margin-bottom:12px;">👋</div>
+      <div style="margin-bottom:12px;"><svg viewBox="0 0 24 24" fill="none" style="width:44px;height:44px;color:var(--red);"><path d="M5 21V5a2 2 0 0 1 2-2h6l6 6v12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13 3v6h6" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="9.5" cy="14" r="1" fill="currentColor"/></svg></div>
       <div class="t">Welcome! Log in to check something out</div>
       <div style="display:flex;gap:8px;align-items:center;justify-content:center;margin-top:6px;">
         <input id="doorLoginPinInput" class="pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" />
@@ -4704,9 +4751,9 @@
       <div class="t">How was the disc?</div>
       <div class="g">"${rental.title}" — just returned</div>
       <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:360px;">
-        <button class="primary" data-cond="good" style="width:100%;">✅ Good — ready to rent again</button>
-        <button class="secondary" data-cond="damaged" style="width:100%;">⚠️ Damaged — scratched, won't play right</button>
-        <button class="secondary" data-cond="missing" style="width:100%;">❌ Missing — case was empty / lost</button>
+        <button class="primary" data-cond="good" style="width:100%;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M8 12.5l2.5 2.5L16 9.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Good — ready to rent again</button>
+        <button class="secondary" data-cond="damaged" style="width:100%;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 4 2 20h20L12 4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><line x1="12" y1="10" x2="12" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg> Damaged — scratched, won't play right</button>
+        <button class="secondary" data-cond="missing" style="width:100%;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Missing — case was empty / lost</button>
       </div>
       <div id="conditionCountdown" style="font-size:12px;color:var(--muted2);margin-top:14px;">Assuming Good in ${secondsLeft}s if nothing's picked…</div>
     `;
