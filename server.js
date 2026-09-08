@@ -98,6 +98,15 @@ function httpsPostJson(url, body, headers){
 // ---------- WLED bay lighting ----------
 // Best-effort, fire-and-forget: a light not updating should never block or
 // break a checkout/return. Uses WLED's JSON API to set one individual LED.
+// Tracks the outcome of the most recent attempt to push a color to a
+// bay's LED — previously this vanished completely on failure (a bare
+// `req.on("error", () => {})`), so a wrong URL, an unreachable
+// controller, or WLED being powered off all looked identical to
+// "working fine" from anywhere in the app. Exposed via /api/wled-status
+// so a setup or connectivity problem is actually visible somewhere,
+// not just inferred from lights that silently never change.
+let lastLedPush = { ok: null, at: null, error: null };
+
 function pushBayLed(ledIndex, colorHex){
   let wledUrl = ((db.settings && db.settings.wledUrl) || "").trim();
   if(!wledUrl || ledIndex === undefined || ledIndex === null || ledIndex === "") return;
@@ -110,12 +119,23 @@ function pushBayLed(ledIndex, colorHex){
       method: "POST",
       headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) },
       timeout: 3000
-    }, res => { res.on("data", () => {}); });
-    req.on("error", () => {});
-    req.on("timeout", () => req.destroy());
+    }, res => {
+      res.on("data", () => {});
+      lastLedPush = { ok: res.statusCode >= 200 && res.statusCode < 300, at: Date.now(), error: res.statusCode >= 300 ? `WLED returned HTTP ${res.statusCode}` : null };
+    });
+    req.on("error", (err) => {
+      lastLedPush = { ok: false, at: Date.now(), error: err.message };
+      console.error("WLED push failed:", err.message);
+    });
+    req.on("timeout", () => {
+      lastLedPush = { ok: false, at: Date.now(), error: "Timed out reaching WLED" };
+      req.destroy();
+    });
     req.write(body);
     req.end();
-  }catch(e){}
+  }catch(e){
+    lastLedPush = { ok: false, at: Date.now(), error: e.message };
+  }
 }
 
 function updateBayLedForTitle(title){
@@ -1176,11 +1196,18 @@ app.post("/api/door-opened", logHardwareCall("door-opened"), (req, res) => {
   clearTimeout(doorCloseTimer);
   doorCloseTimer = null;
   playDoorAnimation((db.settings && db.settings.wledOpenEffect) || 9);
+  // The whole point of the cabinet door sensor existing is knowing when
+  // someone's actually standing there — if nobody's logged in at that
+  // exact moment, that's worth a direct prompt rather than assuming
+  // they'll remember to find the login button themselves.
+  const loggedIn = db.activeSession && db.activeSession.expiresAt > Date.now();
+  if(!loggedIn) broadcast("door-opened-no-login");
   res.json({ ok: true });
 });
 
 app.post("/api/door-closed", logHardwareCall("door-closed"), (req, res) => {
   clearTimeout(doorCloseTimer);
+  broadcast("door-closed-prompt-dismiss"); // the moment's passed either way — walked off, or already logged in
   const delaySeconds = (db.settings && db.settings.doorCloseDelaySeconds) || 60;
   doorCloseTimer = setTimeout(() => {
     doorCloseTimer = null;
@@ -1539,12 +1566,12 @@ app.post("/api/restart-wled", (req, res) => {
 // rather than a confirmed "what's actually lit."
 function getWledStatus(){
   let wledUrl = ((db.settings && db.settings.wledUrl) || "").trim();
-  if(!wledUrl) return Promise.resolve({ configured: false, online: false });
+  if(!wledUrl) return Promise.resolve({ configured: false, online: false, lastLedPush });
   if(!/^https?:\/\//i.test(wledUrl)) wledUrl = "http://" + wledUrl;
   const url = wledUrl.replace(/\/+$/, "") + "/json/info";
   return httpsGetJson(url)
-    .then(info => ({ configured: true, online: true, name: (info && info.name) || "", ledCount: info && info.leds ? info.leds.count : undefined, ver: info && info.ver }))
-    .catch(() => ({ configured: true, online: false }));
+    .then(info => ({ configured: true, online: true, name: (info && info.name) || "", ledCount: info && info.leds ? info.leds.count : undefined, ver: info && info.ver, lastLedPush }))
+    .catch(() => ({ configured: true, online: false, lastLedPush }));
 }
 
 app.get("/api/wled-status", (req, res) => { getWledStatus().then(status => res.json(status)); });

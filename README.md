@@ -538,6 +538,127 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## A welcome prompt when the door opens with nobody logged in
+
+If you've wired the separate cabinet door sensor (not a bay switch —
+see Bays & Lighting), opening it with nobody currently logged in now
+shows a full-screen "Welcome! Log in to check something out" prompt
+with a PIN pad built right in, plus a single welcoming chime — reuses
+the exact same on-screen number pad and login logic as the regular
+login gate, so logging in from this prompt works exactly like logging
+in anywhere else in the app.
+
+Deliberately a one-time chime, not the repeating alarm the "who took
+this?" unattributed-checkout alert uses — that one exists because
+something already happened and needs resolving; this is just a nudge
+for someone who's about to do something, not urgent in the same way.
+
+It dismisses itself the moment anyone actually logs in — through this
+prompt or the normal login gate, it doesn't matter which — and also
+when the door closes again, since at that point the moment's passed
+either way. "Just browsing" dismisses it directly for anyone who opened
+the door without wanting to check something out. Only shows on the
+customer touchscreen: never in TV mode, never inside the Admin Console.
+
+## The featured hero shows landscape art, not a stretched cover
+
+The big banner at the top of Browse now shows a title's landscape
+backdrop image instead of its portrait poster — a real image built for
+that shape, rather than the same cover art used for the small poster
+grid getting stretched across a wide banner. Falls back to the poster
+if a title doesn't have backdrop art yet, and to the plain gradient
+placeholder if it has neither.
+
+Two things needed to change together for this to actually work right,
+not just one: which title gets picked as "featured" also now prefers
+one that actually *has* backdrop art, not just any poster — otherwise
+a title with only a poster could still get featured and you'd be right
+back to a stretched cover image, just less often. And the image card
+itself needed resizing, not just a new source — it was sized and
+cropped specifically for a narrow portrait image (max 300px wide,
+`object-fit: contain`), which would have squeezed a wide landscape
+image into a small, oddly-shaped box. Widened it and switched to a
+16:9 frame with `object-fit: cover` instead.
+
+Small bonus from this: the ambient blurred background behind the whole
+page already preferred backdrop art over poster art (built a few
+rounds back) — now the hero does too, so they consistently show
+related art instead of potentially mismatched images.
+
+## Bulk import theme songs
+
+Catalog → Bulk Import has a third box now, next to titles and
+posters: select several audio clips at once, named to match a series
+(`Night Circuit.mp3` matches the series "Night Circuit"), and each gets
+matched and applied automatically. Theme songs are conceptually a
+series-level thing even though they're stored per-disc, so matching
+here is against series names, not individual titles like the poster
+import does — and the clip gets applied to *every* disc sharing that
+series name in one pass, so they all stay in sync instead of needing
+the same file uploaded once per disc. Reuses the exact size limit and
+conversion helper the existing single-theme upload already had (8MB
+per clip); nothing new introduced there, just wired up for bulk use.
+
+## WLED: what was actually wrong, and a much easier setup
+
+Before changing anything, I checked the actual color-setting request
+this app sends WLED (`{"seg":[{"i":[ledIndex, colorHex]}]}`) against
+WLED's own JSON API documentation. It's correct — that's a genuinely
+documented, valid way to address an individual LED (an array of
+segment objects with the ID inferred from position when omitted, which
+lands on segment 0 for a typical single-segment setup). I'm saying this
+plainly because it would've been easy to "fix" something that wasn't
+actually broken.
+
+What I found instead was a real, separate problem: **every failed
+attempt to push a color was completely silent.** Wrong IP, WLED powered
+off, wrong network — all of it just vanished into nothing, with no log
+line, no error anywhere, nothing to look at. If your bay lights weren't
+updating, there was genuinely no way to tell why from within the app.
+Fixed — failures now log server-side and the outcome of the most recent
+push (succeeded, or failed with the actual reason) is tracked and shown
+in the app.
+
+**Setup is also meaningfully easier now.** Bays &amp; Lighting → Setup
+has a **Test connection** button right next to the WLED address field —
+saving now auto-tests immediately too — showing whether it actually
+connected, the device's name, and (this is the part that used to
+require checking WLED's own UI separately) how many LEDs are on the
+strip, so you know the valid index range for each bay without leaving
+this page. The full live status indicator still lives in Diagnostics
+for ongoing monitoring, but you no longer have to go there just to
+find out if your address was even typed correctly.
+
+## An on-screen number pad, everywhere a PIN gets entered
+
+Every "enter your PIN" moment — the main login gate, the Return flow,
+and the "who took this?" claim prompt — now shows a tappable on-screen
+keypad underneath the input, since this is a touchscreen kiosk first
+and typing on a physical keyboard was never really the point. Tapping
+the fourth digit auto-submits everywhere, matching how a real PIN pad
+behaves.
+
+The keyboard still works too, everywhere — the number pad is additive,
+not a replacement. Worth being explicit about a decision I almost got
+wrong while building this: my first pass made the PIN field itself
+`readonly` so the OS's own on-screen keyboard wouldn't pop up
+alongside the new one, but that would've also blocked physical-keyboard
+entry entirely, which matters for anyone using this from a regular
+browser rather than the actual kiosk screen. Caught it before shipping
+and left the field normal — typing still works exactly as before, the
+number pad is just there as well for touch.
+
+## Putting the disc back stops the "who took this?" alarm
+
+If the disc that triggered an unattributed-checkout alert gets put
+straight back in its bay — someone grabbed it, thought better of it,
+whatever — the alarm and PIN prompt now stop on their own instead of
+continuing to chime and demand an answer about a rental that doesn't
+exist anymore. Reuses the exact same before/after rental comparison
+that already catches returns for the disc-condition prompt, so it
+works no matter how the return actually happens: a bay pull, a scanned
+barcode, or an admin completing it manually.
+
 ## The disc-condition prompt no longer waits forever
 
 "How was the disc?" previously had no timeout at all — if someone
