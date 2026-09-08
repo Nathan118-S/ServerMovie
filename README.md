@@ -538,6 +538,60 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## Digital Copies — a third, genuinely separate catalog tab
+
+A new **Digital Copies** tab, alongside Browse Movies and Browse Games —
+same browsing experience (hero, poster grid, search, the featured-item
+scroll fade, everything), but for titles you own digitally rather than
+on disc. Instead of a rental flow, each one just links out to whichever
+streaming service it's actually on: Netflix, Prime Video, Apple TV,
+Disney+, Hulu, Max, Paramount+, and Peacock are built in as options.
+
+This reuses the same underlying approach Movies and Games already use
+to stay separate from each other — one shared catalog, distinguished by
+a `mediaType` field — rather than building a disconnected parallel
+system. That's what let this reuse so much for free: Add Title, the
+genre/rating fields, poster and OMDb lookup, IMDb links, all of it,
+same as before, with a Media Type dropdown option and two new fields
+(which service, and the actual link) that only show up when relevant.
+
+**Three real bugs came out of extending that shared-catalog approach to
+a third type, all fixed before this shipped, not after:**
+
+- Browse Movies, and the TV kiosk display, both filtered with "anything
+  that isn't a game" — which meant digital copies would have shown up
+  there too, directly undermining "completely separate." Both now
+  explicitly exclude digital copies as well.
+- Surprise Me had the same gap, plus a second one: it required
+  `stock > 0` to consider something eligible, and a digital copy's
+  stock is always 0 by design (there's nothing to have more than one
+  of). Hitting Surprise Me from the Digital Copies tab would have found
+  zero eligible titles no matter how many were actually in the catalog.
+  Fixed with a proper third branch — for digital, "available" means
+  having an actual streaming link, not a stock count.
+- The movie detail modal's login-button wiring relied on `stock <= 0`
+  to decide whether to show a login prompt. For a digital copy, that
+  comparison doesn't reliably evaluate the way the rest of that logic
+  assumed, and the original code would have tried to attach a click
+  handler to a button that doesn't exist in the digital-title version
+  of that modal — a hard JavaScript error breaking the whole modal.
+  Fixed by checking the media type explicitly rather than leaning on
+  what stock happens to evaluate to.
+
+**The admin Inventory list also needed real changes, not just new
+columns** — showing a DVD/Blu-ray dropdown and a stock +/‑ adjuster for
+something that streams would have been actively misleading, not just
+suboptimal. Digital copies get a streaming-service dropdown and a
+link field there instead, and the stock adjuster is replaced with
+just a remove button.
+
+**One honest, disclosed limitation**: barcode scanning has no special
+handling for digital copies. In practice this shouldn't come up —
+there's no physical disc or case to put a barcode label on in the
+first place — but a scan matching a digital title's generated code
+would currently fall into the same "out of stock" messaging physical
+titles get, rather than something written specifically for this case.
+
 ## The hero is now full-bleed and fades out as you scroll
 
 The featured banner used to be a discrete image card sitting next to
