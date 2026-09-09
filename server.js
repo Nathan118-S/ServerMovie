@@ -689,7 +689,7 @@ function loadDb(){
       rentalHistory: [],
       wishlist: [],
       users: [{ id: newId("u"), name: "Admin", pin: "0000", isAdmin: true }],
-      settings: { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90, wledOpenEffect: 9, wledCloseEffect: 2, wledEffectSeconds: 6, doorCloseDelaySeconds: 60, maxRenewals: 2, overheadLedIndexes: "", mainKioskIp: "" },
+      settings: { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90, wledOpenEffect: 9, wledCloseEffect: 2, wledEffectSeconds: 6, doorCloseDelaySeconds: 60, maxRenewals: 2, overheadLedIndexes: "", mainKioskIp: "", serviceMode: false },
       tvSelection: null,
       kioskSelection: null,
       activeSession: null,
@@ -721,6 +721,7 @@ function loadDb(){
   if(parsed.settings.maxRenewals === undefined) parsed.settings.maxRenewals = 2;
   if(parsed.settings.overheadLedIndexes === undefined) parsed.settings.overheadLedIndexes = "";
   if(parsed.settings.mainKioskIp === undefined) parsed.settings.mainKioskIp = "";
+  if(parsed.settings.serviceMode === undefined) parsed.settings.serviceMode = false;
   if(parsed.tvSelection === undefined) parsed.tvSelection = null;
   if(parsed.kioskSelection === undefined) parsed.kioskSelection = null;
   if(parsed.activeSession === undefined) parsed.activeSession = null;
@@ -793,7 +794,13 @@ function broadcast(resource, data){
 // actually set one.
 function broadcastToMainKiosk(resource, data){
   const mainKioskIp = (db.settings && db.settings.mainKioskIp) || "";
-  if(!mainKioskIp){ broadcast(resource, data); return; }
+  // Service mode bypasses the main-kiosk filter entirely — whoever's
+  // actively doing maintenance (testing lights, bulk-scanning bays)
+  // needs to actually see these alerts fire on whatever device they're
+  // sitting at, not have them silently routed to a kiosk across the
+  // room instead.
+  const serviceMode = !!(db.settings && db.settings.serviceMode);
+  if(!mainKioskIp || serviceMode){ broadcast(resource, data); return; }
   const payload = `data: ${JSON.stringify(data !== undefined ? { resource, data } : { resource })}\n\n`;
   sseClients.forEach(c => { if(c.ip === mainKioskIp) c.res.write(payload); });
 }

@@ -538,6 +538,100 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## A Service Mode for hands-on maintenance passes
+
+A new **Service** subtab under Bays &amp; Lighting, alongside Setup,
+Assignment, and Diagnostics, built specifically for sitting down and
+working the shelf in one uninterrupted pass rather than hopping
+between three different subtabs:
+
+- **Service mode toggle** — while it's on, full-screen alerts (the
+  door-open prompt, the "who took this?" chime) reach whatever device
+  is actually being used for maintenance, bypassing the Main Kiosk
+  filter from a couple of updates back. Off by default, and turning it
+  back off restores normal main-kiosk-only routing exactly as before.
+- **Light testing**, one click away — the same LED sweep test as
+  Diagnostics, no tab-switching required mid-service.
+- **Bulk assign**, its own copy — scan a bay, then a movie, repeat.
+  Genuinely shares state with the existing copy in Assignment rather
+  than running a second independent session: a bay scanned from either
+  input completes with a movie scanned from either input, since it's
+  the same real workflow, just reachable from two places.
+- **Bay assignments**, the same dropdown view as Assignment, for
+  hand-fixing anything the scanner missed.
+
+None of the underlying logic was duplicated to build this — the
+existing bay-dashboard renderer now accepts which container to draw
+into (called twice, once per copy, rather than forked into two
+separate functions that could quietly drift apart over time), and the
+bulk-assign status renderer updates every copy of its status/log
+elements that currently exists in the DOM, so both views always agree
+with each other.
+
+## Richer, more distinct sounds for all five app sounds
+
+Rebuilt all five existing sounds (the unattributed-checkout alarm, the
+door-open welcome chime, the Rent-tap blip, checkout-complete, and
+return-complete) around two new shared helpers — a single tone, and a
+genuine chord (several tones started at the exact same instant, real
+harmony rather than one note at a time). What actually makes something
+sound musically richer is mostly the chords, not just extra notes in a
+row, so every "landing" moment in each of the five — the held note at
+the end of a phrase — now lands on 3 simultaneous tones instead of 1.
+The Rent-tap sound stayed intentionally short (it fires on every single
+tap, a frequent and low-stakes action), just gained one extra note
+rather than a full chord treatment, so it doesn't turn a quick action
+into something that takes longer to sit through.
+
+**Worth being direct about a mistake caught mid-edit, not after**:
+rewriting all five functions in one pass, I left stray leftover closing
+syntax behind from the original version of `playReturnCompleteSound` —
+an extra `});` and a duplicate `catch` block sitting right after the
+real one. Caught it by reading through the actual result rather than
+trusting that a passing syntax check meant every function was
+genuinely clean — a syntax check confirms the file parses, not that
+each function's structure is exactly what was intended, and with five
+functions rewritten in a single edit that distinction mattered enough
+to check by hand. Fixed, then manually read through all five complete
+functions line by line to confirm none of the other four had the same
+issue, rather than assuming the one catch meant the rest were fine.
+
+## Three more animations
+
+**The genre glow now gently pulses** — breathing in and out on a slow
+3.5-second cycle rather than sitting static. Had to rebuild how it's
+implemented to add this safely, not just bolt a keyframe onto the
+existing rule: the glow used to live directly in `.poster-card`'s own
+`box-shadow`, and animating that property directly would have taken
+priority over the `:hover`/`:focus` rules' own static `box-shadow` —
+CSS animations override the normal cascade for the same property on
+the same element, so the pulse would have silently fought with (and
+likely broken) the hover highlight the moment it started running.
+Moved the glow onto its own pseudo-element instead, so the pulse
+animates a property that hover and focus never touch at all — nothing
+left to conflict with.
+
+**The hero backdrop has a slow Ken Burns zoom** — a gentle, continuous
+20-second in-and-out breathing scale on whatever's currently featured,
+the same effect real documentaries and streaming apps use on still
+images to keep them feeling alive rather than static. Confirmed the
+hero's own container already clips overflow before adding this, so the
+zoomed image can't spill past its edges.
+
+**Mood filter buttons get a little "pop"** when selected — reusing the
+exact same `tabPop` bounce animation the nav tabs already use elsewhere
+in the app, rather than inventing a new one, so it reads as consistent
+with how the rest of the interface already responds to a selection.
+
+## The genre glow, turned up a lot
+
+Increased both the size and the intensity — the blur radius grew from
+22px to 42px with a positive spread added (6px, versus a slight
+negative spread before that was actually pulling it in tighter), and
+the opacity went from 0.55 to 0.85. Applied consistently everywhere
+the glow already existed (regular poster cards and grouped series
+tiles alike), not just one of the two.
+
 ## A "main kiosk" designation for alerts
 
 If more than one device ever has the app open at once — a second

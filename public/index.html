@@ -169,7 +169,8 @@
      fading before there's much space left to feel like a real
      transition into the catalog grid below it. */
   .hero{position:relative;width:100vw;left:50%;right:50%;margin-left:-50vw;margin-right:-50vw;min-height:82vh;display:flex;align-items:flex-end;overflow:hidden;margin-bottom:8px;transition:opacity 0.1s linear;}
-  .hero-backdrop-img,.hero-backdrop-placeholder{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;}
+  @keyframes heroKenBurns{0%{transform:scale(1);}100%{transform:scale(1.08);}}
+  .hero-backdrop-img,.hero-backdrop-placeholder{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;animation:heroKenBurns 20s ease-in-out infinite alternate;}
   .hero-scrim{position:absolute;inset:0;z-index:1;pointer-events:none;
     background:
       linear-gradient(to top, var(--bg) 0%, rgba(0,0,0,0.25) 35%, transparent 65%),
@@ -198,7 +199,17 @@
     mask-image:linear-gradient(to right, transparent 0, black 40px, black calc(100% - 40px), transparent 100%);}
   .row-scroller::-webkit-scrollbar{display:none;}
   .poster-grid{display:flex;flex-wrap:wrap;gap:16px;padding:6px 40px 20px;}
-  .poster-card{position:relative;flex-shrink:0;width:150px;height:225px;border-radius:14px;cursor:pointer;display:flex;align-items:flex-end;padding:10px;background-size:cover;background-position:center;box-shadow:0 4px 16px rgba(0,0,0,0.35), 0 0 22px -2px var(--glow-color, transparent);transition:transform 0.25s cubic-bezier(.25,.8,.35,1),box-shadow 0.25s ease;animation:fadeInUp 0.4s ease both;}
+  /* The glow now lives on its own pseudo-element rather than as part of
+     .poster-card's own box-shadow — animating box-shadow directly on
+     the card would take priority over the :hover/:focus rules' own
+     static box-shadow (CSS animations override the normal cascade for
+     the same property on the same element), silently breaking the
+     hover highlight the moment the pulse started running. Keeping the
+     pulse entirely on ::after means hover/focus never touch the same
+     property the animation does, so there's nothing to conflict with. */
+  .poster-card{position:relative;flex-shrink:0;width:150px;height:225px;border-radius:14px;cursor:pointer;display:flex;align-items:flex-end;padding:10px;background-size:cover;background-position:center;box-shadow:0 4px 16px rgba(0,0,0,0.35);transition:transform 0.25s cubic-bezier(.25,.8,.35,1),box-shadow 0.25s ease;animation:fadeInUp 0.4s ease both;}
+  .poster-card::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:0 0 42px 6px var(--glow-color, transparent);pointer-events:none;animation:glowPulse 3.5s ease-in-out infinite;}
+  @keyframes glowPulse{0%,100%{opacity:0.55;}50%{opacity:1;}}
   /* TV-remote navigation needs a focus ring that reads clearly from
      across a room — the default thin browser outline doesn't cut it. */
   #tvRoot .poster-card:focus, #tvRoot .poster-card:focus-visible{outline:none;transform:scale(1.08);box-shadow:0 0 0 4px #fff, 0 0 0 8px var(--red), 0 12px 32px rgba(0,0,0,0.5);z-index:5;}
@@ -781,6 +792,7 @@
         <button class="subnav-btn active" data-baysubtab="setup"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Setup</button>
         <button class="subnav-btn" data-baysubtab="assignment"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 21h4M8 12a4 4 0 1 1 8 0c0 2-1.5 3-2 4.5H10c-.5-1.5-2-2.5-2-4.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Assignment</button>
         <button class="subnav-btn" data-baysubtab="diagnostics"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Diagnostics</button>
+        <button class="subnav-btn" data-baysubtab="service"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 1 5.4-5.4l-2.7 2.7-1.5-1.5 2.7-2.7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Service</button>
       </div>
 
       <div class="subpanel active" data-subpanel="setup">
@@ -887,6 +899,34 @@
             <button class="secondary" id="hwLogClearBtn" style="padding:6px 12px;font-size:11px;">Clear log</button>
           </div>
           <div id="hwLogList" style="max-height:360px;overflow-y:auto;"></div>
+        </div>
+      </div>
+
+      <div class="subpanel" data-subpanel="service">
+        <div class="bulk-box" style="margin-top:0;">
+          <div class="display" style="font-size:15px;margin-bottom:6px;">Service mode</div>
+          <div class="scan-msg" style="margin-top:0;">While you're actively working the shelf — testing lights, scanning bays — turn this on so alerts (the door-open prompt, the "who took this?" chime) reach whatever device you're standing at instead of only the main kiosk, if one's set. Turn it back off when you're done.</div>
+          <button class="secondary" id="serviceModeToggleBtn" style="padding:9px 16px;font-size:13px;"></button>
+        </div>
+
+        <div class="bulk-box">
+          <div class="display" style="font-size:15px;margin-bottom:6px;">Light testing</div>
+          <div class="scan-msg" style="margin-top:0;">Cycles every configured bay's LED(s) in turn, cyan, in real shelf order — the same test as Diagnostics, right here so there's no tab-hopping mid-service.</div>
+          <button class="secondary" id="serviceTestLedsBtn" style="padding:9px 14px;font-size:12px;">Test all bay LEDs</button>
+        </div>
+
+        <div class="bulk-box">
+          <div class="display" style="font-size:15px;margin-bottom:6px;">Bulk assign</div>
+          <div class="scan-msg" style="margin-top:0;">Scan a bay barcode, then a movie barcode, and repeat — same as Assignment's copy of this, sharing the same in-progress state, just here too so a whole service pass can happen from one screen.</div>
+          <input id="serviceBulkAssignInput" placeholder="Scan a bay barcode to begin…" style="width:100%;font-size:15px;padding:12px 14px;margin-bottom:12px;" autocomplete="off" />
+          <div id="serviceBulkAssignStatus" style="font-size:13px;margin-bottom:14px;"></div>
+          <div id="serviceBulkAssignLog"></div>
+        </div>
+
+        <div class="bulk-box">
+          <div class="display" style="font-size:15px;margin-bottom:6px;">Bay assignments</div>
+          <div class="scan-msg" style="margin-top:0;">The same dropdown-based assignment view as Assignment above, for hand-adjusting anything the scanner missed.</div>
+          <div id="serviceBayDashboard" class="bay-grid"></div>
         </div>
       </div>
     </div>
@@ -1207,6 +1247,7 @@
   let maxRenewals = 2;
   let overheadLedIndexes = "";
   let mainKioskIp = "";
+  let serviceMode = false;
   let bays = []; // [{number, ledIndex, titleId}]
   let pendingReturn = null; // {titleId, title, expiresAt} — set until the disc lands back in a bay
   let pendingCheckout = null; // {titleId, title, renterName, expiresAt} — set until the disc leaves its bay
@@ -1240,7 +1281,7 @@
       if(resource==="titles") updateCatalogAndDetectChanges(data);
       else if(resource==="rentals") updateRentalsAndDetectReturns(data);
       else if(resource==="users") users = data;
-      else if(resource==="settings"){ maxCheckouts = data.maxCheckouts || 3; omdbApiKey = data.omdbApiKey || ""; tmdbApiKey = data.tmdbApiKey || ""; igdbClientId = data.igdbClientId || ""; igdbClientSecret = data.igdbClientSecret || ""; wledUrl = data.wledUrl || ""; esp32BaysUrl = data.esp32BaysUrl || ""; bayWindowSeconds = data.bayWindowSeconds || 90; wledOpenEffect = data.wledOpenEffect ?? 9; wledCloseEffect = data.wledCloseEffect ?? 2; wledEffectSeconds = data.wledEffectSeconds || 6; doorCloseDelaySeconds = data.doorCloseDelaySeconds || 60; maxRenewals = data.maxRenewals ?? 2; overheadLedIndexes = data.overheadLedIndexes || ""; mainKioskIp = data.mainKioskIp || ""; }
+      else if(resource==="settings"){ maxCheckouts = data.maxCheckouts || 3; omdbApiKey = data.omdbApiKey || ""; tmdbApiKey = data.tmdbApiKey || ""; igdbClientId = data.igdbClientId || ""; igdbClientSecret = data.igdbClientSecret || ""; wledUrl = data.wledUrl || ""; esp32BaysUrl = data.esp32BaysUrl || ""; bayWindowSeconds = data.bayWindowSeconds || 90; wledOpenEffect = data.wledOpenEffect ?? 9; wledCloseEffect = data.wledCloseEffect ?? 2; wledEffectSeconds = data.wledEffectSeconds || 6; doorCloseDelaySeconds = data.doorCloseDelaySeconds || 60; maxRenewals = data.maxRenewals ?? 2; overheadLedIndexes = data.overheadLedIndexes || ""; mainKioskIp = data.mainKioskIp || ""; serviceMode = !!data.serviceMode; renderServiceModeToggle(); }
       else if(resource==="tv-selection") tvSelection = data && data.movieId ? data : null;
       else if(resource==="kiosk-selection") kioskSelection = data && data.movieId ? data : null;
       else if(resource==="bays") bays = data;
@@ -1353,6 +1394,7 @@
       maxRenewals = (state.settings && state.settings.maxRenewals) ?? 2;
       overheadLedIndexes = (state.settings && state.settings.overheadLedIndexes) || "";
       mainKioskIp = (state.settings && state.settings.mainKioskIp) || "";
+      serviceMode = !!(state.settings && state.settings.serviceMode);
       tvSelection = state.tvSelection && state.tvSelection.movieId ? state.tvSelection : null;
       kioskSelection = state.kioskSelection && state.kioskSelection.movieId ? state.kioskSelection : null;
       bays = state.bays || [];
@@ -1419,6 +1461,7 @@
       renderWishlist();
       renderUsersList();
       renderBayDashboard();
+      renderBayDashboard("#serviceBayDashboard");
       renderBayLayout();
     }
     const mcInput = $("#maxCheckoutInput");
@@ -1492,6 +1535,7 @@
     renderWishlist();
     renderUsersList();
     renderBayDashboard();
+    renderBayDashboard("#serviceBayDashboard");
     renderBayLayout();
     renderHwLog();
     renderWledLiveStatus();
@@ -1632,7 +1676,7 @@
     // showing. The custom property just supplies a value; the actual
     // box-shadow declaration stays in the stylesheet, so hover/focus
     // continue to override the resting state exactly as before.
-    const glowVar = `--glow-color:${hexToRgba(color, 0.55)};`;
+    const glowVar = `--glow-color:${hexToRgba(color, 0.85)};`;
     const bg = m.poster
       ? `background-image:linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,0.85) 100%), url('${m.poster}');${glowVar}`
       : `background-image:linear-gradient(160deg, ${color}, #141414 85%);${glowVar}`;
@@ -1669,7 +1713,7 @@
     // Same glow treatment as posterTileHtml — this got missed when that
     // was first built, since a series tile is generated by a genuinely
     // separate function, not a case posterTileHtml happens to handle.
-    const glowVar = `--glow-color:${hexToRgba(color, 0.55)};`;
+    const glowVar = `--glow-color:${hexToRgba(color, 0.85)};`;
     const bg = rep.poster
       ? `background-image:linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,0.85) 100%), url('${rep.poster}');${glowVar}`
       : `background-image:linear-gradient(160deg, ${color}, #141414 85%);${glowVar}`;
@@ -2132,6 +2176,12 @@
         moodFilter = (moodFilter === btn.dataset.mood) ? null : btn.dataset.mood;
         lastBrowseSig = ""; // force the grid to actually rebuild even if browseSignature would otherwise match
         renderBrowse();
+        // renderBrowse() calls renderMoodRow() again immediately, which
+        // rebuilds this exact button fresh — so the little "pop" has to
+        // be applied to whichever button matches the NEW state after
+        // that rebuild, not to this now-replaced one.
+        const newBtn = $(`#moodRow [data-mood="${moodFilter||btn.dataset.mood}"]`);
+        if(newBtn && moodFilter){ newBtn.style.animation="none"; void newBtn.offsetWidth; newBtn.style.animation="tabPop 0.25s ease"; }
       };
     });
   }
@@ -2471,6 +2521,24 @@
     toast("Cleared — alerts go to every connected device again");
     renderMainKioskLabel();
     renderConnectedClients();
+  }
+
+  function renderServiceModeToggle(){
+    const btn = $("#serviceModeToggleBtn");
+    if(!btn) return;
+    btn.textContent = serviceMode ? "Turn service mode off" : "Turn service mode on";
+    btn.style.background = serviceMode ? "var(--red)" : "";
+    btn.style.color = serviceMode ? "#fff" : "";
+    btn.style.borderColor = serviceMode ? "var(--red)" : "";
+  }
+
+  async function toggleServiceMode(){
+    const next = !serviceMode;
+    try{ await api.send("PUT", "/api/settings", { serviceMode: next }); }
+    catch(e){ toast("Couldn't save this"); return; }
+    serviceMode = next;
+    renderServiceModeToggle();
+    toast(serviceMode ? "Service mode on — alerts now reach this device too" : "Service mode off");
   }
 
 
@@ -3644,34 +3712,45 @@
   // dedicated field works the same way once it has focus.
   let bulkAssignBay = null; // bay number currently waiting on a movie scan
   let bulkAssignLog = []; // session-only log of what got assigned, newest first
+  let bulkAssignError = null; // a transient message (e.g. "no such bay") shown in place of the normal status until the next scan
 
+  // Updates every bulk-assign status/log pair that currently exists in
+  // the DOM — normally just the one in Assignment, but the Service Menu
+  // below has its own second copy of these same elements. Scanning from
+  // either input updates the same shared state (bulkAssignBay etc.), so
+  // both views always agree with each other rather than running two
+  // independent sessions that could contradict one another.
   function renderBulkAssignStatus(){
-    const statusEl = $("#bulkAssignStatus");
-    if(statusEl){
-      statusEl.innerHTML = bulkAssignBay
-        ? `<span style="color:var(--green);">●</span> Bay ${bulkAssignBay} selected — now scan a movie barcode.`
-        : `<span style="color:var(--muted);">Scan a bay barcode to begin.</span>`;
-    }
-    const logEl = $("#bulkAssignLog");
-    if(logEl){
-      logEl.innerHTML = bulkAssignLog.length === 0 ? "" : `<div class="list-group">${bulkAssignLog.slice(0, 15).map(e => `<div class="row" style="padding:6px 0;">
-        <span style="font-size:13px;">Bay ${e.bayNumber} → ${e.title}</span>
-        <span style="font-size:11px;color:var(--muted);flex-shrink:0;">${new Date(e.time).toLocaleTimeString()}</span>
-      </div>`).join("")}</div>`;
-    }
+    [["#bulkAssignStatus", "#bulkAssignLog"], ["#serviceBulkAssignStatus", "#serviceBulkAssignLog"]].forEach(([statusSel, logSel]) => {
+      const statusEl = $(statusSel);
+      if(statusEl){
+        statusEl.innerHTML = bulkAssignError
+          ? `<span style="color:#E87C03;">${bulkAssignError}</span>`
+          : bulkAssignBay
+          ? `<span style="color:var(--green);">●</span> Bay ${bulkAssignBay} selected — now scan a movie barcode.`
+          : `<span style="color:var(--muted);">Scan a bay barcode to begin.</span>`;
+      }
+      const logEl = $(logSel);
+      if(logEl){
+        logEl.innerHTML = bulkAssignLog.length === 0 ? "" : `<div class="list-group">${bulkAssignLog.slice(0, 15).map(e => `<div class="row" style="padding:6px 0;">
+          <span style="font-size:13px;">Bay ${e.bayNumber} → ${e.title}</span>
+          <span style="font-size:11px;color:var(--muted);flex-shrink:0;">${new Date(e.time).toLocaleTimeString()}</span>
+        </div>`).join("")}</div>`;
+      }
+    });
   }
 
   async function handleBulkAssignScan(code){
     code = (code||"").trim();
     if(!code) return;
-    const statusEl = $("#bulkAssignStatus");
-    if(!statusEl) return;
+    bulkAssignError = null;
 
     if(code.indexOf("BAY:")===0){
       const bayNumber = code.slice(4);
       const bay = bays.find(b => String(b.number) === String(bayNumber));
       if(!bay){
-        statusEl.innerHTML = `<span style="color:#E87C03;">Bay ${bayNumber} hasn't been added yet — add it under Bay dashboard first.</span>`;
+        bulkAssignError = `Bay ${bayNumber} hasn't been added yet — add it under Bay dashboard first.`;
+        renderBulkAssignStatus();
         return;
       }
       bulkAssignBay = bayNumber;
@@ -3683,12 +3762,14 @@
     else if(code.indexOf("REELBOX:")===0) code = code.slice(8);
 
     if(!bulkAssignBay){
-      statusEl.innerHTML = `<span style="color:#E87C03;">Scan a bay barcode first, before a movie.</span>`;
+      bulkAssignError = "Scan a bay barcode first, before a movie.";
+      renderBulkAssignStatus();
       return;
     }
     const match = catalog.find(m => m.code === code);
     if(!match){
-      statusEl.innerHTML = `<span style="color:#E87C03;">No title matches that barcode — Bay ${bulkAssignBay} is still selected, try scanning it again.</span>`;
+      bulkAssignError = `No title matches that barcode — Bay ${bulkAssignBay} is still selected, try scanning it again.`;
+      renderBulkAssignStatus();
       return;
     }
     const bayNumber = bulkAssignBay;
@@ -3753,8 +3834,13 @@
     </div>`;
   }
 
-  function renderBayDashboard(){
-    const el = $("#bayDashboard");
+  // Accepts which container to render into, defaulting to the original
+  // one — the Service Menu below needs its own copy of this same view,
+  // and calling this twice (once per container) is simpler and safer
+  // than either duplicating this whole function or physically moving
+  // DOM nodes back and forth between two different subtabs.
+  function renderBayDashboard(selector){
+    const el = $(selector || "#bayDashboard");
     if(!el) return;
     if(bays.length===0){ el.innerHTML = `<div style="color:var(--muted);font-size:14px;">No bays yet — add one above with its number.</div>`; return; }
     const sorted = bays.slice().sort((a,b) => Number(a.number)-Number(b.number));
@@ -4237,41 +4323,45 @@
   let alertAudioCtx = null;
   let alertSoundTimer = null;
 
+  // Shared building blocks for every sound below — a single tone with a
+  // short attack/decay envelope, and a chord (several tones started at
+  // the same instant, forming genuine harmony rather than one note at a
+  // time). Used to give each of the five sounds real chords on their
+  // "landing" notes instead of just a longer single tone, which is
+  // most of what actually makes something sound more musically complex
+  // rather than merely longer.
+  function playTone(ctx, now, freq, offset, dur, type, peakGain){
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, now + offset);
+    gain.gain.exponentialRampToValueAtTime(peakGain, now + offset + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + dur);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(now + offset);
+    osc.stop(now + offset + dur + 0.01);
+  }
+  function playChord(ctx, now, freqs, offset, dur, type, peakGain){
+    freqs.forEach(freq => playTone(ctx, now, freq, offset, dur, type, peakGain));
+  }
+
   function playAlertBeep(){
     try{
       if(!alertAudioCtx) alertAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
       const ctx = alertAudioCtx;
       const now = ctx.currentTime;
-      // A proper little 6-note phrase with real rhythmic shape — two
-      // "da-da-DAAA" groups (short, short, held) on a C-E-G major
-      // triad — rather than the previous 4 evenly-spaced notes running
-      // straight up in a line, which read more like a mechanical
-      // arpeggio scan than an actual tune. Varying note length (quick
-      // notes leading into a held one) is what makes something sound
-      // like a musical phrase instead of a scale being played back
-      // uniformly; still triangle wave, still repeating, so it hasn't
-      // given up any of its job as an alert — just has more character
-      // while doing it.
-      const notes = [
-        { freq: 1046.5, offset: 0.00, dur: 0.09 },  // C6
-        { freq: 1318.5, offset: 0.10, dur: 0.09 },  // E6
-        { freq: 1568.0, offset: 0.20, dur: 0.26 },  // G6, held
-        { freq: 1318.5, offset: 0.50, dur: 0.09 },  // E6
-        { freq: 1046.5, offset: 0.60, dur: 0.09 },  // C6
-        { freq: 1568.0, offset: 0.70, dur: 0.32 }   // G6, held — the "landing" note
-      ];
-      notes.forEach(({freq, offset, dur}) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "triangle";
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.0001, now + offset);
-        gain.gain.exponentialRampToValueAtTime(0.28, now + offset + 0.015);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + dur);
-        osc.connect(gain).connect(ctx.destination);
-        osc.start(now + offset);
-        osc.stop(now + offset + dur + 0.01);
-      });
+      // Same "da-da-DAAA, da-da-DAAA" rhythmic shape as before, but each
+      // held note now lands as a real 3-voice chord (root, third, fifth
+      // together) instead of a single tone — genuinely richer, not just
+      // louder, and the added harmonic density is exactly what makes an
+      // alert cut through background noise more effectively too.
+      playTone(ctx, now, 1046.5, 0.00, 0.09, "triangle", 0.26); // C6
+      playTone(ctx, now, 1318.5, 0.10, 0.09, "triangle", 0.26); // E6
+      playChord(ctx, now, [1568.0, 1975.5, 2093.0], 0.20, 0.26, "triangle", 0.20); // G6 chord, held
+      playTone(ctx, now, 1318.5, 0.50, 0.09, "triangle", 0.26); // E6
+      playTone(ctx, now, 1046.5, 0.60, 0.09, "triangle", 0.26); // C6
+      playChord(ctx, now, [1568.0, 1975.5, 2093.0], 0.70, 0.32, "triangle", 0.20); // G6 chord — the landing
     }catch(e){ /* autoplay-restricted or unsupported — the visual prompt still works fine without it */ }
   }
 
@@ -4280,27 +4370,15 @@
       if(!alertAudioCtx) alertAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
       const ctx = alertAudioCtx;
       const now = ctx.currentTime;
-      // Deliberately the opposite character from playAlertBeep above:
-      // a classic descending two-note "ding-dong" doorbell (a perfect
-      // fourth down, C6 to G5) instead of a rising four-note motif,
-      // sine waves instead of triangle for a warmer/mellower tone, and
-      // each note held noticeably longer. This needs to read as a
-      // welcome, not an alert — someone's about to do something, not
-      // something that already went wrong and needs fixing.
-      const notes = [1046.5, 784];
-      notes.forEach((freq, i) => {
-        const offset = i * 0.32;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.0001, now + offset);
-        gain.gain.exponentialRampToValueAtTime(0.22, now + offset + 0.03);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.4);
-        osc.connect(gain).connect(ctx.destination);
-        osc.start(now + offset);
-        osc.stop(now + offset + 0.42);
-      });
+      // Expanded from a plain two-note "ding-dong" into a short 4-note
+      // welcoming phrase that lands on an actual warm major chord,
+      // rather than a single held tone — still sine waves throughout,
+      // still unmistakably a welcome and not an alert, just with real
+      // harmony under the landing instead of one note carrying it alone.
+      playTone(ctx, now, 1046.5, 0.00, 0.28, "sine", 0.2);  // C6
+      playTone(ctx, now, 1318.5, 0.22, 0.28, "sine", 0.2);  // E6
+      playTone(ctx, now, 784.0, 0.44, 0.30, "sine", 0.2);   // G5
+      playChord(ctx, now, [523.25, 659.3, 784.0], 0.72, 0.55, "sine", 0.16); // C major chord, held — the arrival
     }catch(e){ /* autoplay-restricted or unsupported — the visual prompt still works fine without it */ }
   }
 
@@ -4317,23 +4395,14 @@
       if(!alertAudioCtx) alertAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
       const ctx = alertAudioCtx;
       const now = ctx.currentTime;
-      // A quick, light 2-note "go ahead" blip — this fires every single
-      // time someone taps Rent, which is a frequent, low-stakes action,
-      // so it stays short and unobtrusive rather than a whole phrase.
-      const notes = [659.3, 880];
-      notes.forEach((freq, i) => {
-        const offset = i * 0.07;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.0001, now + offset);
-        gain.gain.exponentialRampToValueAtTime(0.2, now + offset + 0.012);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.09);
-        osc.connect(gain).connect(ctx.destination);
-        osc.start(now + offset);
-        osc.stop(now + offset + 0.1);
-      });
+      // Still short on purpose — this fires every single Rent tap, a
+      // frequent, low-stakes action, so it stays quick rather than
+      // growing into a whole phrase the way the others did. Added one
+      // extra note (a small 3-note rise instead of 2) for a touch more
+      // character without actually making it longer to sit through.
+      playTone(ctx, now, 587.3, 0.00, 0.08, "sine", 0.17);  // D5
+      playTone(ctx, now, 739.99, 0.06, 0.08, "sine", 0.17); // F#5
+      playTone(ctx, now, 880, 0.12, 0.11, "sine", 0.2);     // A5
     }catch(e){}
   }
 
@@ -4342,23 +4411,15 @@
       if(!alertAudioCtx) alertAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
       const ctx = alertAudioCtx;
       const now = ctx.currentTime;
-      // A bright ascending 3-note major arpeggio (C6-E6-G6) — a genuine
-      // "success" feel, climbing upward, for the moment the disc is
-      // actually confirmed out of its bay and the rental is done.
-      const notes = [1046.5, 1318.5, 1568];
-      notes.forEach((freq, i) => {
-        const offset = i * 0.09;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "triangle";
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.0001, now + offset);
-        gain.gain.exponentialRampToValueAtTime(0.25, now + offset + 0.015);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + (i===2 ? 0.35 : 0.14));
-        osc.connect(gain).connect(ctx.destination);
-        osc.start(now + offset);
-        osc.stop(now + offset + (i===2 ? 0.36 : 0.15));
-      });
+      // Extended from a 3-note arpeggio to 4, and the landing note is
+      // now a full major chord (root, third, fifth, octave together)
+      // rather than one tone — climbing upward into real harmony for a
+      // genuinely bigger "success" feel at the moment a checkout
+      // actually finishes.
+      playTone(ctx, now, 1046.5, 0.00, 0.14, "triangle", 0.22); // C6
+      playTone(ctx, now, 1318.5, 0.09, 0.14, "triangle", 0.22); // E6
+      playTone(ctx, now, 1568.0, 0.18, 0.14, "triangle", 0.22); // G6
+      playChord(ctx, now, [2093.0, 2637.0, 3136.0], 0.27, 0.42, "triangle", 0.16); // C7 major chord, held — the landing
     }catch(e){}
   }
 
@@ -4368,25 +4429,16 @@
       const ctx = alertAudioCtx;
       const now = ctx.currentTime;
       // The mirror image of the checkout-complete sound above —
-      // descending instead of ascending (G5-E5-C5), warm sine instead
-      // of triangle — so completing a return reads as clearly distinct
-      // from completing a checkout, not just "the same success chime
-      // again." Down feels like something coming back; up felt like
-      // something going out.
-      const notes = [784, 659.3, 523.25];
-      notes.forEach((freq, i) => {
-        const offset = i * 0.1;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.0001, now + offset);
-        gain.gain.exponentialRampToValueAtTime(0.22, now + offset + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + (i===2 ? 0.4 : 0.16));
-        osc.connect(gain).connect(ctx.destination);
-        osc.start(now + offset);
-        osc.stop(now + offset + (i===2 ? 0.41 : 0.17));
-      });
+      // descending instead of ascending, warm sine instead of triangle,
+      // landing on the same idea of a full chord rather than one tone,
+      // so completing a return still reads as clearly distinct from
+      // completing a checkout even with matching structural complexity
+      // now. Down reads as something coming back; up reads as something
+      // going out.
+      playTone(ctx, now, 784.0, 0.00, 0.15, "sine", 0.19);  // G5
+      playTone(ctx, now, 659.3, 0.10, 0.15, "sine", 0.19);  // E5
+      playTone(ctx, now, 523.25, 0.20, 0.15, "sine", 0.19); // C5
+      playChord(ctx, now, [261.6, 329.6, 392.0], 0.29, 0.48, "sine", 0.16); // C major chord, an octave down — the landing
     }catch(e){}
   }
 
@@ -5455,7 +5507,16 @@
     $("#bulkAssignInput").addEventListener("keydown", e => {
       if(e.key==="Enter"){ handleBulkAssignScan($("#bulkAssignInput").value); $("#bulkAssignInput").value=""; }
     });
+    $("#serviceBulkAssignInput").addEventListener("keydown", e => {
+      if(e.key==="Enter"){ handleBulkAssignScan($("#serviceBulkAssignInput").value); $("#serviceBulkAssignInput").value=""; }
+    });
     renderBulkAssignStatus();
+    renderServiceModeToggle();
+    $("#serviceModeToggleBtn").onclick = toggleServiceMode;
+    $("#serviceTestLedsBtn").onclick = async () => {
+      try{ await api.send("POST", "/api/test-bay-leds"); toast("Cycling through each bay's LED now…"); }
+      catch(e){ toast(e.message || "Couldn't start the LED test"); }
+    };
 
     $("#addTitleBtn").onclick = async () => {
       const isGame = $("#newMediaTypeInput").value === "game";
