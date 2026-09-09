@@ -212,8 +212,16 @@
   .poster-grid .poster-card:nth-child(5){animation-delay:0.14s;} .poster-grid .poster-card:nth-child(n+6){animation-delay:0.17s;}
   .poster-card:hover{transform:scale(1.08) translateY(-6px);box-shadow:0 16px 40px rgba(0,0,0,0.6),0 0 0 2px var(--red),0 0 24px var(--glow);z-index:2;}
   .poster-title{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.15;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.7);}
-  .poster-dot{position:absolute;top:8px;right:8px;width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 2px rgba(0,0,0,0.4);}
+  .poster-dot{position:absolute;top:8px;right:8px;width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 2px rgba(0,0,0,0.4),0 0 0 3px rgba(255,255,255,0.5);}
   .bluray-badge{position:absolute;bottom:34px;left:8px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.4px;color:#0A0C10;background:linear-gradient(135deg,#4FC3F7,#0288D1);padding:2px 7px;border-radius:4px;}
+  /* A separate class from .bluray-badge above, not a reuse of it — that
+     one's text color is hardcoded dark, which was fine for its own
+     fixed light-blue gradient but unreadable against most streaming
+     brand colors (Apple TV's is pure black; several others are dark
+     and saturated too). White text plus a light border reads clearly
+     against virtually any brand color, which a hardcoded dark text
+     color never could. */
+  .streaming-badge{position:absolute;bottom:34px;left:8px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.4px;color:#fff;padding:2px 7px;border-radius:4px;border:1px solid rgba(255,255,255,0.35);}
   /* Styled like a real MPAA/ESRB rating card — black field, thin white
      border, bold condensed letters — instead of plain "Rating: PG-13"
      text next to everything else. */
@@ -893,6 +901,16 @@
       </div>
 
       <div class="bulk-box">
+        <div class="display" style="font-size:15px;margin-bottom:6px;">Main kiosk</div>
+        <div class="scan-msg" style="margin-top:0;">If more than one device is ever open at once (a second browser tab, someone checking things from their phone), alerts like the door-open welcome prompt and the "who took this?" chime would otherwise fire on every single one of them. Pick which device is the actual kiosk, and only that one gets them.</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+          <button class="secondary" id="refreshConnectedClientsBtn" style="padding:9px 14px;font-size:12px;">Refresh connected devices</button>
+        </div>
+        <div id="connectedClientsList" style="margin-bottom:12px;"></div>
+        <div style="font-size:12px;color:var(--muted);">Currently set to: <span id="mainKioskCurrentLabel" style="font-family:monospace;">not set — alerts go to every connected device</span> <button class="secondary" id="clearMainKioskBtn" style="padding:4px 10px;font-size:11px;margin-left:6px;">Clear</button></div>
+      </div>
+
+      <div class="bulk-box">
         <div class="display" style="font-size:15px;margin-bottom:6px;">Server maintenance</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Currently running: <span id="currentVersionLabel" style="font-family:monospace;">…</span></div>
         <div style="display:flex;gap:20px;flex-wrap:wrap;">
@@ -1188,6 +1206,7 @@
   let doorCloseDelaySeconds = 60;
   let maxRenewals = 2;
   let overheadLedIndexes = "";
+  let mainKioskIp = "";
   let bays = []; // [{number, ledIndex, titleId}]
   let pendingReturn = null; // {titleId, title, expiresAt} — set until the disc lands back in a bay
   let pendingCheckout = null; // {titleId, title, renterName, expiresAt} — set until the disc leaves its bay
@@ -1221,7 +1240,7 @@
       if(resource==="titles") updateCatalogAndDetectChanges(data);
       else if(resource==="rentals") updateRentalsAndDetectReturns(data);
       else if(resource==="users") users = data;
-      else if(resource==="settings"){ maxCheckouts = data.maxCheckouts || 3; omdbApiKey = data.omdbApiKey || ""; tmdbApiKey = data.tmdbApiKey || ""; igdbClientId = data.igdbClientId || ""; igdbClientSecret = data.igdbClientSecret || ""; wledUrl = data.wledUrl || ""; esp32BaysUrl = data.esp32BaysUrl || ""; bayWindowSeconds = data.bayWindowSeconds || 90; wledOpenEffect = data.wledOpenEffect ?? 9; wledCloseEffect = data.wledCloseEffect ?? 2; wledEffectSeconds = data.wledEffectSeconds || 6; doorCloseDelaySeconds = data.doorCloseDelaySeconds || 60; maxRenewals = data.maxRenewals ?? 2; overheadLedIndexes = data.overheadLedIndexes || ""; }
+      else if(resource==="settings"){ maxCheckouts = data.maxCheckouts || 3; omdbApiKey = data.omdbApiKey || ""; tmdbApiKey = data.tmdbApiKey || ""; igdbClientId = data.igdbClientId || ""; igdbClientSecret = data.igdbClientSecret || ""; wledUrl = data.wledUrl || ""; esp32BaysUrl = data.esp32BaysUrl || ""; bayWindowSeconds = data.bayWindowSeconds || 90; wledOpenEffect = data.wledOpenEffect ?? 9; wledCloseEffect = data.wledCloseEffect ?? 2; wledEffectSeconds = data.wledEffectSeconds || 6; doorCloseDelaySeconds = data.doorCloseDelaySeconds || 60; maxRenewals = data.maxRenewals ?? 2; overheadLedIndexes = data.overheadLedIndexes || ""; mainKioskIp = data.mainKioskIp || ""; }
       else if(resource==="tv-selection") tvSelection = data && data.movieId ? data : null;
       else if(resource==="kiosk-selection") kioskSelection = data && data.movieId ? data : null;
       else if(resource==="bays") bays = data;
@@ -1333,6 +1352,7 @@
       doorCloseDelaySeconds = (state.settings && state.settings.doorCloseDelaySeconds) || 60;
       maxRenewals = (state.settings && state.settings.maxRenewals) ?? 2;
       overheadLedIndexes = (state.settings && state.settings.overheadLedIndexes) || "";
+      mainKioskIp = (state.settings && state.settings.mainKioskIp) || "";
       tvSelection = state.tvSelection && state.tvSelection.movieId ? state.tvSelection : null;
       kioskSelection = state.kioskSelection && state.kioskSelection.movieId ? state.kioskSelection : null;
       bays = state.bays || [];
@@ -1463,6 +1483,8 @@
     renderDashboard();
     renderServerHealth();
     renderBackupReminder();
+    renderMainKioskLabel();
+    renderConnectedClients();
     renderRentals();
     renderActivityPanel();
     renderAdminList();
@@ -1633,7 +1655,7 @@
       ${tag ? `<span style="position:absolute;top:8px;left:8px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,0.55);padding:2px 7px;border-radius:6px;">${tag}</span>` : ""}
       ${m.condition==='damaged' ? `<span class="bluray-badge" style="background:linear-gradient(135deg,#E57373,#B71C1C);${tag?'bottom:56px;':''}"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="width:11px;height:11px;vertical-align:-1px;"><path d="M12 4 2 20h20L12 4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><line x1="12" y1="10" x2="12" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg> Damaged</span>` : ""}
       ${isGame && m.platform ? `<span class="bluray-badge" style="background:linear-gradient(135deg,#66BB6A,#2E7D32);">${m.platform}</span>` : ""}
-      ${isDigital && m.streamingService ? `<span class="bluray-badge" style="background:${STREAMING_SERVICES[m.streamingService]?.color || '#555'};">${m.streamingService}</span>` : ""}
+      ${isDigital && m.streamingService ? `<span class="streaming-badge" style="background:${STREAMING_SERVICES[m.streamingService]?.color || '#555'};">${m.streamingService}</span>` : ""}
       ${!isGame && !isDigital && m.format==='Blu-ray' ? `<span class="bluray-badge">Blu-ray</span>` : ""}
       <span class="poster-title">${m.title}</span>
     </div>`;
@@ -1644,9 +1666,13 @@
   function seriesGroupTileHtml(seriesName, discs){
     const rep = discs.find(d=>d.poster) || discs[0];
     const color = GENRE_COLORS[rep.genre] || "#333";
+    // Same glow treatment as posterTileHtml — this got missed when that
+    // was first built, since a series tile is generated by a genuinely
+    // separate function, not a case posterTileHtml happens to handle.
+    const glowVar = `--glow-color:${hexToRgba(color, 0.55)};`;
     const bg = rep.poster
-      ? `background-image:linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,0.85) 100%), url('${rep.poster}');`
-      : `background-image:linear-gradient(160deg, ${color}, #141414 85%);`;
+      ? `background-image:linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,0.85) 100%), url('${rep.poster}');${glowVar}`
+      : `background-image:linear-gradient(160deg, ${color}, #141414 85%);${glowVar}`;
     const totalStock = discs.reduce((s,d) => s+(d.stock||0), 0);
     const allBluray = discs.every(d => d.format==='Blu-ray');
     return `<div class="poster-card" data-openseries="${encodeURIComponent(seriesName)}" style="${bg}">
@@ -2400,6 +2426,54 @@
   // is catching this before something's already gone wrong, not
   // pestering on every single Dashboard visit.
   const BACKUP_REMINDER_DAYS = 30;
+  // Lets the admin pick which connected device is the "real" kiosk, so
+  // full-screen alerts (the door-open prompt, the unattributed-checkout
+  // alarm) only ever fire there — server-side filtering by IP, not
+  // something the client decides for itself (a browser can't reliably
+  // learn its own local IP anyway, so this had to be a server-side
+  // concern regardless).
+  async function renderConnectedClients(){
+    const el = $("#connectedClientsList");
+    if(!el) return;
+    el.innerHTML = `<div style="font-size:12px;color:var(--muted);">Checking…</div>`;
+    let clients;
+    try{ clients = await api.get("/api/connected-clients"); }
+    catch(e){ el.innerHTML = `<div style="font-size:12px;color:var(--muted);">Couldn't reach the server.</div>`; return; }
+    if(clients.length === 0){
+      el.innerHTML = `<div style="font-size:12px;color:var(--muted);">Nothing else appears connected right now — open the app on the kiosk device itself, then refresh this list.</div>`;
+      return;
+    }
+    el.innerHTML = `<div class="list-group">${clients.map(c => `<div class="row" style="padding:8px 0;">
+      <span style="font-size:13px;font-family:monospace;">${c.ip}${c.isYou ? ' <span style="color:var(--muted);font-family:inherit;">(this device)</span>' : ''}${c.ip===mainKioskIp ? ' <span style="color:var(--green);font-family:inherit;">— current main kiosk</span>' : ''}</span>
+      <button class="secondary" data-setkiosk="${c.ip}" style="padding:6px 12px;font-size:11px;flex-shrink:0;" ${c.ip===mainKioskIp?'disabled':''}>Set as main kiosk</button>
+    </div>`).join("")}</div>`;
+    el.querySelectorAll("[data-setkiosk]").forEach(btn => {
+      btn.onclick = () => setMainKioskIp(btn.dataset.setkiosk);
+    });
+  }
+
+  function renderMainKioskLabel(){
+    const el = $("#mainKioskCurrentLabel");
+    if(el) el.textContent = mainKioskIp || "not set — alerts go to every connected device";
+  }
+
+  async function setMainKioskIp(ip){
+    try{ await api.send("PUT", "/api/settings", { mainKioskIp: ip }); mainKioskIp = ip; }
+    catch(e){ toast("Couldn't save this"); return; }
+    toast(`Main kiosk set to ${ip}`);
+    renderMainKioskLabel();
+    renderConnectedClients();
+  }
+
+  async function clearMainKioskIp(){
+    try{ await api.send("PUT", "/api/settings", { mainKioskIp: "" }); mainKioskIp = ""; }
+    catch(e){ toast("Couldn't save this"); return; }
+    toast("Cleared — alerts go to every connected device again");
+    renderMainKioskLabel();
+    renderConnectedClients();
+  }
+
+
   async function renderBackupReminder(){
     const el = $("#backupReminder");
     if(!el) return;
@@ -4341,7 +4415,7 @@
       <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:280px;align-items:center;">
         <input type="password" class="pin-input" id="unattributedPinInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" autofocus />
         <div id="unattributedPinMsg" style="font-size:13px;color:#E87C03;min-height:18px;"></div>
-        <div id="unattributedPinPad"></div>
+        <div id="unattributedPinPad" style="width:100%;"></div>
         <button class="primary" id="unattributedPinSubmitBtn" style="width:100%;">Submit</button>
         ${(loggedInUser && loggedInUser.isAdmin) ? `<button class="secondary" id="unattributedDismissBtn" style="width:100%;">Leave unattributed (admin)</button>` : ""}
       </div>
@@ -4403,12 +4477,12 @@
     el.innerHTML = `
       <div style="margin-bottom:12px;"><svg viewBox="0 0 24 24" fill="none" style="width:44px;height:44px;color:var(--red);"><path d="M5 21V5a2 2 0 0 1 2-2h6l6 6v12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13 3v6h6" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="9.5" cy="14" r="1" fill="currentColor"/></svg></div>
       <div class="t">Welcome! Log in to check something out</div>
-      <div style="display:flex;gap:8px;align-items:center;justify-content:center;margin-top:6px;">
-        <input id="doorLoginPinInput" class="pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" />
+      <div style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:280px;align-items:center;">
+        <input id="doorLoginPinInput" class="pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" style="margin-top:6px;" />
+        <div class="pinMsgField" style="font-size:13px;color:#E87C03;min-height:18px;"></div>
+        <div id="doorLoginPinPad" style="width:100%;"></div>
+        <button class="secondary" id="doorLoginBrowseBtn" style="width:100%;margin-top:6px;">Just browsing</button>
       </div>
-      <div class="pinMsgField" style="font-size:13px;color:#E87C03;margin-top:8px;min-height:18px;"></div>
-      <div id="doorLoginPinPad"></div>
-      <button class="secondary" id="doorLoginBrowseBtn" style="width:100%;max-width:240px;margin-top:16px;">Just browsing</button>
     `;
     playDoorChime(); // its own distinct sound, not the repeating alarm the unattributed-checkout alert uses — this isn't urgent, just a nudge
     const pinInput = $("#doorLoginPinInput");
@@ -5341,6 +5415,8 @@
       const url = location.href.split("#")[0] + "#tv";
       window.open(url, "_blank");
     };
+    $("#refreshConnectedClientsBtn").onclick = renderConnectedClients;
+    $("#clearMainKioskBtn").onclick = clearMainKioskIp;
     $("#systemUpdateBtn").onclick = async () => {
       if(!confirm("Pull the latest code and reinstall dependencies now? If autostart is set up, the server restarts itself right after and this page will need a manual reload.")) return;
       const btn = $("#systemUpdateBtn");

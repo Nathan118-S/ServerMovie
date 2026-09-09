@@ -689,7 +689,7 @@ function loadDb(){
       rentalHistory: [],
       wishlist: [],
       users: [{ id: newId("u"), name: "Admin", pin: "0000", isAdmin: true }],
-      settings: { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90, wledOpenEffect: 9, wledCloseEffect: 2, wledEffectSeconds: 6, doorCloseDelaySeconds: 60, maxRenewals: 2, overheadLedIndexes: "" },
+      settings: { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90, wledOpenEffect: 9, wledCloseEffect: 2, wledEffectSeconds: 6, doorCloseDelaySeconds: 60, maxRenewals: 2, overheadLedIndexes: "", mainKioskIp: "" },
       tvSelection: null,
       kioskSelection: null,
       activeSession: null,
@@ -720,6 +720,7 @@ function loadDb(){
   if(parsed.settings.bayWindowSeconds === undefined) parsed.settings.bayWindowSeconds = 90;
   if(parsed.settings.maxRenewals === undefined) parsed.settings.maxRenewals = 2;
   if(parsed.settings.overheadLedIndexes === undefined) parsed.settings.overheadLedIndexes = "";
+  if(parsed.settings.mainKioskIp === undefined) parsed.settings.mainKioskIp = "";
   if(parsed.tvSelection === undefined) parsed.tvSelection = null;
   if(parsed.kioskSelection === undefined) parsed.kioskSelection = null;
   if(parsed.activeSession === undefined) parsed.activeSession = null;
@@ -775,11 +776,26 @@ function performDbSave(){
 }
 
 // ---------- live updates (Server-Sent Events) ----------
-const sseClients = [];
+const sseClients = []; // [{res, ip}] — ip is what lets the main-kiosk alert filtering below actually identify which connection is which
 
 function broadcast(resource, data){
   const payload = `data: ${JSON.stringify(data !== undefined ? { resource, data } : { resource })}\n\n`;
-  sseClients.forEach(res => res.write(payload));
+  sseClients.forEach(c => c.res.write(payload));
+}
+
+// For alerts that shouldn't blare on every connected device at once (the
+// door-open welcome prompt, the unattributed-checkout alarm) — if a main
+// kiosk IP is configured, only that specific connection gets the event;
+// every other open tab or device (an admin's phone, a second browser
+// window) stays silent. Falls back to a normal broadcast-to-everyone if
+// nothing's configured, which is exactly the behavior this app already
+// had before this setting existed, so nobody's affected until they
+// actually set one.
+function broadcastToMainKiosk(resource, data){
+  const mainKioskIp = (db.settings && db.settings.mainKioskIp) || "";
+  if(!mainKioskIp){ broadcast(resource, data); return; }
+  const payload = `data: ${JSON.stringify(data !== undefined ? { resource, data } : { resource })}\n\n`;
+  sseClients.forEach(c => { if(c.ip === mainKioskIp) c.res.write(payload); });
 }
 
 // ---------- app ----------
@@ -802,9 +818,10 @@ app.get("/api/events", (req, res) => {
     "Connection": "keep-alive"
   });
   res.write("\n");
-  sseClients.push(res);
+  const client = { res, ip: req.ip || (req.socket && req.socket.remoteAddress) || "unknown" };
+  sseClients.push(client);
   req.on("close", () => {
-    const i = sseClients.indexOf(res);
+    const i = sseClients.indexOf(client);
     if(i !== -1) sseClients.splice(i, 1);
   });
 });
@@ -1307,7 +1324,7 @@ app.post("/api/door-opened", logHardwareCall("door-opened"), (req, res) => {
   // exact moment, that's worth a direct prompt rather than assuming
   // they'll remember to find the login button themselves.
   const loggedIn = db.activeSession && db.activeSession.expiresAt > Date.now();
-  if(!loggedIn) broadcast("door-opened-no-login");
+  if(!loggedIn) broadcastToMainKiosk("door-opened-no-login");
   res.json({ ok: true });
 });
 
@@ -1376,7 +1393,7 @@ app.post("/api/bay-checkout", logHardwareCall("bay-checkout"), (req, res) => {
   // event, not just the generic "rentals changed" one, so it knows
   // exactly which fresh rental to prompt for rather than guessing from
   // a full rentals-list diff.
-  if(wasUnattributed) broadcast("unattributed-checkout", { rentalId: rental.id, title: title.title });
+  if(wasUnattributed) broadcastToMainKiosk("unattributed-checkout", { rentalId: rental.id, title: title.title });
   res.json({ ok: true, title: title.title, renterName, rental });
 });
 
@@ -1564,6 +1581,18 @@ app.get("/api/export", (req, res) => {
 
 app.get("/api/backup-status", (req, res) => {
   res.json({ lastBackupAt: (db.settings && db.settings.lastBackupAt) || null });
+});
+
+// The distinct IPs of whatever's actually connected right now (each
+// open tab or device holds a live connection here for real-time
+// updates) — lets the admin pick the main kiosk from what's genuinely
+// there instead of typing an address in blind and hoping it's right.
+// The requester's own IP is flagged, since that's very often the
+// device they're sitting at while setting this up.
+app.get("/api/connected-clients", (req, res) => {
+  const requesterIp = req.ip || (req.socket && req.socket.remoteAddress) || "";
+  const distinct = [...new Set(sseClients.map(c => c.ip))];
+  res.json(distinct.map(ip => ({ ip, isYou: ip === requesterIp })));
 });
 
 app.post("/api/import", (req, res) => {

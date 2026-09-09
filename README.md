@@ -538,6 +538,83 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## A "main kiosk" designation for alerts
+
+If more than one device ever has the app open at once — a second
+browser tab, someone checking things from their phone — full-screen
+alerts (the door-open welcome prompt, the "who took this?" alarm) used
+to fire on every single one of them. **System → Main kiosk** now lists
+whatever's actually connected right now, by IP, and lets you designate
+one as the real kiosk; only that device gets these alerts from then on.
+Leave it unset and nothing changes from how it always worked — every
+connected device still gets them, which is the same behavior this app
+already had before this setting existed.
+
+This had to be enforced server-side, by IP, not something the client
+decides for itself: a browser can't reliably learn its own local
+network IP through plain JavaScript, so there was no honest way to have
+each device self-identify and decide "is this me?" The server, on the
+other hand, already knows every connected device's real IP the moment
+it connects, which is exactly what makes filtering possible.
+
+**A hard truth about how this one got built, not glossed over**: while
+writing this, I made the exact same mistake I've now made three
+separate times in this project — a find-and-replace meant to insert a
+new function ahead of an existing one (`renderBackupReminder`, this
+time) deleted that function's own declaration line, leaving its body
+orphaned with nothing calling it. Caught and fixed before it shipped,
+the same way as the previous two times: checking that the function I'd
+edited around still actually existed and was still callable, not
+assuming the edit landed the way I intended. Three times is a genuine,
+established pattern in how these specific edits go wrong, not
+unrelated bad luck each time, and it's worth saying so plainly rather
+than letting it look like an isolated slip.
+
+## Fixed: the genre glow was missing from series tiles
+
+The genre glow already applied to every standalone poster card,
+movies included — checked this directly before touching anything,
+since it would've been easy to assume something was broken and
+duplicate a fix that wasn't actually needed. The real gap was
+specifically grouped TV series tiles ("Star Wars: The Clone Wars," one
+tile representing several discs): those are built by a genuinely
+separate function from a regular poster card, one that computes the
+same genre color but never applied it as a glow when the feature was
+first built. Fixed by giving it the identical treatment — same helper,
+same CSS custom property, same reasoning about why it's a custom
+property and not a plain inline box-shadow (see the entry on the
+poster-dot fix above for why that distinction matters).
+
+## Three real fixes: the Apple TV badge, and number pad spacing
+
+**The Apple TV streaming badge was genuinely unreadable, not just low
+contrast.** Two separate bugs, both concrete: the small poster-dot
+indicator had no border at all, just a dark shadow — meaning a pure
+black dot (Apple TV's actual, correct brand color) was invisible
+against the app's dark theme. Separately, and worse, the text badge
+was reusing the `.bluray-badge` class, whose text color is hardcoded
+dark — fine for its own fixed light-blue gradient, but for Apple TV's
+black background that meant near-black text on a black background,
+completely unreadable rather than merely hard to read. Fixed the dot
+with a light outer ring (helps every color, not just black), and gave
+the streaming badge its own class with white text and a light border
+instead of reusing one built for a different, fixed background.
+Checked afterward that every other real use of `.bluray-badge`
+(Damaged, a game's platform, actual Blu-ray discs) was untouched and
+still has the contrast it always did.
+
+**The door-open prompt's number pad had a real structural
+inconsistency**, not just a minor spacing nitpick. The "who took this?"
+prompt wraps its input, message, number pad, and buttons in one shared
+`max-width: 280px` container, so everything lines up consistently. The
+door-open welcome prompt never got that same wrapper — its elements
+sat as direct children of the full-width overlay instead, meaning the
+input row, the number pad, and the button below it could each resolve
+to different effective widths with nothing tying them together.
+Rebuilt it to use the identical wrapping structure the other prompt
+already had, rather than patching spacing values individually and
+hoping they lined up by coincidence.
+
 ## Fixed: the label generator was listing Digital Copies too
 
 Checked the whole label-printing path carefully before touching
