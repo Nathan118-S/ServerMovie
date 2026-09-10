@@ -5802,50 +5802,68 @@
   }
 
 
+  // A genuinely different technique from everything tried before this —
+  // not another variation on hiding the rest of the page during print.
+  // Builds a complete, self-contained HTML document (its own <style>,
+  // no dependency on anything from the main app's CSS or DOM at all)
+  // and prints it from a dedicated new window instead. This sidesteps
+  // every possible interaction with the main page's layout, its many
+  // overlays, and its print-media rules entirely, rather than trying
+  // to make those rules behave correctly around a page this complex.
   async function generateLabels(){
     const ids = $$(".labelCheck:checked").map(c=>c.value);
     const items = catalog.filter(m => ids.includes(m.id));
     if(items.length===0){ toast("Select at least one title"); return; }
-    const grid = $("#labelSheetGrid");
-    if(!grid){ toast("Something's wrong with the label sheet — try refreshing the page."); return; }
-    grid.innerHTML = "";
-    const cards = items.map(m => {
-      const card = document.createElement("div");
-      card.className = "disc-label";
 
-      const title = document.createElement("div");
-      title.className = "disc-label-title";
-      title.textContent = m.title;
-      card.appendChild(title);
-
-      const barcodeImg = document.createElement("img");
-      card.appendChild(barcodeImg);
-
-      const code = document.createElement("div");
-      code.className = "disc-label-code";
-      code.textContent = m.code;
-      card.appendChild(code);
-
-      grid.appendChild(card);
-      return { m, barcodeImg };
-    });
-    await Promise.all(cards.map(async ({m, barcodeImg}) => {
+    toast(`Preparing ${items.length} label${items.length===1?'':'s'}…`);
+    const itemsWithBarcodes = await Promise.all(items.map(async m => {
       try{
         const data = await api.get("/api/barcode?text=" + encodeURIComponent(m.code));
-        barcodeImg.src = data.dataUrl;
-      }catch(e){ barcodeImg.replaceWith(document.createTextNode(m.code)); }
+        return { title: m.title, code: m.code, barcodeDataUrl: data.dataUrl };
+      }catch(e){
+        return { title: m.title, code: m.code, barcodeDataUrl: null };
+      }
     }));
-    // A fixed 200ms guess at "enough time for the browser to actually
-    // paint the new cards before printing" — replaced with something
-    // deterministic instead of another guess at a bigger number. Two
-    // nested requestAnimationFrame calls is a well-established pattern
-    // for this exact problem: the first one fires just before the next
-    // paint (too early — the new content isn't necessarily on screen
-    // yet), the second one only runs after that paint has actually
-    // happened, which is the real signal that the browser has finished
-    // rendering everything just added to the grid.
-    toast(`Printing ${items.length} label${items.length===1?'':'s'}…`);
-    requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
+
+    const cardsHtml = itemsWithBarcodes.map(m => `
+      <div class="disc-label">
+        <div class="disc-label-title">${m.title}</div>
+        ${m.barcodeDataUrl ? `<img src="${m.barcodeDataUrl}" />` : `<div style="font-size:11px;">${m.code}</div>`}
+        <div class="disc-label-code">${m.code}</div>
+      </div>`).join("");
+
+    const printHtml = `<!DOCTYPE html>
+<html><head><title>Sandy Server — Disc Labels</title>
+<style>
+  body{margin:0;padding:0.2in;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;}
+  .label-sheet-grid{display:grid;grid-template-columns:repeat(3,2.6in);gap:0.15in;justify-items:center;}
+  .disc-label{width:2.6in;height:1.1in;border:1px dashed #999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:8px;box-sizing:border-box;background:#fff;color:#111;overflow:hidden;}
+  .disc-label-title{font-family:'Poppins',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:13px;font-weight:600;line-height:1.15;text-align:center;max-width:2.4in;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .disc-label img{max-width:2.3in;max-height:0.45in;object-fit:contain;}
+  .disc-label-code{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:8px;color:#555;}
+</style>
+</head>
+<body>
+  <div class="label-sheet-grid">${cardsHtml}</div>
+</body></html>`;
+
+    const printWindow = window.open("", "_blank", "width=900,height=700");
+    if(!printWindow){
+      toast("Couldn't open the print window — your browser may be blocking pop-ups for this page.");
+      return;
+    }
+    printWindow.document.write(printHtml);
+    printWindow.document.close();
+    // The barcode images are already-loaded data URIs (no further
+    // network round-trip needed), but the new window's own onload still
+    // needs to fire before printing so the browser has actually
+    // rendered them, same reasoning as the requestAnimationFrame
+    // approach before this — just applied to an entirely separate
+    // window now instead of the main page.
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+    };
   }
 
   // ---------- tabs ----------

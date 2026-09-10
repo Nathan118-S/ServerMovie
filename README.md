@@ -538,6 +538,33 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## A genuinely different approach: print from a dedicated new window
+
+Removing the diagnostic CSS conflict still didn't resolve it. Six
+attempts in a row had all been variations on the same underlying
+technique — hiding the rest of the page during print so only the
+label sheet shows through — and none of them held up, even with sound
+reasoning behind each one individually. At that point continuing to
+refine the same approach stopped being the productive path forward.
+
+Generating labels now works completely differently: instead of trying
+to make print-media CSS correctly isolate one part of this app's
+fairly complex page (many overlays, a large stylesheet, an admin
+console that toggles visibility dynamically), it builds a small,
+complete, self-contained HTML document — its own minimal `<style>`
+block, nothing borrowed from the main page's CSS or DOM at all — and
+opens it in a dedicated new browser window specifically to print. That
+sidesteps every possible interaction with the main page's layout
+entirely, rather than trying to coexist with it.
+
+This also gives `generateLabels()` a cleaner shape in its own right:
+it no longer shares any DOM or state with `printBayBarcodes()` (the
+bay-barcode printing feature, which still legitimately reuses
+`#label-sheet` for its own separate purpose) — the two are now fully
+independent, closing off any possibility of the kind of interaction
+that turned out to be a real, separate bug earlier in this same
+investigation.
+
 ## Found it — my own diagnostic CSS was interfering with the fix
 
 The CSS redesign above still didn't resolve it, so rather than guess a
