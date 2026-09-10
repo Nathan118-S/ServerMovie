@@ -5793,6 +5793,7 @@
 
 
   async function generateLabels(){
+    alert("generateLabels() was called — this confirms the button click reached the function. (Temporary diagnostic — will be removed once this is actually tracked down.)");
     const ids = $$(".labelCheck:checked").map(c=>c.value);
     const items = catalog.filter(m => ids.includes(m.id));
     if(items.length===0){ toast("Select at least one title"); return; }
