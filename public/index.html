@@ -5797,6 +5797,7 @@
     const items = catalog.filter(m => ids.includes(m.id));
     if(items.length===0){ toast("Select at least one title"); return; }
     const grid = $("#labelSheetGrid");
+    if(!grid){ toast("Something's wrong with the label sheet — try refreshing the page."); return; }
     grid.innerHTML = "";
     const cards = items.map(m => {
       const card = document.createElement("div");
@@ -5824,7 +5825,17 @@
         barcodeImg.src = data.dataUrl;
       }catch(e){ barcodeImg.replaceWith(document.createTextNode(m.code)); }
     }));
-    setTimeout(() => window.print(), 200);
+    // A fixed 200ms guess at "enough time for the browser to actually
+    // paint the new cards before printing" — replaced with something
+    // deterministic instead of another guess at a bigger number. Two
+    // nested requestAnimationFrame calls is a well-established pattern
+    // for this exact problem: the first one fires just before the next
+    // paint (too early — the new content isn't necessarily on screen
+    // yet), the second one only runs after that paint has actually
+    // happened, which is the real signal that the browser has finished
+    // rendering everything just added to the grid.
+    toast(`Printing ${items.length} label${items.length===1?'':'s'}…`);
+    requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
   }
 
   // ---------- tabs ----------

@@ -538,6 +538,35 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## Still blank — a fourth pass, with a diagnostic built in this time
+
+The previous race-condition fix didn't resolve it, and a check of the
+browser's own console came back with no errors at all — which
+actually narrows things down meaningfully: no error means the code
+is running to completion, cards are being added without throwing, and
+`#labelSheetGrid` genuinely exists (a missing element there would have
+thrown a very specific, visible error, and didn't). Whatever's wrong
+is happening after the content is correctly in the DOM but before it
+actually renders in the print output.
+
+The strongest remaining candidate is timing, so that's what changed:
+the fixed 200-millisecond delay before calling `print()` — a guess at
+"long enough for the browser to actually paint the new cards" — is
+replaced with two nested `requestAnimationFrame` calls, a real,
+well-established pattern for this exact problem rather than a bigger
+guess at the same kind of number. The first one fires just before the
+next paint (still too early), the second only runs after that paint
+has actually happened, which is the genuine signal that the browser
+has finished rendering everything just added, not a hopeful estimate
+of how long that might take.
+
+Also added a small toast confirming exactly how many labels are about
+to print, and a defensive check in case `#labelSheetGrid` is ever
+missing. Both matter beyond just this one bug: if this still comes
+back blank, whether that toast shows the correct count or not tells me
+directly whether this is a content problem or a rendering problem —
+real information instead of another guess to work from either way.
+
 ## Fixed: a real race condition behind the blank print page
 
 Still not working after the last fix, reported as a blank print
