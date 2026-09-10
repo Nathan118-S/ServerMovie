@@ -538,35 +538,406 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
-## A Service Mode for hands-on maintenance passes
+## Webhook payloads redesigned for Home Assistant, with poster images
 
-A new **Service** subtab under Bays &amp; Lighting, alongside Setup,
-Assignment, and Diagnostics, built specifically for sitting down and
-working the shelf in one uninterrupted pass rather than hopping
-between three different subtabs:
+All five webhooks (the four alert channels above plus the
+pre-existing support-request one) send genuinely structured JSON now,
+not just a single message string — built specifically for Home
+Assistant's webhook trigger, where an automation reads fields straight
+off `trigger.json` in its own YAML/Jinja rather than needing to parse
+a sentence back apart. A checkout or return payload looks like:
 
-- **Service mode toggle** — while it's on, full-screen alerts (the
-  door-open prompt, the "who took this?" chime) reach whatever device
-  is actually being used for maintenance, bypassing the Main Kiosk
-  filter from a couple of updates back. Off by default, and turning it
-  back off restores normal main-kiosk-only routing exactly as before.
-- **Light testing**, one click away — the same LED sweep test as
-  Diagnostics, no tab-switching required mid-service.
-- **Bulk assign**, its own copy — scan a bay, then a movie, repeat.
-  Genuinely shares state with the existing copy in Assignment rather
-  than running a second independent session: a bay scanned from either
-  input completes with a movie scanned from either input, since it's
-  the same real workflow, just reachable from two places.
-- **Bay assignments**, the same dropdown view as Assignment, for
-  hand-fixing anything the scanner missed.
+```json
+{
+  "event": "checkout",
+  "movie": "Alien",
+  "person": "Sam",
+  "poster": "https://image.tmdb.org/...",
+  "message": "Sam checked out \"Alien\"",
+  "timestamp": "2026-09-10T19:38:08.438Z"
+}
+```
 
-None of the underlying logic was duplicated to build this — the
-existing bay-dashboard renderer now accepts which container to draw
-into (called twice, once per copy, rather than forked into two
-separate functions that could quietly drift apart over time), and the
-bulk-assign status renderer updates every copy of its status/log
-elements that currently exists in the DOM, so both views always agree
-with each other.
+`content` and `text` (matching Discord's and Slack's own expected
+fields) are still included alongside the named ones — costs nothing
+extra, and a Home Assistant automation just ignores whatever fields it
+doesn't reference, so this works for either without picking one.
+
+**Checkout, return, and overdue all carry a `poster` field** —
+straightforward from there in Home Assistant's own automation YAML to
+pass `trigger.json.poster` as the `image` in a `notify.mobile_app_*`
+call's data, which is what actually makes the movie or game's cover
+show up in the push notification itself, not just its title as plain
+text. Worth flagging honestly rather than glossing over: whether that
+URL is actually reachable when the notification renders depends on how
+the poster got there in the first place — one pulled in from TMDb/OMDb
+is already a normal public URL and just works, but a photo uploaded
+directly to Sandy Server only exists at the Pi's own local address,
+which needs its own remote-access setup (Home Assistant's own remote
+access, a VPN, whatever's already in place) to resolve from outside
+the home network. Not something this feature can solve on its own.
+
+The test button for each webhook sends a realistic sample payload
+shaped like the real thing — sample movie/person/poster fields for
+checkout, return, and overdue — specifically so an automation's own
+Jinja templates can be tested against something that actually looks
+right, not just a confirmation that some message arrived.
+
+Verified the actual JSON being sent, not just that the code looked
+right — generated a real checkout payload and confirmed every field a
+Home Assistant automation would need is exactly where `trigger.json.*`
+would expect to find it.
+
+## Four independent alert webhooks: checkouts, returns, overdue, server issues
+
+New **System → Alert webhooks** section, alongside the existing
+support-request one — four separate channels, each with its own URL,
+each firing only for its own specific event. Set any, all, or none;
+each is completely independent of the others.
+
+- **Checkouts** and **returns** both include the title and who, and
+  fire from every path that actually creates or completes a rental —
+  the bay-switch sensor, a pending checkout confirming, admin manual
+  checkout, and the return side's equivalent three paths — not just
+  the one someone might think to test with.
+- **Overdue** works differently from the other three by necessity —
+  nothing *does* anything to make a rental overdue, time just passes,
+  so there's no natural event to hang an alert off of. Runs on its own
+  hourly check instead, comparing every active rental against its due
+  date. A rental only ever alerts once for going overdue, not
+  repeatedly for as long as it stays that way — verified this
+  specifically with a small simulation, including confirming a renewal
+  correctly clears the way for a fresh alert if the same rental somehow
+  goes overdue again later.
+- **Server issues** covers actual problems on the server itself, not
+  rental activity — wired into the one place a database save failure
+  was already being caught (a real, meaningful signal — a full disk or
+  a failing SD card), plus a new last-resort handler for anything
+  uncaught anywhere else, which alerts and then shuts down the same
+  clean way a normal restart does rather than continuing to run in an
+  unknown state.
+
+None of the four required five separate test endpoints or five
+separate save/test functions on the client — consolidated into one
+generic webhook-test endpoint on the server, keyed by type, and one
+generic save/test function pair on the client that every one of the
+five webhooks (including the pre-existing support one, updated to
+match) now shares.
+
+## Search, filter, and sort in Catalog → Inventory
+
+This started as an attempt to pull Inventory out into its own
+top-level sidebar page — undone partway through once it became clear
+that wasn't actually what was wanted, and rebuilt in place instead,
+within Catalog where it already lived. Worth mentioning since it's a
+real example of a mid-task correction, not just describing the tidy
+end result.
+
+Inventory previously had no way to search or filter at all — just
+plain, unsorted pagination through the entire catalog, ten at a time,
+in whatever order titles happened to be stored in. Finding one
+specific thing in a large collection meant clicking through page after
+page. Now there's a search box (title or code), filters for media
+type, location (has a bay vs. bulk storage), and condition, plus a
+sort dropdown (title, year, recently added, stock level) — all applied
+*before* pagination, not after, so a search actually searches the
+whole collection rather than just whatever page was currently showing.
+Changing any of them resets back to page one, so a filter never leaves
+someone stranded on a now out-of-range page.
+
+Verified the actual filtering and sorting logic against several
+realistic scenarios — by media type, by location, by condition, and
+by each sort order — with a small simulation before calling this done,
+not just trusting that the code looked right.
+
+## The featured hero now auto-advances through everything marked Featured
+
+Building on the Featured checkbox from a moment ago: with more than
+one title marked Featured, the hero no longer just sits on one pick —
+it automatically cycles through all of them, one every 9 seconds, in a
+freshly shuffled order every time the page loads. With one or zero
+titles marked, nothing changes: still the same single sticky pick as
+before. Extended to all four places a hero exists — Browse Movies,
+Browse Games, Digital Copies, and the TV display.
+
+The shuffling itself needed no special seeding or persistence to give
+every refresh its own order — the whole carousel state lives only in
+memory and starts completely empty each time the page loads fresh,
+so a new shuffle happens naturally every time without any extra work
+to make that true.
+
+Built the actual advancing to update only the hero element itself,
+not by re-running the full per-tab render pass every 9 seconds — that
+would have also rebuilt the whole grid underneath it on every single
+tick, replaying the poster stagger-in and scroll-reveal animations and
+risking the scroll position jumping, for a change that only ever
+needed to touch the hero. Verified the underlying shuffle-and-advance
+logic directly with a small simulation before calling this done: ran
+it across several separate simulated "page loads" to confirm the order
+genuinely varies, and stepped through several advances to confirm the
+cycle correctly wraps back to the start rather than running off the
+end of the list.
+
+## Admin control over what shows up in the featured hero
+
+A "Featured" checkbox per title in Catalog → Inventory. With anything
+checked, the hero at the top of Browse picks only from titles marked
+Featured instead of the full catalog — with nothing checked, it's
+exactly the same fully-random behavior as before, so nobody has to
+manage this at all to keep today's experience.
+
+This slots in *after* the existing backdrop/poster-art preference, not
+instead of it — a title marked Featured still needs actual art to be
+eligible, the same requirement every other potential hero pick already
+has. Marking something without a backdrop or poster as Featured
+doesn't force a broken-looking hero into rotation; it's just quietly
+not eligible until it has art, the same as any other title in that
+position. Verified this specific ordering (and the plain "nothing
+marked" fallback, and "several things marked" both being eligible)
+against three separate simulated scenarios before calling it done.
+
+One thing worth knowing rather than discovering by surprise: the hero
+is already "sticky" — it keeps showing the same pick rather than
+re-rolling on every single render, which is what stops it from
+visibly changing every few seconds. Marking a new title Featured takes
+effect the next time the hero actually needs a fresh pick (a page
+reload, or whenever the current pick stops being eligible), not
+necessarily the instant the checkbox is ticked.
+
+## Bays are no longer a fixed "home" for one title
+
+Checking a title out now clears whatever bay it was sitting in, and
+returning it assigns it to whichever bay it actually gets physically
+placed into — not necessarily the one it started in. A bay is now
+wherever a disc currently is, not a permanent address one disc always
+returns to.
+
+Half of this already existed, worth being clear about rather than
+claiming it all as new: the return side already re-homed a title to
+whatever bay it was actually placed in whenever that didn't match its
+previous bay — built earlier for handling mis-placed returns, and it
+turns out to already be exactly the mechanism this needed. What was
+genuinely missing was the checkout side ever clearing the bay
+assignment at all; a bay stayed permanently "claimed" by its title
+even while checked out, just showing red instead of green. Added a
+single shared function for this and called it from all three places a
+rental actually gets created — the bay-switch pull, a pending checkout
+confirming, and the shared endpoint behind both admin manual checkout
+and the bulk-storage instant-checkout path — so a title loses its bay
+the same way no matter which of the three ways it left through.
+
+Verified the actual before/after state with a small simulation, not
+just read through the logic and assumed it was right: a title starts
+assigned to bay 1, gets checked out (bay 1 correctly empties), then
+gets returned into bay 2 instead — confirmed bay 1 stays empty and bay
+2 correctly picks up the assignment, with nothing left stale anywhere.
+
+Left `autoAssignOpenBays()` — the existing behavior that fills empty
+bays with unassigned titles automatically after a fully manual return
+with no physical bay info available at all — untouched, since it
+already correctly skips any title that just got assigned a real bay
+through the physical placement logic above, and serves a genuinely
+different, complementary purpose from what this changed.
+
+## An "Unavailable" status — still shows, just can't be checked out
+
+A new option in the same condition dropdown as Damaged/Missing —
+**Unavailable** — for a title that should stay visible in the catalog
+but shouldn't be rentable right now, for any reason (pulled for
+cleaning, set aside, whatever doesn't fit "damaged" or "missing" but
+still means "not this one, not today"). Unlike Damaged/Missing, which
+have always been purely cosmetic badges with no effect on whether
+something could actually be rented, Unavailable is genuinely
+functional — this needed touching every single place stock alone used
+to decide what could be rented, not just one.
+
+Updated consistently everywhere: the customer rental flow, admin
+manual checkout, the barcode-scan rent flow, Surprise Me and Double
+Feature's eligible pools, the admin's quick-checkout dropdown, and the
+Dashboard's "in stock" count — all now treat an unavailable title the
+same as being out of stock for whether it can be rented, while still
+showing it everywhere a title normally would, with its own clear
+"Unavailable" label rather than just a generic "out of stock."
+
+**Two real mistakes caught and fixed before any of this shipped, not
+after** — worth being direct about both rather than only describing
+the finished feature:
+
+- One edit meant to update a single line in `heroHtml()` accidentally
+  deleted the entire `blurb` variable declaration that followed it,
+  leaving orphaned ternary syntax that would have broken the whole
+  featured-hero display. Caught immediately by checking that the
+  deleted line hadn't actually vanished, and confirmed with a syntax
+  check before moving on.
+- The server's bay-LED color logic only ever looked at stock, with no
+  awareness of condition at all — meaning a bay's light would have
+  stayed green even after marking its title Unavailable, directly
+  contradicting what the app itself was now saying. Worse, the PATCH
+  endpoint that updates a title only re-checks its LED color when
+  stock, bay, or LED-index change in that same request — condition
+  wasn't in that list, so even after fixing the color logic itself, it
+  would never have actually run when someone used the new dropdown
+  option. Both fixed together, since the first fix would have been
+  silently useless in practice without the second.
+
+## Bulk storage — for titles that don't have a dedicated bay
+
+Not every title needs its own lit shelf slot, especially in a
+collection that's grown past however many physical bays exist. Any
+title without a bay assignment is now treated as being in **bulk
+storage** by definition — no new field to set, nothing to explicitly
+turn on: it's just the natural state of "not checked out, not in a
+bay," reframed as something intentional and supported rather than an
+incomplete setup waiting to be fixed.
+
+That reframing needed a real functional fix underneath it, not just
+new wording, and this is the actual substance of the feature: the
+customer-facing "Rent Now" flow used to *always* create a pending
+checkout and wait for the physical bay switch to confirm it — which a
+bulk-storage title, having no bay and no switch, could never actually
+send. Clicking Rent Now on one would have left the checkout stuck
+waiting on an event that was never coming. Fixed by having that flow
+check for a bay assignment first: no bay means the checkout completes
+immediately instead, the same way admin manual checkout already
+worked, with its own success screen so it doesn't feel like a lesser
+experience than a bay-confirmed one.
+
+That admin manual-checkout function needed a small change to make this
+safe: it used to fail silently after its own toast on any problem
+(rating restriction, checkout limit, a save error) with no way for a
+caller to tell success from failure without duplicating all of those
+same checks. Now it returns true or false, so the new bulk-storage
+path only shows its success screen when the checkout actually
+succeeded — not on every call regardless of outcome, which is what a
+first pass at this would have done.
+
+Also removed "No bay assigned" from Dashboard's Needs Attention list
+entirely, since flagging a normal, intentional state as something to
+fix would just be actively wrong now — and the movie modal shows
+either the bay number or "In bulk storage" for any physical title, so
+whoever's checking something out actually knows where to go looking
+for it.
+
+## Bay lights now cascade in real shelf order, not just the LED test
+
+The LED test sweep already followed the drag-and-drop Bay Layout's
+actual saved positions (row by row, left to right, top row first —
+see the entry on that further down). Extended that same idea to the
+two other moments bay LEDs update in bulk: the instant the welcome
+pulse or a door-open/close effect hands back off to normal per-bay
+colors, and the moment the door's been closed a while and everything
+goes dark. Both now sweep across the shelf in physical order — quickly
+(40ms per bay, not a slow reveal, since restoring or dimming the shelf
+isn't something someone's meant to sit and watch) — rather than every
+LED snapping to its new state simultaneously.
+
+Verified the actual cascade logic with a small simulation before
+calling this done: three bays across two rows, deliberately stored in
+non-layout order with different stock levels, run through the real
+ordering and color logic. Confirmed the sequence starts at the correct
+top-left bay with its correct color for actual stock, then proceeds
+correctly through the rest in genuine physical order.
+
+## Clear one person's rental history from Household
+
+Each household member now has a "Clear history" button right in
+Household's own list — shows the count of past rentals it would
+remove, disabled entirely when there's nothing there to clear, and
+confirms before doing anything given it's permanent. Only ever touches
+that one person's records, matched by exact name, and nothing else —
+distinct from the "Clear log" button already in Diagnostics, which
+wipes the hardware-events log, a completely different thing that
+happens to share similar wording.
+
+## A Request Support button, backed by a configurable webhook
+
+A **Request Support** button now sits in the top-right of the main
+screen — click it, optionally say what's wrong in a couple of
+sentences, and it sends a message to wherever the admin has pointed
+it: **System → Support requests** takes a Discord or Slack
+incoming-webhook URL directly, with a "Send test message" button to
+confirm it actually works before relying on it. The message includes
+who's logged in if anyone is, the note if one was given, and a
+timestamp.
+
+The request is relayed through the server rather than posted straight
+from the browser, for two real reasons: the webhook URL itself never
+has to be exposed to client-facing code at all (nobody browsing the
+kiosk needs to see where this goes), and it sidesteps the CORS
+restrictions a browser would almost certainly hit trying to POST
+directly to an arbitrary external webhook.
+
+Deliberately didn't reuse this project's existing `httpsPostJson`
+helper for this, for two concrete reasons rather than just
+"to be safe": it always uses Node's `https` module regardless of the
+URL's actual scheme — the exact bug already found and fixed for WLED a
+while back, and a self-hosted webhook receiver could just as easily be
+plain HTTP. Worse, it requires the response body to be valid JSON,
+which breaks specifically for Discord: a successful Discord webhook
+call returns an empty 204 No Content, and `JSON.parse("")` throws —
+meaning a genuinely successful support request would have been
+reported back as a failure. Wrote a dedicated function instead that
+picks the right client by URL scheme and only checks the status code,
+and tested it directly against a fake local webhook receiver built
+specifically to mimic that exact empty-204 behavior, rather than just
+reasoning about whether it would work.
+
+## Flowing activity charts on the Dashboard
+
+A new chart at the top of Dashboard — checkouts and returns per day
+over the last two weeks, as two smooth flowing lines sharing one
+chart rather than two separate ones, so the relationship between them
+(more going out than coming back, or the reverse) is visible at a
+glance. No charting library added for this — built as plain SVG with
+its own Catmull-Rom-to-Bezier curve smoothing, consistent with how
+everything else in this project has stayed dependency-free and works
+completely offline on the Pi.
+
+Tested the actual day-bucketing and curve-generation logic directly
+with simulated rental data before calling this done, not just checked
+that the code runs — confirmed same-day events correctly group
+together, a deliberately out-of-range date gets correctly excluded
+from the 14-day window, and the generated path is well-formed SVG.
+
+Also worth a specific mention: the chart skips rebuilding when the
+underlying daily counts haven't actually changed, the same signature-
+based pattern already used for the Browse grids elsewhere in this app.
+Without it, the chart would have redrawn — and restarted its own
+draw-in animation — on every single global update the live-update
+connection triggers, which is frequent; caught this before it shipped
+as something that would read as distracting flicker rather than the
+one-time reveal it's meant to be for anyone actually sitting and
+looking at the dashboard.
+
+## Service Mode is now a genuine full-screen takeover, not a settings button
+
+Redesigned from where this started a moment ago — a "Service mode"
+button that lived inside a settings subtab, one tab among several in
+Bays &amp; Lighting. That undersold what it's actually for: a focused,
+uninterrupted maintenance pass, not one more setting to configure and
+leave alone. It's now a dedicated **Service mode** button in the Admin
+Console's own top nav bar, separate from the regular tabs since it
+doesn't switch to another panel — it opens a full-screen view that
+sits above the whole Admin Console, with its own header and a single
+clear "Exit service mode" action, closing back to exactly where you
+left off underneath.
+
+Entering and exiting *is* the toggle now — no separate on/off switch to
+remember to flip back afterward. Opening it turns on the main-kiosk
+alert bypass from a couple of updates back (so the door-open prompt and
+the "who took this?" chime reach whoever's actually doing the
+maintenance); exiting turns it back off automatically. Also added a
+safety net for a case the simple toggle-button version didn't handle:
+if service mode were ever left on server-side from an ended session — a
+crashed browser, a closed tab, anything that skipped clicking Exit —
+opening the Admin Console again now shows the full-screen view
+immediately rather than leaving that alert bypass silently active with
+nothing on screen to indicate it's still on.
+
+Inside: light testing, bulk assign, and bay assignments, all reusing
+the exact same underlying rendering functions and shared state as
+their counterparts elsewhere in the app (see below for how) — nothing
+here is a second, divergent copy of that logic.
 
 ## Richer, more distinct sounds for all five app sounds
 

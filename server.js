@@ -177,13 +177,152 @@ function pushOverheadLeds(colorHex){
   pushBayLed(indexes, colorHex);
 }
 
+// A dedicated webhook poster, not a reuse of httpsPostJson above — that
+// one always uses the https module regardless of the URL's actual
+// scheme (the same bug already found and fixed for WLED, which runs
+// on plain HTTP — a webhook receiver could too), and it requires the
+// response body to be valid JSON, which breaks specifically for
+// Discord webhooks: a successful Discord webhook call returns an empty
+// 204 No Content, and JSON.parse("") throws, which would have reported
+// a real success as a failure. Sends both "content" (Discord) and
+// "text" (Slack, and many generic receivers) in the same payload for
+// compatibility with the two most common self-hosted webhook targets,
+// since there's no way to know which one someone's actually pointed
+// this at.
+function postToWebhook(url, payload){
+  return new Promise((resolve, reject) => {
+    let u;
+    try{ u = new URL(url); }catch(e){ reject(new Error("Invalid webhook URL")); return; }
+    const body = JSON.stringify(payload);
+    const client = u.protocol === "http:" ? require("http") : https;
+    const req = client.request({
+      hostname: u.hostname,
+      port: u.port || undefined,
+      path: u.pathname + u.search,
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) },
+      timeout: 5000
+    }, res => {
+      res.on("data", () => {});
+      res.on("end", () => {
+        if(res.statusCode >= 200 && res.statusCode < 300) resolve();
+        else reject(new Error(`Webhook returned HTTP ${res.statusCode}`));
+      });
+    });
+    req.on("error", reject);
+    req.on("timeout", () => req.destroy());
+    req.write(body);
+    req.end();
+  });
+}
+
+// Named fields (movie, person, poster, ...), not just a single message
+// string — built for Home Assistant's webhook trigger specifically,
+// where an automation reads trigger.json.<field> directly in its own
+// YAML/Jinja rather than having to parse text back apart. content and
+// text carry the same human-readable line for Discord/Slack
+// compatibility too, since those cost nothing extra to include and
+// don't get in Home Assistant's way (an automation just ignores fields
+// it doesn't reference).
+function buildWebhookPayload(event, message, extra){
+  return { event, message, content: message, text: message, timestamp: new Date().toISOString(), ...extra };
+}
+
+// Four independent alert channels, each with its own settable webhook —
+// silently does nothing when a given one isn't configured, same as the
+// support-request webhook already does, and always fire-and-forget
+// (.catch swallows failures) since a webhook being unreachable should
+// never be able to block or fail the actual checkout/return/etc. it's
+// just reporting on. Checkout, return, and overdue all carry a poster
+// field when the title has one — Home Assistant's mobile-app notify
+// service reads an "image" field straight off notification data for a
+// rich push notification, which is exactly what this is for. Whether
+// that URL is actually reachable from wherever the notification
+// renders depends on how it's hosted: a poster pulled in from TMDb/OMDb
+// is already a normal public URL, but a photo uploaded directly to
+// Sandy Server is only reachable at the Pi's own local address, which
+// needs its own remote-access setup (already-running Home Assistant
+// infrastructure, a VPN, etc.) to resolve outside the home network —
+// nothing this feature can solve on its own.
+function alertCheckout(title, renterName, poster){
+  const url = ((db.settings && db.settings.checkoutWebhookUrl) || "").trim();
+  if(!url) return;
+  const message = `${renterName} checked out "${title}"`;
+  postToWebhook(url, buildWebhookPayload("checkout", message, { movie: title, person: renterName, poster: poster || "" })).catch(()=>{});
+}
+
+function alertReturn(title, renterName, poster){
+  const url = ((db.settings && db.settings.returnWebhookUrl) || "").trim();
+  if(!url) return;
+  const message = `${renterName} returned "${title}"`;
+  postToWebhook(url, buildWebhookPayload("return", message, { movie: title, person: renterName, poster: poster || "" })).catch(()=>{});
+}
+
+function alertOverdue(title, renterName, poster){
+  const url = ((db.settings && db.settings.overdueWebhookUrl) || "").trim();
+  if(!url) return;
+  const message = `"${title}" is overdue — checked out by ${renterName}`;
+  postToWebhook(url, buildWebhookPayload("overdue", message, { movie: title, person: renterName, poster: poster || "" })).catch(()=>{});
+}
+
+function alertServerIssue(message){
+  const url = ((db.settings && db.settings.serverIssueWebhookUrl) || "").trim();
+  if(!url) return;
+  postToWebhook(url, buildWebhookPayload("server_issue", message, {})).catch(()=>{});
+}
+
+// Overdue alerts have no single event to hang off of the way checkout
+// and return do — nobody does anything to make a rental become
+// overdue, time just passes. So this runs on its own timer instead,
+// checking every active rental against its own due date. The
+// overdueAlerted flag on each rental is what stops the exact same
+// overdue rental from re-alerting every single time this check runs
+// (hourly) for as long as it stays overdue — without it, someone three
+// days late would trigger dozens of identical alerts rather than one.
+function checkOverdueRentals(){
+  const url = ((db.settings && db.settings.overdueWebhookUrl) || "").trim();
+  if(!url) return;
+  const now = Date.now();
+  let changed = false;
+  db.rentals.forEach(r => {
+    if(r.dueOn && r.dueOn < now && !r.overdueAlerted){
+      const title = db.titles.find(t => t.id === r.movieId);
+      alertOverdue(r.title, r.renterName, title ? title.poster : "");
+      r.overdueAlerted = true;
+      changed = true;
+    }
+  });
+  if(changed) saveDb();
+}
+setInterval(checkOverdueRentals, 3600000); // hourly — overdue is measured in days, not minutes, so this doesn't need to be more frequent than that
+
 function updateBayLedForTitle(title){
   if(!title) return;
   const bay = db.bays.find(b => b.titleId === title.id);
   if(!bay) return;
   const idxs = parseLedIndexes(bay.ledIndex);
   if(idxs.length === 0) return;
-  pushBayLed(idxs, title.stock > 0 ? "00FF00" : "FF0000");
+  pushBayLed(idxs, (title.stock > 0 && title.condition !== "unavailable") ? "00FF00" : "FF0000");
+}
+
+// Bays here aren't a fixed "this slot always holds this title" home —
+// checking something out clears whatever bay it was sitting in
+// (this function), and returning it re-homes it to whichever bay it
+// actually gets physically placed back into (see the re-homing logic
+// already in /api/bay-return below, which predates this and already
+// handled that half). Called from every place a rental gets created,
+// not just the bay-switch-triggered one, so a title checked out
+// through admin manual checkout or the bulk-storage instant-checkout
+// path loses its bay assignment exactly the same way a bay-pull does.
+// Returns whether a bay was actually cleared, so callers only need to
+// broadcast the bays list changing when something genuinely did.
+function unassignBayForTitle(titleId){
+  const bay = db.bays.find(b => b.titleId === titleId);
+  if(!bay) return false;
+  const idxs = parseLedIndexes(bay.ledIndex);
+  if(idxs.length > 0) pushBayLed(idxs, "000000"); // empty now — off, same convention as every other empty bay
+  bay.titleId = null;
+  return true;
 }
 
 // Whenever a bay opens up (added, or cleared) or a title ends up with no
@@ -211,33 +350,48 @@ function autoAssignOpenBays(){
 
 // Every completed return gets archived here (separate from db.rentals,
 // which only ever holds *active* rentals) — the source for both a
-// customer's own watch history and the admin "most rented" view.
+// customer's own watch history and the admin "most rented" view. Also
+// the one shared place all three return paths funnel through, which is
+// exactly why the return webhook alert lives here instead of being
+// duplicated at each of those three call sites individually.
 function archiveRentalToHistory(rental){
   db.rentalHistory.push({ ...rental, returnedOn: Date.now() });
+  const title = db.titles.find(t => t.id === rental.movieId);
+  alertReturn(rental.title, rental.renterName, title ? title.poster : "");
 }
 
 // Restores every bay's LED to its normal steady state — used after a
 // whole-strip animation finishes, since that temporarily overrides the
-// individual per-bay colors.
+// individual per-bay colors. Staggered in real physical shelf order
+// (see sortBaysByLayoutPosition below, the same ordering already used
+// for the LED test sweep) rather than firing every bay at once, so the
+// moment the welcome pulse or door effect hands back off to normal
+// reads as a light genuinely sweeping across the shelf, not everything
+// snapping to color simultaneously.
 function refreshAllBayLeds(){
-  db.bays.forEach(bay => {
-    const idxs = parseLedIndexes(bay.ledIndex);
-    if(idxs.length === 0) return;
-    if(bay.titleId){
-      const t = db.titles.find(x => x.id === bay.titleId);
-      if(t) pushBayLed(idxs, t.stock > 0 ? "00FF00" : "FF0000");
-    } else {
-      pushBayLed(idxs, "000000"); // empty bay, no title assigned — lights off
-    }
+  const ordered = sortBaysByLayoutPosition(db.bays.filter(b => parseLedIndexes(b.ledIndex).length > 0));
+  ordered.forEach((bay, i) => {
+    setTimeout(() => {
+      const idxs = parseLedIndexes(bay.ledIndex);
+      if(bay.titleId){
+        const t = db.titles.find(x => x.id === bay.titleId);
+        if(t) pushBayLed(idxs, (t.stock > 0 && t.condition !== "unavailable") ? "00FF00" : "FF0000");
+      } else {
+        pushBayLed(idxs, "000000"); // empty bay, no title assigned — lights off
+      }
+    }, i * 40); // a fast sweep, not a slow one — this is restoring the shelf to normal, not a feature someone's meant to sit and watch
   });
 }
 
 // Used after the door's been closed a while — lights stay off until the
 // door opens again, rather than reverting to per-bay status colors.
+// Same cascading, position-ordered sweep as refreshAllBayLeds above,
+// so the shelf visibly goes dark in a wave rather than every light
+// snapping off simultaneously.
 function turnOffAllBayLeds(){
-  db.bays.forEach(bay => {
-    const idxs = parseLedIndexes(bay.ledIndex);
-    if(idxs.length > 0) pushBayLed(idxs, "000000");
+  const ordered = sortBaysByLayoutPosition(db.bays.filter(b => parseLedIndexes(b.ledIndex).length > 0));
+  ordered.forEach((bay, i) => {
+    setTimeout(() => pushBayLed(parseLedIndexes(bay.ledIndex), "000000"), i * 40);
   });
   pushOverheadLeds("000000");
 }
@@ -689,7 +843,7 @@ function loadDb(){
       rentalHistory: [],
       wishlist: [],
       users: [{ id: newId("u"), name: "Admin", pin: "0000", isAdmin: true }],
-      settings: { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90, wledOpenEffect: 9, wledCloseEffect: 2, wledEffectSeconds: 6, doorCloseDelaySeconds: 60, maxRenewals: 2, overheadLedIndexes: "", mainKioskIp: "", serviceMode: false },
+      settings: { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90, wledOpenEffect: 9, wledCloseEffect: 2, wledEffectSeconds: 6, doorCloseDelaySeconds: 60, maxRenewals: 2, overheadLedIndexes: "", mainKioskIp: "", serviceMode: false, supportWebhookUrl: "", overdueWebhookUrl: "", serverIssueWebhookUrl: "", checkoutWebhookUrl: "", returnWebhookUrl: "" },
       tvSelection: null,
       kioskSelection: null,
       activeSession: null,
@@ -722,6 +876,11 @@ function loadDb(){
   if(parsed.settings.overheadLedIndexes === undefined) parsed.settings.overheadLedIndexes = "";
   if(parsed.settings.mainKioskIp === undefined) parsed.settings.mainKioskIp = "";
   if(parsed.settings.serviceMode === undefined) parsed.settings.serviceMode = false;
+  if(parsed.settings.supportWebhookUrl === undefined) parsed.settings.supportWebhookUrl = "";
+  if(parsed.settings.overdueWebhookUrl === undefined) parsed.settings.overdueWebhookUrl = "";
+  if(parsed.settings.serverIssueWebhookUrl === undefined) parsed.settings.serverIssueWebhookUrl = "";
+  if(parsed.settings.checkoutWebhookUrl === undefined) parsed.settings.checkoutWebhookUrl = "";
+  if(parsed.settings.returnWebhookUrl === undefined) parsed.settings.returnWebhookUrl = "";
   if(parsed.tvSelection === undefined) parsed.tvSelection = null;
   if(parsed.kioskSelection === undefined) parsed.kioskSelection = null;
   if(parsed.activeSession === undefined) parsed.activeSession = null;
@@ -771,7 +930,10 @@ function performDbSave(){
   const data = JSON.stringify(db, null, 2);
   fs.writeFile(DATA_FILE, data, (err) => {
     dbSaveInProgress = false;
-    if(err) console.error("Failed to save database:", err.message);
+    if(err){
+      console.error("Failed to save database:", err.message);
+      alertServerIssue(`Failed to save the database — ${err.message}. Check disk space and the SD card.`);
+    }
     if(dbSavePending) performDbSave();
   });
 }
@@ -843,6 +1005,23 @@ app.get("/api/state", (req, res) => {
   res.json({ titles: db.titles, rentals: db.rentals, rentalHistory: db.rentalHistory, wishlist: db.wishlist, users: db.users, settings: db.settings, tvSelection: db.tvSelection, kioskSelection: db.kioskSelection, bays: db.bays, pendingReturn: db.pendingReturn, pendingCheckout: db.pendingCheckout });
 });
 app.get("/api/rental-history", (req, res) => res.json(db.rentalHistory));
+
+// Clears one person's history specifically — not the same as History's
+// "Clear log" (which wipes the whole hardware-events log, a completely
+// different thing) and not a way to touch anyone else's records. Uses
+// a query parameter rather than a URL path segment specifically so a
+// name with a space or punctuation in it never needs special handling
+// on either side.
+app.delete("/api/rental-history", (req, res) => {
+  const renterName = (req.query.renterName || "").trim();
+  if(!renterName) return res.status(400).json({ error: "renterName is required" });
+  const before = db.rentalHistory.length;
+  db.rentalHistory = db.rentalHistory.filter(r => r.renterName !== renterName);
+  const removed = before - db.rentalHistory.length;
+  saveDb();
+  broadcast("rental-history");
+  res.json({ ok: true, removed });
+});
 
 app.get("/api/wishlist", (req, res) => res.json(db.wishlist));
 
@@ -1176,7 +1355,7 @@ app.patch("/api/titles/:id", (req, res) => {
   Object.assign(t, req.body);
   saveDb();
   broadcast("titles");
-  if("stock" in req.body || "bay" in req.body || "ledIndex" in req.body) updateBayLedForTitle(t);
+  if("stock" in req.body || "bay" in req.body || "ledIndex" in req.body || "condition" in req.body) updateBayLedForTitle(t);
   res.json({ ok: true });
 });
 
@@ -1366,11 +1545,13 @@ app.post("/api/bay-checkout", logHardwareCall("bay-checkout"), (req, res) => {
         const rental = { id: newId("r"), movieId: title.id, title: title.title, genre: title.genre, renterName, rentedOn: now, dueOn: now + RENTAL_DAYS_MS };
         db.rentals.push(rental);
         db.pendingCheckout = null;
+        const bayCleared = unassignBayForTitle(title.id);
+        alertCheckout(title.title, renterName, title.poster);
         saveDb();
         broadcast("titles");
         broadcast("rentals");
         broadcast("pending-checkout");
-        updateBayLedForTitle(title);
+        if(bayCleared) broadcast("bays");
         return res.json({ ok: true, title: title.title, renterName, rental });
       }
     }
@@ -1390,10 +1571,12 @@ app.post("/api/bay-checkout", logHardwareCall("bay-checkout"), (req, res) => {
   const now = Date.now();
   const rental = { id: newId("r"), movieId: title.id, title: title.title, genre: title.genre, renterName, rentedOn: now, dueOn: now + RENTAL_DAYS_MS };
   db.rentals.push(rental);
+  unassignBayForTitle(title.id);
+  alertCheckout(title.title, renterName, title.poster);
   saveDb();
   broadcast("titles");
   broadcast("rentals");
-  updateBayLedForTitle(title);
+  broadcast("bays");
   // Nobody was logged in when this bay pull happened — the disc still
   // checked out fine (better than blocking it), but the app-side prompt
   // for a PIN (with its repeating alert sound) needs this specific
@@ -1480,8 +1663,11 @@ app.post("/api/rentals", (req, res) => {
   }
   const rental = { id: newId("r"), ...req.body };
   db.rentals.push(rental);
+  const bayCleared = movieId ? unassignBayForTitle(movieId) : false;
+  if(title) alertCheckout(title.title, renterName, title.poster);
   saveDb();
   broadcast("rentals");
+  if(bayCleared) broadcast("bays");
   res.json(rental);
 });
 
@@ -1495,6 +1681,7 @@ app.post("/api/rentals/:id/renew", (req, res) => {
   }
   r.dueOn = Date.now() + RENTAL_DAYS_MS;
   r.renewals = renewals + 1;
+  r.overdueAlerted = false; // pushed the due date back out, so it's no longer overdue — clears the way for a fresh alert if it somehow becomes overdue again after this
   saveDb();
   broadcast("rentals");
   res.json({ ok: true, rental: r });
@@ -1720,6 +1907,57 @@ app.post("/api/welcome-lights", (req, res) => {
   res.json({ ok: true });
 });
 
+// Relayed through the server rather than posted directly from the
+// browser — keeps the actual webhook URL out of client-facing code
+// entirely (nobody browsing the kiosk needs to see where this goes),
+// and sidesteps the browser CORS restrictions a direct fetch to an
+// arbitrary external webhook would almost certainly hit anyway.
+app.post("/api/request-support", async (req, res) => {
+  const webhookUrl = ((db.settings && db.settings.supportWebhookUrl) || "").trim();
+  if(!webhookUrl) return res.status(400).json({ error: "No support webhook configured yet — set one in the admin panel first." });
+  const note = (req.body && req.body.note || "").trim().slice(0, 500);
+  const who = (req.body && req.body.who || "").trim();
+  const lines = [`🆘 Support requested from Sandy Server`];
+  if(who) lines.push(`From: ${who}`);
+  if(note) lines.push(`Note: ${note}`);
+  try{
+    await postToWebhook(webhookUrl, buildWebhookPayload("support_request", lines.join("\n"), { person: who, note }));
+    res.json({ ok: true });
+  }catch(e){
+    res.status(500).json({ error: "Couldn't reach the webhook — check the URL in System settings." });
+  }
+});
+
+// One generic endpoint for testing any of the five webhooks, rather
+// than five nearly-identical single-purpose ones — each entry maps a
+// short type name to its settings field, its event name, and a
+// realistic sample payload for that type. The sample fields (movie,
+// person, poster) matter here, not just the message text: someone
+// building a Home Assistant automation against trigger.json.movie or
+// trigger.json.poster needs a real payload shaped like the actual
+// thing to test their own YAML against, not just confirmation that
+// something arrived.
+const WEBHOOK_TYPES = {
+  support: { field: "supportWebhookUrl", event: "support_request", sample: { person: "Test User", note: "This is a test support request." } },
+  checkout: { field: "checkoutWebhookUrl", event: "checkout", sample: { movie: "Sample Movie", person: "Test User", poster: "" } },
+  return: { field: "returnWebhookUrl", event: "return", sample: { movie: "Sample Movie", person: "Test User", poster: "" } },
+  overdue: { field: "overdueWebhookUrl", event: "overdue", sample: { movie: "Sample Movie", person: "Test User", poster: "" } },
+  serverissue: { field: "serverIssueWebhookUrl", event: "server_issue", sample: {} }
+};
+app.post("/api/test-webhook", async (req, res) => {
+  const type = WEBHOOK_TYPES[req.body && req.body.type];
+  if(!type) return res.status(400).json({ error: "Unknown webhook type." });
+  const webhookUrl = ((db.settings && db.settings[type.field]) || "").trim();
+  if(!webhookUrl) return res.status(400).json({ error: "No webhook URL set yet." });
+  const message = `✅ Test message from Sandy Server — your ${type.event.replace('_',' ')} webhook is working.`;
+  try{
+    await postToWebhook(webhookUrl, buildWebhookPayload(type.event, message, type.sample));
+    res.json({ ok: true });
+  }catch(e){
+    res.status(500).json({ error: e.message || "Couldn't reach that webhook." });
+  }
+});
+
 // A genuine live signal, not a derived one — actually asks WLED right
 // now whether it's on and reachable, rather than assuming so. This
 // deliberately does NOT attempt to report back individual bay LED
@@ -1864,3 +2102,18 @@ function flushDbAndExit(){
 }
 process.on("SIGTERM", flushDbAndExit);
 process.on("SIGINT", flushDbAndExit);
+
+// A last-resort catch-all for anything that wasn't handled anywhere
+// else — Node's own guidance is that a process is in an undefined
+// state after this fires and should exit rather than keep running, so
+// this alerts, then flushes whatever's in memory to disk and exits the
+// same clean way a normal shutdown does, letting systemd (or whatever
+// process manager autostart set up) restart it fresh. The alert itself
+// gets a couple of seconds before the exit actually happens, since
+// process.exit() can otherwise cut off an in-flight network request
+// before it's actually sent.
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught exception:", err);
+  alertServerIssue(`Uncaught exception: ${err.message}. Restarting.`);
+  setTimeout(flushDbAndExit, 2000);
+});

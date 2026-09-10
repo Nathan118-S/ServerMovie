@@ -170,6 +170,15 @@
      transition into the catalog grid below it. */
   .hero{position:relative;width:100vw;left:50%;right:50%;margin-left:-50vw;margin-right:-50vw;min-height:82vh;display:flex;align-items:flex-end;overflow:hidden;margin-bottom:8px;transition:opacity 0.1s linear;}
   @keyframes heroKenBurns{0%{transform:scale(1);}100%{transform:scale(1.08);}}
+  /* A fixed dasharray/dashoffset larger than any realistic chart path
+     length, animating the offset down to 0 — the standard CSS trick for
+     a line "drawing itself in" without needing JS to measure the
+     path's actual length first, which varies with the data every time
+     the dashboard's chart re-renders. */
+  @keyframes chartDrawIn{from{stroke-dashoffset:1400;}to{stroke-dashoffset:0;}}
+  .chart-flow-line{stroke-dasharray:1400;stroke-dashoffset:1400;animation:chartDrawIn 1.3s ease-out forwards;}
+  @keyframes chartFadeIn{from{opacity:0;}to{opacity:1;}}
+  .chart-area-fade{opacity:0;animation:chartFadeIn 1s ease-out 0.3s forwards;}
   .hero-backdrop-img,.hero-backdrop-placeholder{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;animation:heroKenBurns 20s ease-in-out infinite alternate;}
   .hero-scrim{position:absolute;inset:0;z-index:1;pointer-events:none;
     background:
@@ -341,6 +350,17 @@
      doesn't clip or scroll, it just centers around whatever natural
      size the content wants to be. */
   .pending-return-overlay{position:fixed;inset:0;background:var(--bg);z-index:70;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;animation:fadeIn 0.25s ease;overflow-y:auto;}
+  /* Same full-screen-takeover idea as .pending-return-overlay above, but
+     laid out top-to-bottom for a whole page of content (several
+     sections) rather than one centered prompt — a sticky header with
+     the exit button, then a normal scrolling body underneath using the
+     same .bulk-box convention the rest of the Admin Console already
+     uses, so it doesn't read as a visually different app bolted on. A
+     higher z-index than the overlays above since this can be entered
+     from within the Admin Console itself and needs to sit above it. */
+  .service-mode-overlay{position:fixed;inset:0;background:var(--bg);z-index:90;display:none;flex-direction:column;animation:fadeIn 0.25s ease;}
+  .service-mode-header{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);padding:18px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;z-index:1;}
+  .service-mode-body{flex:1;overflow-y:auto;padding:20px 24px 40px;max-width:720px;width:100%;margin:0 auto;}
   #initialLoadOverlay{position:fixed;inset:0;background:var(--bg);z-index:90;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity 0.3s ease;}
   #initialLoadOverlay .spinner{width:48px;height:48px;border-radius:50%;border:4px solid var(--surf3);border-top-color:var(--red);animation:spin 0.9s linear infinite;}
   #initialLoadOverlay .t{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:14px;color:var(--muted);}
@@ -427,6 +447,7 @@
     <svg class="icon-sun" viewBox="0 0 24 24" fill="none" width="18" height="18"><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="2"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="2.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="21.5"/><line x1="2.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="21.5" y2="12"/><line x1="5.1" y1="5.1" x2="6.9" y2="6.9"/><line x1="17.1" y1="17.1" x2="18.9" y2="18.9"/><line x1="5.1" y1="18.9" x2="6.9" y2="17.1"/><line x1="17.1" y1="6.9" x2="18.9" y2="5.1"/></g></svg>
     <svg class="icon-moon" viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
   </button>
+  <button class="secondary" id="requestSupportBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;margin-left:auto;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2 1.8-2 3.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.3" r="0.9" fill="currentColor"/></svg> Request Support</button>
 </div>
 
 <div class="nav">
@@ -492,6 +513,38 @@
 <div id="returnCompleteOverlay" class="pending-return-overlay"></div>
 <div id="unattributedCheckoutOverlay" class="pending-return-overlay"></div>
 <div id="doorLoginPromptOverlay" class="pending-return-overlay"></div>
+<div id="serviceModeOverlay" class="service-mode-overlay">
+  <div class="service-mode-header">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <svg class="btn-icon" viewBox="0 0 24 24" fill="none" width="22" height="22"><path d="M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 1 5.4-5.4l-2.7 2.7-1.5-1.5 2.7-2.7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      <div class="display" style="font-size:17px;">Service mode</div>
+    </div>
+    <button class="primary" id="exitServiceModeBtn">Exit service mode</button>
+  </div>
+  <div class="service-mode-body">
+    <div class="scan-msg" style="margin-top:0;margin-bottom:20px;">Alerts (the door-open prompt, the "who took this?" chime) reach this device now, bypassing the main kiosk, if one's set — so nothing gets missed while you're actively working the shelf. This turns off automatically the moment you exit.</div>
+
+    <div class="bulk-box" style="margin-top:0;">
+      <div class="display" style="font-size:15px;margin-bottom:6px;">Light testing</div>
+      <div class="scan-msg" style="margin-top:0;">Cycles every configured bay's LED(s) in turn, cyan, in real shelf order.</div>
+      <button class="secondary" id="serviceTestLedsBtn" style="padding:9px 14px;font-size:12px;">Test all bay LEDs</button>
+    </div>
+
+    <div class="bulk-box">
+      <div class="display" style="font-size:15px;margin-bottom:6px;">Bulk assign</div>
+      <div class="scan-msg" style="margin-top:0;">Scan a bay barcode, then a movie barcode, and repeat — click into the field first so a USB scanner's input lands here.</div>
+      <input id="serviceBulkAssignInput" placeholder="Scan a bay barcode to begin…" style="width:100%;font-size:15px;padding:12px 14px;margin-bottom:12px;" autocomplete="off" />
+      <div id="serviceBulkAssignStatus" style="font-size:13px;margin-bottom:14px;"></div>
+      <div id="serviceBulkAssignLog"></div>
+    </div>
+
+    <div class="bulk-box">
+      <div class="display" style="font-size:15px;margin-bottom:6px;">Bay assignments</div>
+      <div class="scan-msg" style="margin-top:0;">The same dropdown-based assignment view as Bays &amp; Lighting → Assignment, for hand-adjusting anything the scanner missed.</div>
+      <div id="serviceBayDashboard" class="bay-grid"></div>
+    </div>
+  </div>
+</div>
 <div id="requestTitleOverlay" class="modal-overlay">
   <div class="modal-card" style="width:380px;">
     <div class="modal-body" id="requestTitleBody" style="padding:26px 22px;"></div>
@@ -500,6 +553,20 @@
 <div id="doubleFeatureOverlay" class="modal-overlay">
   <div class="modal-card" style="width:460px;">
     <div class="modal-body" id="doubleFeatureBody" style="padding:26px 22px;"></div>
+  </div>
+</div>
+<div id="requestSupportOverlay" class="modal-overlay">
+  <div class="modal-card" style="width:380px;">
+    <div class="modal-body" style="padding:26px 22px;">
+      <div class="t" style="font-size:19px;margin-bottom:6px;">Request support</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Sends a message to whoever manages this kiosk. Briefly say what's wrong, if you can.</div>
+      <textarea id="requestSupportNote" placeholder="What's going on? (optional)" rows="3" style="width:100%;font-family:inherit;font-size:14px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surf2);color:var(--white);resize:vertical;margin-bottom:14px;"></textarea>
+      <div id="requestSupportStatus" style="font-size:13px;margin-bottom:12px;min-height:18px;"></div>
+      <div style="display:flex;gap:10px;">
+        <button class="secondary" id="requestSupportCancelBtn" style="flex:1;">Cancel</button>
+        <button class="primary" id="requestSupportSendBtn" style="flex:1;">Send</button>
+      </div>
+    </div>
   </div>
 </div>
 <div id="myActivityOverlay" class="modal-overlay">
@@ -552,11 +619,13 @@
     <button data-tab="bays">Bays &amp; Lighting</button>
     <button data-tab="users">Household</button>
     <button data-tab="system">System</button>
+    <button id="enterServiceModeBtn" style="margin-left:auto;background:var(--surf3);color:var(--white);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 1 5.4-5.4l-2.7 2.7-1.5-1.5 2.7-2.7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Service mode</button>
   </div>
   <div class="content">
   <div class="panel" data-panel="dashboard">
     <div class="panel-inner">
       <div id="dashboardStats" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;"></div>
+      <div id="dashboardCharts" style="margin-bottom:20px;"></div>
       <div id="dashboardAttention" style="margin-bottom:20px;"></div>
       <div id="dashboardHealth" style="margin-bottom:20px;"></div>
       <div id="backupReminder" style="margin-bottom:20px;"></div>
@@ -610,7 +679,38 @@
       </div>
 
       <div class="subpanel active" data-subpanel="inventory">
-        <div class="display" style="font-size:16px;margin-bottom:10px;">Current inventory</div>
+        <div class="bulk-box" style="margin-top:0;">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+            <input id="inventorySearchInput" placeholder="Search by title or code…" style="flex:2;min-width:200px;font-size:14px;" />
+            <select id="inventoryTypeFilter" style="flex:1;min-width:130px;">
+              <option value="">All types</option>
+              <option value="movie">Movies</option>
+              <option value="game">Games</option>
+              <option value="digital">Digital Copies</option>
+            </select>
+            <select id="inventoryLocationFilter" style="flex:1;min-width:150px;">
+              <option value="">Any location</option>
+              <option value="bay">Has a bay</option>
+              <option value="bulk">Bulk storage</option>
+            </select>
+            <select id="inventoryConditionFilter" style="flex:1;min-width:150px;">
+              <option value="">Any condition</option>
+              <option value="good">Good condition</option>
+              <option value="damaged">Damaged</option>
+              <option value="missing">Missing</option>
+              <option value="unavailable">Unavailable</option>
+            </select>
+            <select id="inventorySortSelect" style="flex:1;min-width:150px;">
+              <option value="title-asc">Title, A–Z</option>
+              <option value="title-desc">Title, Z–A</option>
+              <option value="year-desc">Year, newest first</option>
+              <option value="year-asc">Year, oldest first</option>
+              <option value="added-desc">Recently added first</option>
+              <option value="stock-asc">Stock, low to high</option>
+            </select>
+          </div>
+          <div id="inventorySummary" style="font-size:12px;color:var(--muted);margin-bottom:4px;"></div>
+        </div>
         <div id="adminList"></div>
       </div>
 
@@ -792,7 +892,6 @@
         <button class="subnav-btn active" data-baysubtab="setup"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Setup</button>
         <button class="subnav-btn" data-baysubtab="assignment"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 21h4M8 12a4 4 0 1 1 8 0c0 2-1.5 3-2 4.5H10c-.5-1.5-2-2.5-2-4.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Assignment</button>
         <button class="subnav-btn" data-baysubtab="diagnostics"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Diagnostics</button>
-        <button class="subnav-btn" data-baysubtab="service"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 1 5.4-5.4l-2.7 2.7-1.5-1.5 2.7-2.7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Service</button>
       </div>
 
       <div class="subpanel active" data-subpanel="setup">
@@ -901,34 +1000,6 @@
           <div id="hwLogList" style="max-height:360px;overflow-y:auto;"></div>
         </div>
       </div>
-
-      <div class="subpanel" data-subpanel="service">
-        <div class="bulk-box" style="margin-top:0;">
-          <div class="display" style="font-size:15px;margin-bottom:6px;">Service mode</div>
-          <div class="scan-msg" style="margin-top:0;">While you're actively working the shelf — testing lights, scanning bays — turn this on so alerts (the door-open prompt, the "who took this?" chime) reach whatever device you're standing at instead of only the main kiosk, if one's set. Turn it back off when you're done.</div>
-          <button class="secondary" id="serviceModeToggleBtn" style="padding:9px 16px;font-size:13px;"></button>
-        </div>
-
-        <div class="bulk-box">
-          <div class="display" style="font-size:15px;margin-bottom:6px;">Light testing</div>
-          <div class="scan-msg" style="margin-top:0;">Cycles every configured bay's LED(s) in turn, cyan, in real shelf order — the same test as Diagnostics, right here so there's no tab-hopping mid-service.</div>
-          <button class="secondary" id="serviceTestLedsBtn" style="padding:9px 14px;font-size:12px;">Test all bay LEDs</button>
-        </div>
-
-        <div class="bulk-box">
-          <div class="display" style="font-size:15px;margin-bottom:6px;">Bulk assign</div>
-          <div class="scan-msg" style="margin-top:0;">Scan a bay barcode, then a movie barcode, and repeat — same as Assignment's copy of this, sharing the same in-progress state, just here too so a whole service pass can happen from one screen.</div>
-          <input id="serviceBulkAssignInput" placeholder="Scan a bay barcode to begin…" style="width:100%;font-size:15px;padding:12px 14px;margin-bottom:12px;" autocomplete="off" />
-          <div id="serviceBulkAssignStatus" style="font-size:13px;margin-bottom:14px;"></div>
-          <div id="serviceBulkAssignLog"></div>
-        </div>
-
-        <div class="bulk-box">
-          <div class="display" style="font-size:15px;margin-bottom:6px;">Bay assignments</div>
-          <div class="scan-msg" style="margin-top:0;">The same dropdown-based assignment view as Assignment above, for hand-adjusting anything the scanner missed.</div>
-          <div id="serviceBayDashboard" class="bay-grid"></div>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -948,6 +1019,66 @@
         </div>
         <div id="connectedClientsList" style="margin-bottom:12px;"></div>
         <div style="font-size:12px;color:var(--muted);">Currently set to: <span id="mainKioskCurrentLabel" style="font-family:monospace;">not set — alerts go to every connected device</span> <button class="secondary" id="clearMainKioskBtn" style="padding:4px 10px;font-size:11px;margin-left:6px;">Clear</button></div>
+      </div>
+
+      <div class="bulk-box">
+        <div class="display" style="font-size:15px;margin-bottom:6px;">Support requests</div>
+        <div class="scan-msg" style="margin-top:0;">The "Request Support" button in the top-right of the main screen sends a message here — a Discord or Slack incoming-webhook URL both work directly. The URL itself is never shown or sent to anyone browsing the kiosk; it only ever lives here and on the server.</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+          <input id="supportWebhookInput" placeholder="https://discord.com/api/webhooks/... or a Slack webhook URL" style="min-width:280px;flex:1;" />
+          <button class="secondary" id="saveSupportWebhookBtn" style="padding:9px 14px;font-size:12px;">Save</button>
+          <button class="secondary" id="testSupportWebhookBtn" style="padding:9px 14px;font-size:12px;">Send test message</button>
+        </div>
+        <div id="supportWebhookStatus" style="font-size:12px;color:var(--muted);"></div>
+      </div>
+
+      <div class="bulk-box">
+        <div class="display" style="font-size:15px;margin-bottom:6px;">Alert webhooks</div>
+        <div class="scan-msg" style="margin-top:0;">Four independent channels — set any, all, or none. Each fires only for its own event, to wherever its own URL points; a Discord or Slack incoming-webhook URL both work directly for any of them.</div>
+
+        <div style="margin-top:14px;">
+          <div style="font-size:13px;color:var(--white);margin-bottom:4px;">Checkouts</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Fires every time anything is checked out — which title, and who.</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
+            <input id="checkoutWebhookInput" placeholder="https://discord.com/api/webhooks/... or a Slack webhook URL" style="min-width:280px;flex:1;" />
+            <button class="secondary" id="saveCheckoutWebhookBtn" style="padding:9px 14px;font-size:12px;">Save</button>
+            <button class="secondary" id="testCheckoutWebhookBtn" style="padding:9px 14px;font-size:12px;">Send test message</button>
+          </div>
+          <div id="checkoutWebhookStatus" style="font-size:12px;color:var(--muted);margin-bottom:14px;"></div>
+        </div>
+
+        <div>
+          <div style="font-size:13px;color:var(--white);margin-bottom:4px;">Returns</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Fires every time anything is returned — which title, and who.</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
+            <input id="returnWebhookInput" placeholder="https://discord.com/api/webhooks/... or a Slack webhook URL" style="min-width:280px;flex:1;" />
+            <button class="secondary" id="saveReturnWebhookBtn" style="padding:9px 14px;font-size:12px;">Save</button>
+            <button class="secondary" id="testReturnWebhookBtn" style="padding:9px 14px;font-size:12px;">Send test message</button>
+          </div>
+          <div id="returnWebhookStatus" style="font-size:12px;color:var(--muted);margin-bottom:14px;"></div>
+        </div>
+
+        <div>
+          <div style="font-size:13px;color:var(--white);margin-bottom:4px;">Overdue rentals</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Checked hourly — fires once per rental the first time it's found overdue, not repeatedly for as long as it stays that way.</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
+            <input id="overdueWebhookInput" placeholder="https://discord.com/api/webhooks/... or a Slack webhook URL" style="min-width:280px;flex:1;" />
+            <button class="secondary" id="saveOverdueWebhookBtn" style="padding:9px 14px;font-size:12px;">Save</button>
+            <button class="secondary" id="testOverdueWebhookBtn" style="padding:9px 14px;font-size:12px;">Send test message</button>
+          </div>
+          <div id="overdueWebhookStatus" style="font-size:12px;color:var(--muted);margin-bottom:14px;"></div>
+        </div>
+
+        <div>
+          <div style="font-size:13px;color:var(--white);margin-bottom:4px;">Server issues</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">For actual problems on the server itself — a failed database save, or a crash it had to recover from — not day-to-day rental activity.</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
+            <input id="serverissueWebhookInput" placeholder="https://discord.com/api/webhooks/... or a Slack webhook URL" style="min-width:280px;flex:1;" />
+            <button class="secondary" id="saveServerissueWebhookBtn" style="padding:9px 14px;font-size:12px;">Save</button>
+            <button class="secondary" id="testServerissueWebhookBtn" style="padding:9px 14px;font-size:12px;">Send test message</button>
+          </div>
+          <div id="serverissueWebhookStatus" style="font-size:12px;color:var(--muted);"></div>
+        </div>
       </div>
 
       <div class="bulk-box">
@@ -1229,6 +1360,11 @@
   let featuredTvId = null;
   let pendingAdminPoster = "";
   let adminListPage = 0;
+  let inventorySearch = "";
+  let inventoryTypeFilter = "";
+  let inventoryLocationFilter = "";
+  let inventoryConditionFilter = "";
+  let inventorySort = "title-asc";
   let pendingScanPoster = "";
   let pendingSeriesTheme = "";
   let renterFilter = "All";
@@ -1248,6 +1384,11 @@
   let overheadLedIndexes = "";
   let mainKioskIp = "";
   let serviceMode = false;
+  let supportWebhookUrl = "";
+  let checkoutWebhookUrl = "";
+  let returnWebhookUrl = "";
+  let overdueWebhookUrl = "";
+  let serverIssueWebhookUrl = "";
   let bays = []; // [{number, ledIndex, titleId}]
   let pendingReturn = null; // {titleId, title, expiresAt} — set until the disc lands back in a bay
   let pendingCheckout = null; // {titleId, title, renterName, expiresAt} — set until the disc leaves its bay
@@ -1281,7 +1422,7 @@
       if(resource==="titles") updateCatalogAndDetectChanges(data);
       else if(resource==="rentals") updateRentalsAndDetectReturns(data);
       else if(resource==="users") users = data;
-      else if(resource==="settings"){ maxCheckouts = data.maxCheckouts || 3; omdbApiKey = data.omdbApiKey || ""; tmdbApiKey = data.tmdbApiKey || ""; igdbClientId = data.igdbClientId || ""; igdbClientSecret = data.igdbClientSecret || ""; wledUrl = data.wledUrl || ""; esp32BaysUrl = data.esp32BaysUrl || ""; bayWindowSeconds = data.bayWindowSeconds || 90; wledOpenEffect = data.wledOpenEffect ?? 9; wledCloseEffect = data.wledCloseEffect ?? 2; wledEffectSeconds = data.wledEffectSeconds || 6; doorCloseDelaySeconds = data.doorCloseDelaySeconds || 60; maxRenewals = data.maxRenewals ?? 2; overheadLedIndexes = data.overheadLedIndexes || ""; mainKioskIp = data.mainKioskIp || ""; serviceMode = !!data.serviceMode; renderServiceModeToggle(); }
+      else if(resource==="settings"){ maxCheckouts = data.maxCheckouts || 3; omdbApiKey = data.omdbApiKey || ""; tmdbApiKey = data.tmdbApiKey || ""; igdbClientId = data.igdbClientId || ""; igdbClientSecret = data.igdbClientSecret || ""; wledUrl = data.wledUrl || ""; esp32BaysUrl = data.esp32BaysUrl || ""; bayWindowSeconds = data.bayWindowSeconds || 90; wledOpenEffect = data.wledOpenEffect ?? 9; wledCloseEffect = data.wledCloseEffect ?? 2; wledEffectSeconds = data.wledEffectSeconds || 6; doorCloseDelaySeconds = data.doorCloseDelaySeconds || 60; maxRenewals = data.maxRenewals ?? 2; overheadLedIndexes = data.overheadLedIndexes || ""; mainKioskIp = data.mainKioskIp || ""; serviceMode = !!data.serviceMode; supportWebhookUrl = data.supportWebhookUrl || ""; checkoutWebhookUrl = data.checkoutWebhookUrl || ""; returnWebhookUrl = data.returnWebhookUrl || ""; overdueWebhookUrl = data.overdueWebhookUrl || ""; serverIssueWebhookUrl = data.serverIssueWebhookUrl || ""; }
       else if(resource==="tv-selection") tvSelection = data && data.movieId ? data : null;
       else if(resource==="kiosk-selection") kioskSelection = data && data.movieId ? data : null;
       else if(resource==="bays") bays = data;
@@ -1395,6 +1536,11 @@
       overheadLedIndexes = (state.settings && state.settings.overheadLedIndexes) || "";
       mainKioskIp = (state.settings && state.settings.mainKioskIp) || "";
       serviceMode = !!(state.settings && state.settings.serviceMode);
+      supportWebhookUrl = (state.settings && state.settings.supportWebhookUrl) || "";
+      checkoutWebhookUrl = (state.settings && state.settings.checkoutWebhookUrl) || "";
+      returnWebhookUrl = (state.settings && state.settings.returnWebhookUrl) || "";
+      overdueWebhookUrl = (state.settings && state.settings.overdueWebhookUrl) || "";
+      serverIssueWebhookUrl = (state.settings && state.settings.serverIssueWebhookUrl) || "";
       tvSelection = state.tvSelection && state.tvSelection.movieId ? state.tvSelection : null;
       kioskSelection = state.kioskSelection && state.kioskSelection.movieId ? state.kioskSelection : null;
       bays = state.bays || [];
@@ -1453,6 +1599,7 @@
     // once on the way in instead.
     if(adminMode){
       renderDashboard();
+      renderDashboardCharts();
       renderActivityFeed();
       renderRentals();
       renderActivityPanel();
@@ -1499,6 +1646,16 @@
     if(dcInput && document.activeElement !== dcInput) dcInput.value = doorCloseDelaySeconds;
     const ohInput = $("#overheadLedIndexesInput");
     if(ohInput && document.activeElement !== ohInput) ohInput.value = overheadLedIndexes;
+    const swInput = $("#supportWebhookInput");
+    if(swInput && document.activeElement !== swInput) swInput.value = supportWebhookUrl;
+    const cwInput = $("#checkoutWebhookInput");
+    if(cwInput && document.activeElement !== cwInput) cwInput.value = checkoutWebhookUrl;
+    const rwInput = $("#returnWebhookInput");
+    if(rwInput && document.activeElement !== rwInput) rwInput.value = returnWebhookUrl;
+    const owInput = $("#overdueWebhookInput");
+    if(owInput && document.activeElement !== owInput) owInput.value = overdueWebhookUrl;
+    const siwInput = $("#serverissueWebhookInput");
+    if(siwInput && document.activeElement !== siwInput) siwInput.value = serverIssueWebhookUrl;
   }
 
   let adminMode = false;
@@ -1541,6 +1698,16 @@
     renderWledLiveStatus();
     testWledConnection();
     setTab("dashboard");
+    // A safety net, not the normal path in — if service mode was
+    // somehow left on server-side (a browser crash or closed tab
+    // before someone got to click Exit, say), show the overlay
+    // automatically rather than leaving the main-kiosk alert bypass
+    // silently active with nothing on screen to indicate it.
+    if(serviceMode){
+      $("#serviceModeOverlay").style.display = "flex";
+      renderBayDashboard("#serviceBayDashboard");
+      renderBulkAssignStatus();
+    }
   }
 
   function exitAdminConsole(){
@@ -1665,7 +1832,12 @@
     const isGame = m.mediaType === 'game';
     const isDigital = m.mediaType === 'digital';
     const color = (isGame ? GAME_GENRE_COLORS[m.genre] : GENRE_COLORS[m.genre]) || "#333";
-    const out = m.stock<=0;
+    // Unavailable is functionally the same as out of stock for every
+    // purpose below (can't be rented, shown the same way) even though
+    // it's a different underlying reason — a title marked unavailable
+    // can still have real stock sitting on the shelf, it's just not
+    // something anyone should be able to check out right now.
+    const out = m.stock<=0 || m.condition==='unavailable';
     // A soft glow in the genre's own color around the resting card —
     // makes genre scannable across a whole grid at a glance without
     // reading every title's genre tag individually. Passed as a CSS
@@ -1695,7 +1867,7 @@
     return `<div class="poster-card" data-openmovie="${m.id}" style="${bg}" ${isTvMode() ? 'tabindex="0"' : ''}>
       ${isDigital
         ? `<span class="poster-dot" style="background:${STREAMING_SERVICES[m.streamingService]?.color || '#555'};" title="${m.streamingService || 'Streaming'}"></span>`
-        : `<span class="poster-dot${out?'':' in-stock'}" style="background:${out?'#737373':'#46D369'};" title="${out?'Out of stock':'In stock'}"></span>`}
+        : `<span class="poster-dot${out?'':' in-stock'}" style="background:${out?'#737373':'#46D369'};" title="${m.condition==='unavailable' ? 'Unavailable' : (out?'Out of stock':'In stock')}"></span>`}
       ${tag ? `<span style="position:absolute;top:8px;left:8px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,0.55);padding:2px 7px;border-radius:6px;">${tag}</span>` : ""}
       ${m.condition==='damaged' ? `<span class="bluray-badge" style="background:linear-gradient(135deg,#E57373,#B71C1C);${tag?'bottom:56px;':''}"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="width:11px;height:11px;vertical-align:-1px;"><path d="M12 4 2 20h20L12 4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><line x1="12" y1="10" x2="12" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg> Damaged</span>` : ""}
       ${isGame && m.platform ? `<span class="bluray-badge" style="background:linear-gradient(135deg,#66BB6A,#2E7D32);">${m.platform}</span>` : ""}
@@ -1858,7 +2030,7 @@
   function heroHtml(m, mode){
     const isDigital = m.mediaType === 'digital';
     const color = (m.mediaType === 'game' ? GAME_GENRE_COLORS[m.genre] : GENRE_COLORS[m.genre]) || "#333";
-    const out = m.stock<=0;
+    const out = m.stock<=0 || m.condition==='unavailable';
     const blurb = m.description
       ? (m.description.length > 200 ? m.description.slice(0, 197) + "…" : m.description)
       : "";
@@ -1882,7 +2054,7 @@
       <div class="hero-content">
         <div class="hero-eyebrow">${m.genre} · ${m.year}</div>
         ${m.logo ? `<img src="${m.logo}" alt="${m.title}" class="title-logo hero-logo" />` : `<div class="hero-title">${m.title}</div>`}
-        <div class="hero-meta"><span class="rating-badge">${m.rating}</span> &nbsp;${isDigital ? `Streaming on ${m.streamingService || 'an unspecified service'}` : (out?'Out of stock':m.stock+' disc'+(m.stock===1?'':'s')+' available')}</div>
+        <div class="hero-meta"><span class="rating-badge">${m.rating}</span> &nbsp;${isDigital ? `Streaming on ${m.streamingService || 'an unspecified service'}` : (m.condition==='unavailable' ? 'Unavailable' : out?'Out of stock':m.stock+' disc'+(m.stock===1?'':'s')+' available')}</div>
         ${blurb ? `<div style="font-size:14px;color:var(--muted);line-height:1.5;margin-bottom:16px;max-width:520px;">${blurb}</div>` : ''}
         <div class="hero-actions">${actions}</div>
       </div>
@@ -1906,11 +2078,40 @@
   // session — re-randomizing on every data refresh would make the hero
   // jump around while someone's just browsing. currentId/setId let Browse
   // and the TV page each remember their own independent pick.
-  function pickFeatured(items, currentId, setId){
-    if(currentId){
-      const existing = items.find(m => m.id === currentId);
-      if(existing) return existing;
+  // Shared carousel engine behind the Featured rotation below — only
+  // ever kicks in with more than one curated title actually eligible;
+  // one or zero just falls through to pickFeatured's own existing
+  // single-pick logic untouched. Keyed by tab so Movies, Games,
+  // Digital, and TV each run their own independent rotation. Rebuilt
+  // (with a fresh shuffle) whenever the actual set of curated titles
+  // changes — including a genuine page refresh, since this whole
+  // object lives only in memory and starts empty every time the page
+  // loads fresh, which is exactly what gives every refresh its own
+  // different order without needing to seed or persist anything.
+  const featuredCarousels = {};
+  function advanceableFeaturedPick(tabKey, curated, setId, onAdvance){
+    if(curated.length <= 1){
+      if(featuredCarousels[tabKey]){ clearInterval(featuredCarousels[tabKey].timer); delete featuredCarousels[tabKey]; }
+      return null;
     }
+    const poolSig = curated.map(m=>m.id).slice().sort().join(",");
+    let state = featuredCarousels[tabKey];
+    if(!state || state.poolSig !== poolSig){
+      if(state) clearInterval(state.timer);
+      const shuffled = curated.slice().sort(() => Math.random() - 0.5);
+      state = featuredCarousels[tabKey] = { order: shuffled.map(m=>m.id), index: 0, poolSig, timer: null };
+      state.timer = setInterval(() => {
+        state.index = (state.index + 1) % state.order.length;
+        setId(state.order[state.index]);
+        onAdvance();
+      }, 9000);
+    }
+    const id = state.order[state.index];
+    setId(id);
+    return curated.find(m => m.id === id);
+  }
+
+  function pickFeatured(items, currentId, setId, tabKey, onAdvance){
     if(items.length === 0) return null;
     // The hero shows backdrop (landscape) art in preference to poster
     // (portrait) art, so featuring a title that only has a poster would
@@ -1921,10 +2122,64 @@
     // own the way this used to.
     const withBackdrop = items.filter(m => m.backdrop);
     const withPoster = items.filter(m => m.poster);
-    const pool = withBackdrop.length > 0 ? withBackdrop : (withPoster.length > 0 ? withPoster : items);
+    let pool = withBackdrop.length > 0 ? withBackdrop : (withPoster.length > 0 ? withPoster : items);
+    // Admin-curated picks win when any exist within this pool — checked
+    // after the backdrop/poster preference above, not instead of it, so
+    // a title someone marked Featured still needs real art to actually
+    // look good as a hero before it gets shown as one.
+    const curated = pool.filter(m => m.featured);
+    if(curated.length > 0) pool = curated;
+
+    // More than one curated title with real art hands off to the
+    // auto-advancing carousel above; everything else (nothing curated,
+    // exactly one curated title, or no tabKey passed at all) keeps the
+    // plain single sticky pick this always had.
+    if(tabKey && curated.length > 1){
+      const carouselPick = advanceableFeaturedPick(tabKey, curated, setId, onAdvance);
+      if(carouselPick) return carouselPick;
+    }
+
+    if(currentId){
+      const existing = pool.find(m => m.id === currentId);
+      if(existing) return existing;
+    }
     const pick = pool[Math.floor(Math.random() * pool.length)];
     setId(pick.id);
     return pick;
+  }
+
+  // Called on each carousel tick — updates only the hero element itself
+  // (re-rendered, buttons re-wired) rather than going through the full
+  // renderBrowse()/renderBrowseGames()/etc. pipeline, which would also
+  // rebuild the whole grid underneath it on every single advance: the
+  // poster stagger-in and scroll-reveal animations replaying every 9
+  // seconds, and the scroll position potentially disrupted, for a
+  // change that only actually needed to touch the hero.
+  function updateHeroOnly(tabKey){
+    const configs = {
+      browse: { heroSel: "#browseHero", getItems: () => catalog.filter(m => m.mediaType !== 'game' && m.mediaType !== 'digital'), getId: () => featuredBrowseId, mode: "browse", ambientPanel: "browse", wireAction: true },
+      browsegames: { heroSel: "#gamesHero", getItems: () => catalog.filter(m => m.mediaType === 'game'), getId: () => featuredGamesId, mode: "browse", ambientPanel: "browsegames", wireAction: true },
+      browsedigital: { heroSel: "#digitalHero", getItems: () => catalog.filter(m => m.mediaType === 'digital'), getId: () => featuredDigitalId, mode: "browse", ambientPanel: "browsedigital", wireAction: false },
+      tv: { heroSel: "#tvHero", getItems: () => catalog.filter(m => m.mediaType !== 'game' && m.mediaType !== 'digital'), getId: () => featuredTvId, mode: "tv", ambientPanel: null, wireAction: "tv" }
+    };
+    const cfg = configs[tabKey];
+    if(!cfg) return;
+    const heroEl = $(cfg.heroSel);
+    if(!heroEl) return;
+    const featured = cfg.getItems().find(m => m.id === cfg.getId());
+    if(!featured) return;
+    if(cfg.ambientPanel) updateAmbientBg(featured, cfg.ambientPanel);
+    heroEl.innerHTML = heroHtml(featured, cfg.mode);
+    updateHeroScrollFade();
+    const infoBtn = heroEl.querySelector("[data-hero-info]");
+    if(infoBtn) infoBtn.onclick = () => openMovieModal(featured.id);
+    if(cfg.wireAction === true){
+      const actionBtn = heroEl.querySelector("[data-hero-action]");
+      if(actionBtn && !actionBtn.disabled) actionBtn.onclick = () => openMovieModal(featured.id);
+    } else if(cfg.wireAction === "tv"){
+      const actionBtn = heroEl.querySelector("[data-hero-action]");
+      if(actionBtn) actionBtn.onclick = () => openTvSendBox(featured.id);
+    }
   }
 
   // A soft blurred wash of the currently-featured item, sitting behind
@@ -1965,7 +2220,7 @@
     // for one is just having an actual link to watch it.
     const pool = isDigitalTab
       ? catalog.filter(m => m.mediaType === "digital" && m.streamingUrl)
-      : catalog.filter(m => (isGamesTab ? m.mediaType === "game" : (m.mediaType !== "game" && m.mediaType !== "digital")) && m.stock > 0);
+      : catalog.filter(m => (isGamesTab ? m.mediaType === "game" : (m.mediaType !== "game" && m.mediaType !== "digital")) && m.stock > 0 && m.condition !== "unavailable");
     if(pool.length === 0){
       toast(`No ${isDigitalTab ? 'digital copies with a streaming link' : ('in-stock ' + (isGamesTab ? 'games' : 'movies'))} to surprise you with right now.`);
       return;
@@ -2021,7 +2276,7 @@
       return;
     }
     const isGamesTab = tabName === "browsegames";
-    const pool = catalog.filter(m => (isGamesTab ? m.mediaType === "game" : (m.mediaType !== "game" && m.mediaType !== "digital")) && m.stock > 0);
+    const pool = catalog.filter(m => (isGamesTab ? m.mediaType === "game" : (m.mediaType !== "game" && m.mediaType !== "digital")) && m.stock > 0 && m.condition !== "unavailable");
     if(pool.length < 2){
       toast(`Not enough in-stock ${isGamesTab ? 'games' : 'movies'} for a pairing yet — need at least two.`);
       return;
@@ -2113,6 +2368,39 @@
     $("#myActivityBody").innerHTML = "";
   }
 
+
+  function openRequestSupport(){
+    const overlay = $("#requestSupportOverlay");
+    $("#requestSupportNote").value = "";
+    $("#requestSupportStatus").textContent = "";
+    overlay.style.display = "flex";
+    $("#requestSupportNote").focus();
+  }
+
+  function closeRequestSupport(){
+    $("#requestSupportOverlay").style.display = "none";
+  }
+
+  async function sendSupportRequest(){
+    const statusEl = $("#requestSupportStatus");
+    const btn = $("#requestSupportSendBtn");
+    btn.disabled = true;
+    statusEl.textContent = "Sending…";
+    statusEl.style.color = "var(--muted)";
+    try{
+      await api.send("POST", "/api/request-support", {
+        note: $("#requestSupportNote").value,
+        who: loggedInUser ? loggedInUser.name : ""
+      });
+      statusEl.textContent = "Sent — thanks!";
+      statusEl.style.color = "var(--green)";
+      setTimeout(closeRequestSupport, 1200);
+    }catch(e){
+      statusEl.textContent = e.message || "Couldn't send that — try again in a moment.";
+      statusEl.style.color = "#E87C03";
+      btn.disabled = false;
+    }
+  }
 
   function openRequestTitleModal(){
     const overlay = $("#requestTitleOverlay");
@@ -2231,7 +2519,7 @@
       return;
     }
 
-    const featured = pickFeatured(movieItems, featuredBrowseId, id => { featuredBrowseId = id; });
+    const featured = pickFeatured(movieItems, featuredBrowseId, id => { featuredBrowseId = id; }, "browse", () => updateHeroOnly("browse"));
     updateAmbientBg(featured, "browse");
     heroEl.innerHTML = heroHtml(featured, "browse");
     updateHeroScrollFade();
@@ -2286,7 +2574,7 @@
       return;
     }
 
-    const featured = pickFeatured(gameItems, featuredGamesId, id => { featuredGamesId = id; });
+    const featured = pickFeatured(gameItems, featuredGamesId, id => { featuredGamesId = id; }, "browsegames", () => updateHeroOnly("browsegames"));
     updateAmbientBg(featured, "browsegames");
     heroEl.innerHTML = heroHtml(featured, "browse");
     updateHeroScrollFade();
@@ -2329,7 +2617,7 @@
       return;
     }
 
-    const featured = pickFeatured(digitalItems, featuredDigitalId, id => { featuredDigitalId = id; });
+    const featured = pickFeatured(digitalItems, featuredDigitalId, id => { featuredDigitalId = id; }, "browsedigital", () => updateHeroOnly("browsedigital"));
     updateAmbientBg(featured, "browsedigital");
     heroEl.innerHTML = heroHtml(featured, "browse");
     updateHeroScrollFade();
@@ -2351,7 +2639,7 @@
 
     const titleSelect = $("#manualCheckoutTitle");
     if(titleSelect){
-      const inStock = catalog.filter(m => m.stock > 0).sort((a,b) => a.title.localeCompare(b.title));
+      const inStock = catalog.filter(m => m.stock > 0 && m.condition !== 'unavailable').sort((a,b) => a.title.localeCompare(b.title));
       const prevValue = titleSelect.value;
       titleSelect.innerHTML = inStock.length
         ? inStock.map(m => `<option value="${m.id}">${m.title}${seriesTag(m) ? ' ('+seriesTag(m)+')' : ''} — ${m.stock} in stock</option>`).join("")
@@ -2394,7 +2682,7 @@
     const activeCount = rentals.length;
     const overdueCount = rentals.filter(r => r.dueOn < Date.now()).length;
     const totalTitles = catalog.length;
-    const inStockCount = catalog.filter(m => m.stock > 0).length;
+    const inStockCount = catalog.filter(m => m.stock > 0 && m.condition !== 'unavailable').length;
 
     const statBox = (label, value, color) => `<div class="bulk-box" style="margin:0;min-width:140px;flex:1;text-align:center;">
       <div style="font-size:32px;font-weight:700;color:${color||'var(--white)'};font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;">${value}</div>
@@ -2410,7 +2698,6 @@
     // more scanning the whole inventory list by eye to find it.
     const damaged = catalog.filter(m => m.condition === 'damaged');
     const missing = catalog.filter(m => m.condition === 'missing');
-    const noBay = catalog.filter(m => !bays.some(b => b.titleId === m.id));
     const attentionRow = (label, items, note) => items.length===0 ? "" : `<div class="row" style="align-items:flex-start;">
         <div>
           <div style="font-size:14px;">${label} <span style="color:var(--muted);font-weight:400;">(${items.length})</span></div>
@@ -2418,8 +2705,7 @@
           ${note ? `<div style="font-size:11px;color:var(--muted2);margin-top:4px;">${note}</div>` : ""}
         </div>
       </div>`;
-    const rows = attentionRow(`<svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;"><path d="M12 4 2 20h20L12 4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><line x1="12" y1="10" x2="12" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg> Damaged`, damaged) + attentionRow(`<svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Missing`, missing) +
-      attentionRow("No bay assigned", noBay, "Fixable from Bays &amp; Lighting, or automatically the next time a return happens.");
+    const rows = attentionRow(`<svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;"><path d="M12 4 2 20h20L12 4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><line x1="12" y1="10" x2="12" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg> Damaged`, damaged) + attentionRow(`<svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Missing`, missing);
     attentionEl.innerHTML = rows
       ? `<div class="bulk-box" style="margin-top:0;"><div class="display" style="font-size:15px;margin-bottom:10px;">Needs attention</div><div class="list-group">${rows}</div></div>`
       : `<div class="bulk-box" style="margin-top:0;"><div style="font-size:14px;color:var(--muted);">Nothing needs attention right now.</div></div>`;
@@ -2523,22 +2809,55 @@
     renderConnectedClients();
   }
 
-  function renderServiceModeToggle(){
-    const btn = $("#serviceModeToggleBtn");
-    if(!btn) return;
-    btn.textContent = serviceMode ? "Turn service mode off" : "Turn service mode on";
-    btn.style.background = serviceMode ? "var(--red)" : "";
-    btn.style.color = serviceMode ? "#fff" : "";
-    btn.style.borderColor = serviceMode ? "var(--red)" : "";
+  // One generic pair for all five webhooks (support plus the four
+  // alert channels below) rather than duplicating this same save/test
+  // pattern five times — each call site just supplies its own settings
+  // field, input/status element ids, and webhook type key.
+  async function saveWebhookUrl(settingsField, inputId, statusId, onSaved){
+    const url = $("#"+inputId).value.trim();
+    const statusEl = $("#"+statusId);
+    try{ await api.send("PUT", "/api/settings", { [settingsField]: url }); onSaved(url); }
+    catch(e){ statusEl.textContent = "Couldn't save that"; statusEl.style.color = "#E87C03"; return; }
+    statusEl.textContent = url ? "Saved." : "Cleared — this won't send anywhere until a URL is set again.";
+    statusEl.style.color = url ? "var(--green)" : "var(--muted)";
   }
 
-  async function toggleServiceMode(){
-    const next = !serviceMode;
-    try{ await api.send("PUT", "/api/settings", { serviceMode: next }); }
-    catch(e){ toast("Couldn't save this"); return; }
-    serviceMode = next;
-    renderServiceModeToggle();
-    toast(serviceMode ? "Service mode on — alerts now reach this device too" : "Service mode off");
+  async function testWebhookUrl(type, statusId){
+    const statusEl = $("#"+statusId);
+    statusEl.textContent = "Sending a test message…";
+    statusEl.style.color = "var(--muted)";
+    try{
+      await api.send("POST", "/api/test-webhook", { type });
+      statusEl.textContent = "Test message sent — check the destination.";
+      statusEl.style.color = "var(--green)";
+    }catch(e){
+      statusEl.textContent = e.message || "Couldn't reach that webhook.";
+      statusEl.style.color = "#E87C03";
+    }
+  }
+
+  // Entering/exiting is the toggle itself — no separate on/off switch
+  // to remember to flip back. Opening turns server-side service mode on
+  // (bypassing the main-kiosk alert filter) and shows the full-screen
+  // takeover; exiting turns it back off and returns to the normal
+  // Admin Console view underneath, which was never actually hidden,
+  // just sitting behind this overlay the whole time.
+  async function openServiceMode(){
+    try{ await api.send("PUT", "/api/settings", { serviceMode: true }); }
+    catch(e){ toast("Couldn't turn on service mode"); return; }
+    serviceMode = true;
+    $("#serviceModeOverlay").style.display = "flex";
+    renderBayDashboard("#serviceBayDashboard");
+    renderBulkAssignStatus();
+    const input = $("#serviceBulkAssignInput");
+    if(input) input.focus();
+  }
+
+  async function closeServiceMode(){
+    try{ await api.send("PUT", "/api/settings", { serviceMode: false }); }
+    catch(e){ toast("Couldn't turn off service mode"); return; }
+    serviceMode = false;
+    $("#serviceModeOverlay").style.display = "none";
   }
 
 
@@ -2581,7 +2900,124 @@
     return new Date(ts).toLocaleDateString();
   }
 
-  // A quick pulse-check distinct from the full Rentals tab — the last
+  // Converts a flat array of {x,y} points into a smooth SVG path using
+  // Catmull-Rom-to-Bezier interpolation — a standard technique for
+  // curves that flow through every data point rather than the sharp
+  // corners a plain polyline would have at each one.
+  function smoothLinePath(points){
+    if(points.length === 0) return "";
+    if(points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+    let path = `M ${points[0].x} ${points[0].y}`;
+    for(let i = 0; i < points.length - 1; i++){
+      const p0 = points[i === 0 ? 0 : i - 1];
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      const p3 = points[i + 2 < points.length ? i + 2 : i + 1];
+      const cp1x = p1.x + (p2.x - p0.x) / 6;
+      const cp1y = p1.y + (p2.y - p0.y) / 6;
+      const cp2x = p2.x - (p3.x - p1.x) / 6;
+      const cp2y = p2.y - (p3.y - p1.y) / 6;
+      path += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x} ${p2.y}`;
+    }
+    return path;
+  }
+
+  let lastChartsSig = "";
+
+  // Two flowing lines — checkouts and returns per day over the last two
+  // weeks — sharing one chart so the relationship between them (more
+  // going out than coming back, or the reverse) is visible at a glance,
+  // which two separate charts wouldn't show nearly as clearly.
+  function renderDashboardCharts(){
+    const el = $("#dashboardCharts");
+    if(!el) return;
+    const DAYS = 14;
+    const dayMs = 86400000;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const startOfDay = (ts) => { const d = new Date(ts); d.setHours(0,0,0,0); return d.getTime(); };
+
+    const checkoutCounts = new Array(DAYS).fill(0);
+    const returnCounts = new Array(DAYS).fill(0);
+    const rangeStart = today.getTime() - (DAYS-1)*dayMs;
+
+    [...rentals, ...rentalHistory].forEach(r => {
+      if(!r.rentedOn) return;
+      const idx = Math.round((startOfDay(r.rentedOn) - rangeStart) / dayMs);
+      if(idx >= 0 && idx < DAYS) checkoutCounts[idx]++;
+    });
+    rentalHistory.forEach(r => {
+      if(!r.returnedOn) return;
+      const idx = Math.round((startOfDay(r.returnedOn) - rangeStart) / dayMs);
+      if(idx >= 0 && idx < DAYS) returnCounts[idx]++;
+    });
+
+    // Skipped, not just for performance — rebuilding on every global
+    // render() pass (which fires on nearly any activity anywhere in the
+    // app, via the live-update connection) would restart the chart's
+    // draw-in animation every single time too, which would read as
+    // distracting flicker rather than the one-time reveal it's meant to
+    // be, for anyone actually sitting and looking at this chart.
+    const sig = checkoutCounts.join(",") + "|" + returnCounts.join(",");
+    if(sig === lastChartsSig) return;
+    lastChartsSig = sig;
+
+    if(checkoutCounts.every(c=>c===0) && returnCounts.every(c=>c===0)){
+      el.innerHTML = "";
+      return;
+    }
+
+    const W = 700, H = 190, padL = 8, padR = 8, padT = 14, padB = 24;
+    const maxVal = Math.max(1, ...checkoutCounts, ...returnCounts);
+    const xStep = (W - padL - padR) / (DAYS - 1);
+    const yFor = (v) => H - padB - (v / maxVal) * (H - padT - padB);
+    const xFor = (i) => padL + i * xStep;
+
+    const checkoutPts = checkoutCounts.map((v,i) => ({x: xFor(i), y: yFor(v)}));
+    const returnPts = returnCounts.map((v,i) => ({x: xFor(i), y: yFor(v)}));
+    const checkoutLine = smoothLinePath(checkoutPts);
+    const returnLine = smoothLinePath(returnPts);
+    const checkoutArea = `${checkoutLine} L ${xFor(DAYS-1)} ${H-padB} L ${xFor(0)} ${H-padB} Z`;
+    const returnArea = `${returnLine} L ${xFor(DAYS-1)} ${H-padB} L ${xFor(0)} ${H-padB} Z`;
+
+    // One label every few days rather than all 14, which would crowd
+    // together and become unreadable at this width.
+    const labelEvery = 2;
+    const dayLabels = checkoutCounts.map((_, i) => {
+      if(i % labelEvery !== 0 && i !== DAYS-1) return "";
+      const d = new Date(rangeStart + i*dayMs);
+      return d.toLocaleDateString(undefined, { weekday: 'short' });
+    });
+
+    el.innerHTML = `<div class="bulk-box" style="margin-top:0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <div class="display" style="font-size:15px;">Activity, last 14 days</div>
+        <div style="display:flex;gap:14px;font-size:11px;color:var(--muted);">
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--red);margin-right:4px;"></span>Checked out</span>
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:4px;"></span>Returned</span>
+        </div>
+      </div>
+      <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;">
+        <defs>
+          <linearGradient id="chartGradRed" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--red)" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="var(--red)" stop-opacity="0"/>
+          </linearGradient>
+          <linearGradient id="chartGradGreen" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--green)" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="var(--green)" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path d="${checkoutArea}" fill="url(#chartGradRed)" class="chart-area-fade"/>
+        <path d="${returnArea}" fill="url(#chartGradGreen)" class="chart-area-fade"/>
+        <path d="${checkoutLine}" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-linecap="round" class="chart-flow-line"/>
+        <path d="${returnLine}" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" class="chart-flow-line" style="animation-delay:0.15s;"/>
+        ${checkoutPts.map(p => `<circle cx="${p.x}" cy="${p.y}" r="3" fill="var(--red)"/>`).join("")}
+        ${returnPts.map(p => `<circle cx="${p.x}" cy="${p.y}" r="3" fill="var(--green)"/>`).join("")}
+        ${dayLabels.map((label,i) => label ? `<text x="${xFor(i)}" y="${H-6}" font-size="10" fill="var(--muted)" text-anchor="middle">${label}</text>` : "").join("")}
+      </svg>
+    </div>`;
+  }
+
   // handful of checkouts and returns, newest first, entirely derived
   // from data already loaded (rentals + rentalHistory) rather than a
   // separate log the server has to maintain. Naturally stays live
@@ -2707,12 +3143,55 @@
 
   function renderAdminList(){
     const el = $("#adminList");
+    // Search, filter, and sort all apply here, before pagination —
+    // paginating the raw catalog first (the old behavior) would have
+    // meant filters only ever searched whatever happened to already be
+    // on the current page instead of the whole collection.
+    const q = inventorySearch.trim().toLowerCase();
+    let filtered = catalog.filter(m => {
+      if(q && !(m.title.toLowerCase().includes(q) || (m.code||"").toLowerCase().includes(q))) return false;
+      if(inventoryTypeFilter){
+        const type = m.mediaType === 'game' ? 'game' : m.mediaType === 'digital' ? 'digital' : 'movie';
+        if(type !== inventoryTypeFilter) return false;
+      }
+      if(inventoryLocationFilter){
+        const hasBay = bays.some(b => b.titleId === m.id);
+        if(inventoryLocationFilter === 'bay' && !hasBay) return false;
+        if(inventoryLocationFilter === 'bulk' && hasBay) return false;
+      }
+      if(inventoryConditionFilter){
+        const cond = m.condition || 'good';
+        if(cond !== inventoryConditionFilter) return false;
+      }
+      return true;
+    });
+    const sorters = {
+      'title-asc': (a,b) => a.title.localeCompare(b.title),
+      'title-desc': (a,b) => b.title.localeCompare(a.title),
+      'year-desc': (a,b) => (b.year||0)-(a.year||0),
+      'year-asc': (a,b) => (a.year||0)-(b.year||0),
+      'added-desc': (a,b) => (b.createdAt||0)-(a.createdAt||0),
+      'stock-asc': (a,b) => (a.stock||0)-(b.stock||0)
+    };
+    filtered = filtered.slice().sort(sorters[inventorySort] || sorters['title-asc']);
+
+    const summaryEl = $("#inventorySummary");
+    if(summaryEl){
+      summaryEl.textContent = filtered.length === catalog.length
+        ? `${catalog.length} title${catalog.length===1?'':'s'} total`
+        : `${filtered.length} of ${catalog.length} title${catalog.length===1?'':'s'} match the current search/filters`;
+    }
+
     const perPage = 10;
-    const totalPages = Math.max(1, Math.ceil(catalog.length / perPage));
+    const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
     adminListPage = Math.min(adminListPage, totalPages - 1);
-    const pageItems = catalog.slice(adminListPage * perPage, adminListPage * perPage + perPage);
+    const pageItems = filtered.slice(adminListPage * perPage, adminListPage * perPage + perPage);
+    if(filtered.length === 0){
+      el.innerHTML = `<div style="color:var(--muted);font-size:14px;padding:16px 0;">Nothing matches the current search/filters.</div>`;
+      return;
+    }
     const pagerHtml = `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;">
-      <span style="font-size:12px;color:var(--muted);">${catalog.length} title${catalog.length===1?'':'s'} — page ${adminListPage+1} of ${totalPages}</span>
+      <span style="font-size:12px;color:var(--muted);">${filtered.length} title${filtered.length===1?'':'s'} — page ${adminListPage+1} of ${totalPages}</span>
       <div style="display:flex;gap:6px;">
         <button class="secondary" id="adminListPrevBtn" style="padding:6px 12px;font-size:12px;" ${adminListPage<=0?'disabled':''}>‹ Prev</button>
         <button class="secondary" id="adminListNextBtn" style="padding:6px 12px;font-size:12px;" ${adminListPage>=totalPages-1?'disabled':''}>Next ›</button>
@@ -2725,7 +3204,7 @@
       <img class="poster-thumb" src="${m.poster || ''}" style="${m.poster?'':'visibility:hidden;'}" />
       <div style="flex:1;">
         <span style="font-size:14px;">${isGame ? '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;"><rect x="2" y="8" width="20" height="10" rx="4" stroke="currentColor" stroke-width="2"/><line x1="7" y1="11" x2="7" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="5" y1="13" x2="9" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="12" r="1" fill="currentColor"/><circle cx="18" cy="15" r="1" fill="currentColor"/></svg> ' : isDigital ? '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg> ' : ''}${m.title}</span>
-        <span style="font-size:12px;color:var(--muted);margin-left:8px;">${m.genre} · ${m.year} · code: ${m.code}${seriesTag(m) ? ' · '+seriesTag(m) : ''}${(!isDigital && !bays.some(b=>b.titleId===m.id)) ? ' · <span style="color:#E8B800;">no bay assigned</span>' : ''}</span>
+        <span style="font-size:12px;color:var(--muted);margin-left:8px;">${m.genre} · ${m.year} · code: ${m.code}${seriesTag(m) ? ' · '+seriesTag(m) : ''}${(!isDigital && !bays.some(b=>b.titleId===m.id)) ? ' · <svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="width:11px;height:11px;vertical-align:-1px;"><path d="M3 8l9-5 9 5-9 5-9-5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M3 8v8l9 5 9-5V8M12 13v8" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Bulk storage' : ''}</span>
         <div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
           ${isGame ? `<select class="platformInput" data-platform="${m.id}" style="font-size:11px;padding:4px 8px;width:auto;">
             ${GAME_PLATFORMS.map(p => `<option value="${p}" ${m.platform===p?'selected':''}>${p}</option>`).join("")}
@@ -2740,7 +3219,11 @@
             <option value="" ${!m.condition?'selected':''}>Good condition</option>
             <option value="damaged" ${m.condition==='damaged'?'selected':''}>Damaged</option>
             <option value="missing" ${m.condition==='missing'?'selected':''}>Missing</option>
+            <option value="unavailable" ${m.condition==='unavailable'?'selected':''}>Unavailable</option>
           </select>
+          <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;" title="Show up in the featured hero rotation at the top of Browse. With nothing marked, the hero picks randomly from everything with art — same as it always has.">
+            <input type="checkbox" class="featuredInput" data-featured="${m.id}" style="width:auto;" ${m.featured?'checked':''} /> Featured
+          </label>
           ${!isGame ? `<input class="imdbInput" data-imdb="${m.id}" placeholder="tt1234567" value="${m.imdbId||''}" style="font-size:11px;padding:4px 8px;width:110px;" />
           ${imdbLinkHtml(m)}` : ''}
           <label class="file-label"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12.5" r="3.5" stroke="currentColor" stroke-width="2"/></svg> ${m.poster?'Replace photo':'Add photo'}
@@ -2797,6 +3280,9 @@
     });
     el.querySelectorAll(".conditionInput").forEach(sel => {
       sel.onchange = () => setCondition(sel.dataset.condition, sel.value);
+    });
+    el.querySelectorAll(".featuredInput").forEach(cb => {
+      cb.onchange = () => setFeatured(cb.dataset.featured, cb.checked);
     });
     el.querySelectorAll(".posterInput").forEach(inp => {
       inp.onchange = async () => {
@@ -2936,6 +3422,7 @@
     el.innerHTML = `<div class="list-group">` + users.map(u => {
       const active = rentals.filter(r => r.renterName===u.name);
       const activeText = active.length===0 ? "Nothing checked out" : `Has: ${active.map(r=>r.title).join(", ")}`;
+      const historyCount = rentalHistory.filter(r => r.renterName===u.name).length;
       const restricted = new Set(u.restrictedRatings || []);
       const restrictOptions = ["PG-13","R","T","M","AO"];
       return `<div class="row" style="align-items:flex-start;">
@@ -2948,6 +3435,7 @@
             <input type="checkbox" class="userAdminInput" data-user="${u.id}" style="width:auto;" ${u.isAdmin?'checked':''} /> Admin
           </label>
           <button class="secondary" data-saveuser="${u.id}" style="padding:8px 12px;font-size:12px;">Save</button>
+          <button class="secondary" data-clearhistory="${u.id}" style="padding:8px 12px;font-size:12px;" ${historyCount===0?'disabled':''} title="${historyCount===0 ? 'No history to clear' : `Permanently remove ${historyCount} past rental${historyCount===1?'':'s'} for ${u.name}`}">Clear history${historyCount>0?` (${historyCount})`:''}</button>
           <div style="width:100%;display:flex;gap:10px;flex-wrap:wrap;margin-top:2px;">
             <span style="font-size:11px;color:var(--muted);">Can't check out:</span>
             ${restrictOptions.map(r => `<label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:3px;"><input type="checkbox" class="userRestrictInput" data-user="${u.id}" value="${r}" style="width:auto;" ${restricted.has(r)?'checked':''} /> ${r}</label>`).join("")}
@@ -2958,6 +3446,10 @@
       </div>`;
     }).join("") + `</div>`;
     el.querySelectorAll("[data-removeuser]").forEach(b => b.onclick = () => removeUser(b.dataset.removeuser));
+    el.querySelectorAll("[data-clearhistory]").forEach(b => b.onclick = () => {
+      const u = users.find(x => x.id === b.dataset.clearhistory);
+      if(u) clearUserHistory(u.name);
+    });
     el.querySelectorAll("[data-saveuser]").forEach(b => b.onclick = () => {
       const id = b.dataset.saveuser;
       const name = el.querySelector(`.userNameInput[data-user="${id}"]`).value;
@@ -2968,6 +3460,21 @@
       const avatar = el.querySelector(`.userEmojiInput[data-user="${id}"]`).value;
       updateUser(id, name, pin, isAdmin, restrictedRatings, color, avatar);
     });
+  }
+
+  // Permanent and specific to one person — removed from rentalHistory
+  // only by exact renterName match, nothing else touched. A name
+  // change afterward would naturally orphan older entries from being
+  // found this same way again, same as it already affects any other
+  // per-name lookup elsewhere in the app; not something this needs to
+  // solve on its own.
+  async function clearUserHistory(name){
+    if(!confirm(`Permanently clear all rental history for ${name}? This can't be undone.`)) return;
+    try{
+      const result = await api.send("DELETE", `/api/rental-history?renterName=${encodeURIComponent(name)}`);
+      await refetch("rental-history");
+      toast(`Cleared ${result.removed} record${result.removed===1?'':'s'} for ${name}`);
+    }catch(e){ toast(e.message || "Couldn't clear that history"); }
   }
 
   // ---------- movie modal (opened from Browse) ----------
@@ -3022,7 +3529,7 @@
     if(!m){ closeModal(); return; }
     const isDigital = m.mediaType === 'digital';
     const color = (m.mediaType === 'game' ? GAME_GENRE_COLORS[m.genre] : GENRE_COLORS[m.genre]) || "#333";
-    const out = m.stock<=0;
+    const out = m.stock<=0 || m.condition==='unavailable';
     const headerBg = m.backdrop
       ? `background-image:url('${m.backdrop}');`
       : (m.poster ? `background-image:url('${m.poster}');` : `background-image:linear-gradient(160deg, ${color}, #141414 85%);`);
@@ -3034,7 +3541,7 @@
         ? `<a class="primary" href="${m.streamingUrl}" target="_blank" rel="noopener" style="display:block;text-align:center;width:100%;text-decoration:none;">▶ Watch on ${m.streamingService || 'streaming'}</a>`
         : `<div style="font-size:13px;color:var(--muted);">No streaming link added yet.</div>`;
     } else if(out){
-      actionHtml = `<div style="font-size:13px;color:#E87C03;">Out of stock</div>`;
+      actionHtml = `<div style="font-size:13px;color:#E87C03;">${m.condition==='unavailable' ? 'Unavailable' : 'Out of stock'}</div>`;
     } else if(loggedInUser){
       const count = rentals.filter(r => r.renterName===loggedInUser.name).length;
       const atLimit = count >= maxCheckouts;
@@ -3058,8 +3565,12 @@
       <div class="modal-body">
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);margin-bottom:14px;">
           <span class="rating-badge">${m.rating}</span>
-          <span>${isDigital ? `Streaming on ${m.streamingService || 'an unspecified service'}` : (out ? 'Out of stock' : m.stock+' disc'+(m.stock===1?'':'s')+' on hand')}</span>
+          <span>${isDigital ? `Streaming on ${m.streamingService || 'an unspecified service'}` : (m.condition==='unavailable' ? 'Unavailable' : out ? 'Out of stock' : m.stock+' disc'+(m.stock===1?'':'s')+' on hand')}</span>
         </div>
+        ${(!isDigital && !out) ? (() => {
+          const bay = bays.find(b => b.titleId === m.id);
+          return `<div style="font-size:12px;color:var(--muted);margin-bottom:14px;margin-top:-8px;">${bay ? `Bay ${bay.number}` : `In bulk storage — ask if you can't find it`}</div>`;
+        })() : ''}
         ${m.description ? `<div style="font-size:13px;color:#D8D4CC;line-height:1.5;margin-bottom:16px;">${m.description}</div>` : ''}
         ${(m.seriesName && m.themeSong) ? `<button class="secondary" id="themeStopBtn" style="font-size:11px;padding:6px 10px;margin-bottom:16px;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M4 9v6h4l5 4V5L8 9H4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Playing theme — tap to stop</button>` : ''}
         <div id="trailerSlot-modal" style="margin-bottom:16px;"></div>
@@ -3109,7 +3620,7 @@
     }
 
     const discRows = discs.map(d => {
-      const dOut = d.stock<=0;
+      const dOut = d.stock<=0 || d.condition==='unavailable';
       const action = dOut
         ? `<span style="font-size:12px;color:#E87C03;">Unavailable</span>`
         : (loggedInUser ? `<button class="teal" data-rentdisc="${d.id}">Rent</button>` : "");
@@ -3182,7 +3693,7 @@
       return;
     }
 
-    const featured = pickFeatured(tvItems, featuredTvId, id => { featuredTvId = id; });
+    const featured = pickFeatured(tvItems, featuredTvId, id => { featuredTvId = id; }, "tv", () => updateHeroOnly("tv"));
     heroEl.innerHTML = heroHtml(featured, "tv");
     const actionBtn = heroEl.querySelector("[data-hero-action]");
     if(actionBtn) actionBtn.onclick = () => openTvSendBox(featured.id);
@@ -3851,7 +4362,7 @@
       const title = catalog.find(m => m.id === bay.titleId);
       const statusLine = title
         ? `<div class="bay-title">${title.title}${seriesTag(title) ? ' <span style="color:var(--muted);font-size:11px;">('+seriesTag(title)+')</span>' : ''}</div>
-           <div style="font-size:11px;color:${title.stock>0?'var(--green)':'#E87C03'};">${title.stock>0?'In stock':'Checked out'}</div>`
+           <div style="font-size:11px;color:${title.condition==='unavailable' ? '#E87C03' : title.stock>0?'var(--green)':'#E87C03'};">${title.condition==='unavailable' ? 'Unavailable' : title.stock>0?'In stock':'Checked out'}</div>`
         : `<div class="bay-empty">Empty — no title assigned</div>`;
       return `<div class="bay-card">
         <div class="bay-num">Bay ${bay.number}</div>
@@ -3893,6 +4404,7 @@
     if(!title) return { color: "#4B5563", text: "Empty — no title assigned", name: "" };
     if(title.condition === "missing") return { color: "#B71C1C", text: "Missing", name: title.title };
     if(title.condition === "damaged") return { color: "#E87C03", text: "Damaged", name: title.title };
+    if(title.condition === "unavailable") return { color: "#E87C03", text: "Unavailable", name: title.title };
     if(title.stock > 0) return { color: "#46D369", text: "In stock", name: title.title };
     return { color: "#737373", text: "Checked out", name: title.title };
   }
@@ -4121,7 +4633,7 @@
   }
 
   async function startRentByMovie(movie, renterName){
-    if(movie.stock<=0) return;
+    if(movie.stock<=0 || movie.condition==='unavailable') return;
     renterName = (renterName||"").trim();
     if(!renterName){ toast("Enter a renter name first"); return; }
     if(isRatingRestricted(movie, renterName)){
@@ -4131,6 +4643,27 @@
     const currentCount = rentals.filter(r => r.renterName===renterName).length;
     if(currentCount >= maxCheckouts){
       toast(`${renterName} already has ${currentCount} disc${currentCount===1?'':'s'} out — the limit is ${maxCheckouts}`);
+      return;
+    }
+    // A title with no bay has no physical switch to ever confirm a
+    // pending checkout with — that's exactly what "bulk storage" means
+    // here. Sending it through the normal pending/wait-for-the-bay flow
+    // would leave it stuck waiting on an event that can never arrive, so
+    // bulk-storage titles complete immediately instead, the same way
+    // rentByMovie already does for the admin's manual checkout.
+    const hasBay = bays.some(b => b.titleId === movie.id);
+    if(!hasBay){
+      const ok = await rentByMovie(movie, renterName);
+      // rentByMovie() itself stays a plain, fast toast-only checkout —
+      // that's also what the admin's manual-checkout button at the
+      // counter uses, where a big celebratory overlay would just slow
+      // down someone checking out several things quickly. This customer
+      // path gets the same completion moment a bay-confirmed checkout
+      // gets instead, added here rather than inside rentByMovie itself
+      // so the admin flow stays exactly as fast as before — and only
+      // when rentByMovie actually succeeded, not on every call, since it
+      // fails silently after its own toast rather than throwing.
+      if(ok) showRentalCompleteScreen({ title: movie.title, renterName });
       return;
     }
     try{
@@ -4144,29 +4677,35 @@
     toast(`Waiting on "${movie.title}" — take it out of its bay to finish.`);
   }
 
+  // Returns true/false so callers (startRentByMovie's bulk-storage
+  // branch, specifically) can tell whether this actually succeeded —
+  // every early return here used to just bail silently after its own
+  // toast, with no way for a caller to know the difference between "it
+  // worked" and "it didn't" without duplicating these same checks itself.
   async function rentByMovie(movie, renterName){
-    if(movie.stock<=0) return;
+    if(movie.stock<=0 || movie.condition==='unavailable') return false;
     renterName = (renterName||"").trim();
-    if(!renterName){ toast("Enter a renter name first"); return; }
+    if(!renterName){ toast("Enter a renter name first"); return false; }
     if(isRatingRestricted(movie, renterName)){
       toast(`${renterName}'s account can't check out ${movie.rating}-rated titles.`);
-      return;
+      return false;
     }
     const currentCount = rentals.filter(r => r.renterName===renterName).length;
     if(currentCount >= maxCheckouts){
       toast(`${renterName} already has ${currentCount} disc${currentCount===1?'':'s'} out — the limit is ${maxCheckouts}`);
-      return;
+      return false;
     }
     const now = Date.now();
     const dueOn = now + RENTAL_DAYS*86400000;
     try{
       await api.send("PATCH", "/api/titles/"+movie.id, { stock: movie.stock - 1 });
       await api.send("POST", "/api/rentals", { movieId: movie.id, title: movie.title, genre: movie.genre, renterName, rentedOn: now, dueOn });
-    }catch(e){ toast(e.message || "Couldn't save rental"); return; }
+    }catch(e){ toast(e.message || "Couldn't save rental"); return false; }
     await refetch("titles");
     await refetch("rentals");
     api.send("POST", "/api/locate-bay", { titleId: movie.id }).catch(()=>{}); // best-effort — helps find the bay, never blocks the rental
     toast(`Rented "${movie.title}" to ${renterName} — due in ${RENTAL_DAYS} nights`);
+    return true;
   }
 
   async function returnRental(rentalId){
@@ -4841,6 +5380,13 @@
     catch(e){ toast("Couldn't save condition"); }
   }
 
+  async function setFeatured(id, featured){
+    const m = catalog.find(x=>x.id===id);
+    if(!m) return;
+    try{ await api.send("PATCH", "/api/titles/"+id, { featured }); await refetch("titles"); }
+    catch(e){ toast("Couldn't save that"); }
+  }
+
   // ---------- OMDb auto-import (posters + descriptions) ----------
   async function lookupTitle(id){
     const m = catalog.find(x=>x.id===id);
@@ -5121,7 +5667,7 @@
     }
 
     if(match){
-      const out = match.stock<=0;
+      const out = match.stock<=0 || match.condition==='unavailable';
       const activeRentals = rentals.filter(r => r.movieId === match.id);
       const hasBay = bays.some(b => b.titleId === match.id);
       const returnHtml = activeRentals.length > 0 ? `<div style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px;">
@@ -5139,7 +5685,7 @@
         <div class="g">${match.genre} · ${match.year} · ${match.rating} · ${match.stock} in stock</div>
         <div style="margin-top:8px;">${imdbLinkHtml(match)}</div>
         <div style="margin-top:12px;display:flex;gap:8px;">
-          ${out ? `<span style="font-size:12px;color:#E87C03;">Out of stock</span>`
+          ${out ? `<span style="font-size:12px;color:#E87C03;">${match.condition==='unavailable' ? 'Unavailable' : 'Out of stock'}</span>`
             : (loggedInUser ? `<button class="primary" id="scanRentBtn">Rent this disc</button>` : `<button class="primary" id="scanOpenLoginBtn">Log in to rent</button>`)}
         </div>
         ${returnHtml}
@@ -5320,6 +5866,10 @@
     $("#topBarReturnBtn").onclick = () => openReturnFlow();
     $("#surpriseMeBtn").onclick = surpriseMe;
     $("#requestTitleBtn").onclick = openRequestTitleModal;
+    $("#requestSupportBtn").onclick = openRequestSupport;
+    $("#requestSupportCancelBtn").onclick = closeRequestSupport;
+    $("#requestSupportSendBtn").onclick = sendSupportRequest;
+    $("#requestSupportOverlay").onclick = (e) => { if(e.target===$("#requestSupportOverlay")) closeRequestSupport(); };
     $("#doubleFeatureBtn").onclick = openDoubleFeature;
     $("#adminConsoleBtn").onclick = () => enterAdminConsole();
     $("#exitAdminConsoleBtn").onclick = exitAdminConsole;
@@ -5469,6 +6019,16 @@
     };
     $("#refreshConnectedClientsBtn").onclick = renderConnectedClients;
     $("#clearMainKioskBtn").onclick = clearMainKioskIp;
+    $("#saveSupportWebhookBtn").onclick = () => saveWebhookUrl("supportWebhookUrl", "supportWebhookInput", "supportWebhookStatus", url => { supportWebhookUrl = url; });
+    $("#testSupportWebhookBtn").onclick = () => testWebhookUrl("support", "supportWebhookStatus");
+    $("#saveCheckoutWebhookBtn").onclick = () => saveWebhookUrl("checkoutWebhookUrl", "checkoutWebhookInput", "checkoutWebhookStatus", url => { checkoutWebhookUrl = url; });
+    $("#testCheckoutWebhookBtn").onclick = () => testWebhookUrl("checkout", "checkoutWebhookStatus");
+    $("#saveReturnWebhookBtn").onclick = () => saveWebhookUrl("returnWebhookUrl", "returnWebhookInput", "returnWebhookStatus", url => { returnWebhookUrl = url; });
+    $("#testReturnWebhookBtn").onclick = () => testWebhookUrl("return", "returnWebhookStatus");
+    $("#saveOverdueWebhookBtn").onclick = () => saveWebhookUrl("overdueWebhookUrl", "overdueWebhookInput", "overdueWebhookStatus", url => { overdueWebhookUrl = url; });
+    $("#testOverdueWebhookBtn").onclick = () => testWebhookUrl("overdue", "overdueWebhookStatus");
+    $("#saveServerissueWebhookBtn").onclick = () => saveWebhookUrl("serverIssueWebhookUrl", "serverissueWebhookInput", "serverissueWebhookStatus", url => { serverIssueWebhookUrl = url; });
+    $("#testServerissueWebhookBtn").onclick = () => testWebhookUrl("serverissue", "serverissueWebhookStatus");
     $("#systemUpdateBtn").onclick = async () => {
       if(!confirm("Pull the latest code and reinstall dependencies now? If autostart is set up, the server restarts itself right after and this page will need a manual reload.")) return;
       const btn = $("#systemUpdateBtn");
@@ -5511,13 +6071,18 @@
       if(e.key==="Enter"){ handleBulkAssignScan($("#serviceBulkAssignInput").value); $("#serviceBulkAssignInput").value=""; }
     });
     renderBulkAssignStatus();
-    renderServiceModeToggle();
-    $("#serviceModeToggleBtn").onclick = toggleServiceMode;
+    $("#enterServiceModeBtn").onclick = openServiceMode;
+    $("#exitServiceModeBtn").onclick = closeServiceMode;
     $("#serviceTestLedsBtn").onclick = async () => {
       try{ await api.send("POST", "/api/test-bay-leds"); toast("Cycling through each bay's LED now…"); }
       catch(e){ toast(e.message || "Couldn't start the LED test"); }
     };
 
+    $("#inventorySearchInput").addEventListener("input", () => { inventorySearch = $("#inventorySearchInput").value; adminListPage = 0; renderAdminList(); });
+    $("#inventoryTypeFilter").addEventListener("change", () => { inventoryTypeFilter = $("#inventoryTypeFilter").value; adminListPage = 0; renderAdminList(); });
+    $("#inventoryLocationFilter").addEventListener("change", () => { inventoryLocationFilter = $("#inventoryLocationFilter").value; adminListPage = 0; renderAdminList(); });
+    $("#inventoryConditionFilter").addEventListener("change", () => { inventoryConditionFilter = $("#inventoryConditionFilter").value; adminListPage = 0; renderAdminList(); });
+    $("#inventorySortSelect").addEventListener("change", () => { inventorySort = $("#inventorySortSelect").value; adminListPage = 0; renderAdminList(); });
     $("#addTitleBtn").onclick = async () => {
       const isGame = $("#newMediaTypeInput").value === "game";
       const isDigital = $("#newMediaTypeInput").value === "digital";
