@@ -538,6 +538,36 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## Discord embeds, on the same payload as Home Assistant
+
+Every webhook payload now also includes a genuine Discord embed — a
+bordered, colored card with its own title and the poster as a
+thumbnail, Discord's own rich-message format, not just plain text.
+Discord specifically looks for an `embeds` array and otherwise ignores
+any top-level field it doesn't recognize (`movie`, `person`, `poster`
+included), which is exactly why a picture never showed up before this:
+those named fields were already there for Home Assistant, but nothing
+in the payload was in a shape Discord itself actually looks at.
+
+Each event type gets its own title and color — checkout a cool blue,
+return the same green the app itself already uses for "in stock,"
+overdue the same orange it uses for warnings, server issues a clear
+red — so the different alert types stay visually distinct from each
+other in a Discord channel at a glance, not just distinguishable by
+reading the text.
+
+This didn't need a separate payload shape for Discord versus Home
+Assistant, or a setting to pick which one — both live in the exact
+same JSON at once. Home Assistant's automations keep reading
+`trigger.json.movie` / `trigger.json.poster` exactly as before, Discord
+picks up the `embeds` array for its own rendering, and Slack (which
+understands neither Discord's embeds nor HA's named fields) still gets
+a normal readable message through `text`. Verified the actual payload
+structure directly — confirmed it's valid Discord embed format (a real
+`embeds` array, a numeric `color`, a `thumbnail.url` pointing at the
+poster) while every field Home Assistant needs is still sitting right
+alongside it, unchanged.
+
 ## Webhook payloads redesigned for Home Assistant, with poster images
 
 All five webhooks (the four alert channels above plus the

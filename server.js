@@ -224,8 +224,39 @@ function postToWebhook(url, payload){
 // compatibility too, since those cost nothing extra to include and
 // don't get in Home Assistant's way (an automation just ignores fields
 // it doesn't reference).
+//
+// Also builds a genuine Discord embed (Discord's own rich-message
+// format — a bordered card with its own title, color, and image, not
+// just plain text) alongside all of that, for the exact same reason:
+// Discord looks specifically for an "embeds" array and otherwise just
+// ignores unrecognized top-level fields like movie/person/poster, so
+// adding this is what's actually required to get a picture showing up
+// in a Discord message at all, and it costs Home Assistant nothing
+// either, since embeds is just one more field its automations don't
+// reference.
+const WEBHOOK_EMBED_TITLES = {
+  checkout: "📤 Checked Out",
+  return: "📥 Returned",
+  overdue: "⏰ Overdue",
+  server_issue: "⚠️ Server Issue",
+  support_request: "🆘 Support Requested"
+};
+const WEBHOOK_EMBED_COLORS = {
+  checkout: 3900100,      // a cool blue
+  return: 4641641,        // the same green the app itself uses for "in stock"
+  overdue: 15236099,      // the same orange the app itself uses for warnings
+  server_issue: 12000284, // a clear red
+  support_request: 11740702 // the app's own red accent color
+};
 function buildWebhookPayload(event, message, extra){
-  return { event, message, content: message, text: message, timestamp: new Date().toISOString(), ...extra };
+  const embed = {
+    title: WEBHOOK_EMBED_TITLES[event] || "Sandy Server",
+    description: message,
+    color: WEBHOOK_EMBED_COLORS[event] || 8421504,
+    timestamp: new Date().toISOString()
+  };
+  if(extra && extra.poster) embed.thumbnail = { url: extra.poster };
+  return { event, message, content: message, text: message, timestamp: new Date().toISOString(), embeds: [embed], ...extra };
 }
 
 // Four independent alert channels, each with its own settable webhook —
