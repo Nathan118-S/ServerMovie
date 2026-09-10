@@ -301,13 +301,7 @@
   .label-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
   .label-list .row label{display:flex;align-items:center;gap:10px;font-size:14px;}
 
-  /* TEMPORARY DIAGNOSTIC — makes the label sheet visible directly on
-     the normal page (not just in print preview), as a small bright
-     corner overlay, so whether content is actually being generated can
-     be checked with a glance, no dev tools or printing involved at
-     all. Will be reverted back to display:none once this is actually
-     resolved. */
-  #label-sheet{display:block;position:fixed;bottom:10px;right:10px;width:340px;max-height:400px;overflow:auto;background:#ffef00;border:6px solid #ff0000;z-index:999999;padding:10px;}
+  #label-sheet{display:none;}
   .disc-label{width:2.6in;height:1.1in;border:1px dashed #999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:8px;box-sizing:border-box;background:#fff;color:#111;overflow:hidden;}
   .disc-label .disc-label-title{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:13px;font-weight:600;line-height:1.15;text-align:center;max-width:2.4in;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .disc-label img{max-width:2.3in;max-height:0.45in;object-fit:contain;}

@@ -538,6 +538,35 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## Found it — my own diagnostic CSS was interfering with the fix
+
+The CSS redesign above still didn't resolve it, so rather than guess a
+sixth time, built the most direct diagnostic possible: made the label
+sheet visible on the *normal page itself* — a bright yellow box, fixed
+in the corner of the screen — completely bypassing printing entirely.
+That confirmed something genuinely important on the first try: the
+labels *were* being generated correctly the whole time, titles, codes,
+and barcode images all present and correct. This was never a content
+problem. The bug was entirely about why print specifically couldn't
+show content that demonstrably existed.
+
+And that pointed straight at the actual cause: my own diagnostic CSS.
+To make the label sheet visible on screen, it had been given
+`position:fixed` with a small fixed width and height, as a *base*
+rule — not scoped to print at all. The `@media print` rule from the
+previous fix only ever overrode `display`, never `position`, `width`,
+or `height` — so during print, `#label-sheet` was still constrained to
+that tiny fixed-position diagnostic box. `position:fixed` elements are
+a well-known case that many browsers' print engines don't render
+correctly, or at all, which lines up exactly with a blank page despite
+content that was genuinely there the whole time.
+
+Reverted the diagnostic cleanly — `#label-sheet` is back to a plain
+`display:none` outside of print, with no position, width, or height
+set anywhere to interfere with it — so the print-media rule from the
+previous fix can now actually take full effect, letting the element
+flow naturally into the page the way it always should have.
+
 ## A fifth pass — a genuinely different CSS technique this time
 
 The timing fix didn't resolve it either, so before trying anything
