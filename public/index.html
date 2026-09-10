@@ -313,11 +313,21 @@
   .bay-label img{max-width:2.2in;max-height:0.6in;object-fit:contain;}
 
   @media print{
-    body *{visibility:hidden;}
-    #label-sheet, #label-sheet *{visibility:visible;}
-    #label-sheet{display:block!important;position:absolute;top:0;left:0;}
-    #shelf-map-sheet, #shelf-map-sheet *{visibility:visible;}
-    #shelf-map-sheet{display:block!important;position:absolute;top:0;left:0;width:100%;}
+    /* A simpler, more direct technique than the visibility-based one
+       this used before — that approach set body * to visibility:hidden
+       (keeping every hidden element's layout space reserved) and then
+       relied on position:absolute + !important to place #label-sheet
+       on top of everything else, a more fragile combination than
+       necessary. This instead removes every OTHER direct child of body
+       from the render tree entirely with display:none — not just the
+       two named app containers, since any other overlay (a modal
+       that happens to be open) would otherwise still show up
+       alongside the print target. #label-sheet then naturally flows to
+       the top of an otherwise empty page with no absolute positioning
+       needed at all. */
+    body > *:not(#label-sheet):not(#shelf-map-sheet){display:none!important;}
+    #label-sheet{display:block!important;}
+    #shelf-map-sheet{display:block!important;width:100%;}
   }
 
   .adjbtn{background:var(--surf2);border:1px solid var(--line);color:var(--white);border-radius:10px;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;transition:background 0.18s ease,transform 0.1s ease;}
@@ -5793,7 +5803,6 @@
 
 
   async function generateLabels(){
-    alert("generateLabels() was called — this confirms the button click reached the function. (Temporary diagnostic — will be removed once this is actually tracked down.)");
     const ids = $$(".labelCheck:checked").map(c=>c.value);
     const items = catalog.filter(m => ids.includes(m.id));
     if(items.length===0){ toast("Select at least one title"); return; }

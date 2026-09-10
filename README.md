@@ -538,6 +538,40 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## A fifth pass — a genuinely different CSS technique this time
+
+The timing fix didn't resolve it either, so before trying anything
+else, added a blunt, unmissable diagnostic — a native browser popup at
+the very top of the function — specifically to answer one question:
+is the click even reaching this code at all? It was. That single
+answer ruled out the button wiring and page initialization entirely,
+narrowing everything down to the function's own execution or the print
+rendering itself, and confirmed the print dialog genuinely was opening
+each time, meaning `window.print()` was always being reached
+successfully.
+
+With the JavaScript side now confirmed working, the actual print CSS
+got a real second look, not just re-reading the same rules again. The
+previous approach set every element on the page to
+`visibility:hidden`, then tried to override that for `#label-sheet`
+specifically and position it absolutely on top of everything else —
+a combination that reserves layout space for every hidden element
+while relying on absolute positioning and `!important` to paper over
+it, more moving parts than the actual goal needs. Replaced with
+something more direct: every other direct child of `<body>` gets
+`display:none` during print — not `visibility:hidden` — which removes
+them from the render tree entirely rather than just making them
+invisible while still occupying space. `#label-sheet` then naturally
+sits at the top of what's otherwise an empty page, no absolute
+positioning required at all.
+
+Deliberately didn't hardcode just the two main app containers for
+this — used a `:not()` selector matching every other direct child of
+body instead, so any other overlay that happens to be open at the
+moment of printing (and there are a lot of them in this app by now)
+gets hidden the same way automatically, rather than needing to be
+individually named and risking one getting missed.
+
 ## Still blank — a fourth pass, with a diagnostic built in this time
 
 The previous race-condition fix didn't resolve it, and a check of the
