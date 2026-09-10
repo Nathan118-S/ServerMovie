@@ -4202,9 +4202,27 @@
         img.src = data.dataUrl;
       }catch(e){ img.replaceWith(document.createTextNode(String(bay.number))); }
     }));
+    // Restoring #label-sheet's normal disc-label container needs to wait
+    // until printing has actually finished, not run on the very next
+    // line after window.print() — that call's exact blocking behavior
+    // varies by browser, and in plenty of them the print dialog opens
+    // without JS execution actually pausing for it. Resetting the DOM
+    // immediately after calling print() risked the browser capturing an
+    // already-emptied #label-sheet instead of the bay barcodes that were
+    // supposed to be there — a real, known anti-pattern, not a
+    // theoretical one. The "afterprint" event exists specifically for
+    // this: it only fires once the print dialog has actually closed, so
+    // the restore is guaranteed to happen after, never during or before.
     setTimeout(() => {
       window.print();
-      sheet.innerHTML = `<div class="label-sheet-grid" id="labelSheetGrid"></div>`; // restore disc-label container
+      const restoreLabelSheet = () => { sheet.innerHTML = `<div class="label-sheet-grid" id="labelSheetGrid"></div>`; };
+      window.addEventListener("afterprint", restoreLabelSheet, { once: true });
+      // Not every browser fires afterprint reliably (some mobile/kiosk
+      // WebViews skip it entirely) — this fallback guarantees the
+      // restore still happens eventually even there, just later than
+      // the ideal moment, rather than leaving #label-sheet stuck showing
+      // bay barcodes indefinitely if afterprint never fires at all.
+      setTimeout(restoreLabelSheet, 5000);
     }, 200);
   }
 

@@ -538,6 +538,42 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## Fixed: a real race condition behind the blank print page
+
+Still not working after the last fix, reported as a blank print
+dialog specifically — that's a different, more specific symptom than
+either of the first two bugs, so this needed a third, fresh look
+rather than another guess in the same direction as before.
+
+Found it in a function that shares `#label-sheet` for two different
+purposes — printing barcode labels per disc, and separately, printing
+one barcode per bay for sticking on the shelf itself. The bay-barcode
+version was resetting `#label-sheet` back to its normal disc-label
+content on the very next line after calling `window.print()`. That's
+a real, known anti-pattern, not a theoretical one: `window.print()`'s
+exact blocking behavior varies by browser, and plenty of them open the
+print dialog without actually pausing JavaScript execution for it —
+meaning the reset could run, and empty out `#label-sheet`, before the
+browser had actually finished capturing what was supposed to print.
+Whichever content briefly existed at the wrong moment is what would
+end up in a blank-looking print preview.
+
+Fixed by moving that reset to the `afterprint` event, which exists
+specifically for this — it only fires once the print dialog has
+actually closed, not on the next line of code. Also added a five-second
+fallback timer, since `afterprint` isn't fired reliably by every
+browser (some minimal or embedded WebViews — plausibly including
+whatever's running as the kiosk's own browser — skip it outright),
+so `#label-sheet` can't get stuck showing bay barcodes indefinitely
+even there.
+
+Being honest about the limits of this diagnosis: I can't run a real
+browser myself to watch the print dialog and confirm this was the
+exact sequence — this is a genuinely real bug either way, and the
+mechanism lines up with the specific "blank page" symptom reported,
+but confirming it was *the* cause here needs an actual test on the
+real hardware.
+
 ## Fixed: the label generator silently wiped your selections
 
 Asked to fix this a second time, with no new specifics given — went
