@@ -3340,11 +3340,22 @@
 
   function renderLabelList(){
     const el = $("#labelList");
+    // Preserves whatever's currently checked/unchecked before rebuilding
+    // — this re-renders on every single admin render() pass (any
+    // checkout, return, or hardware event anywhere in the app, not just
+    // something happening on this tab), and without this, unchecking a
+    // few titles you don't want to print would get silently wiped back
+    // to "everything checked" the next time anything else happened
+    // elsewhere in the house. A title with no prior checkbox at all
+    // (freshly added to the catalog) still defaults to checked, same as
+    // it always did.
+    const previouslyChecked = new Map();
+    $$(".labelCheck").forEach(cb => previouslyChecked.set(cb.value, cb.checked));
     // Digital copies have no physical disc or case to put a barcode
     // label on — including them here just generates a meaningless
     // barcode for a streaming link, mixed in with the real ones.
     el.innerHTML = catalog.filter(m => m.mediaType !== 'digital').map(m => `<div class="row">
-      <label><input type="checkbox" class="labelCheck" value="${m.id}" checked /> ${m.title} <span style="color:var(--muted);font-size:12px;">(${m.genre}, code: ${m.code})</span></label>
+      <label><input type="checkbox" class="labelCheck" value="${m.id}" ${previouslyChecked.has(m.id) ? (previouslyChecked.get(m.id) ? 'checked' : '') : 'checked'} /> ${m.title} <span style="color:var(--muted);font-size:12px;">(${m.genre}, code: ${m.code})</span></label>
     </div>`).join("");
   }
 

@@ -538,6 +538,33 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## Fixed: the label generator silently wiped your selections
+
+Asked to fix this a second time, with no new specifics given — went
+looking fresh rather than assuming the same Digital Copies bug from
+before had somehow come back (it hadn't; that fix is still intact and
+verified working). Found a different, genuinely real bug instead: the
+checklist rebuilds on *every single* admin render pass — any checkout,
+return, or hardware event anywhere in the house, not just something
+happening on the Labels tab itself — and it always hardcoded every
+checkbox back to checked with no memory of what was there a moment
+before.
+
+In practice: uncheck a few titles you don't want labels for, then
+anything else happens anywhere else in the app while you're still on
+that screen, and your selection would silently revert to "everything
+checked" with nothing on screen suggesting why. Exactly the kind of
+bug that's genuinely hard to describe precisely, which is probably why
+the report came back vague a second time rather than more specific.
+
+Fixed by capturing what's actually checked before rebuilding the list
+and carrying it forward — a title keeps whatever state you left it in
+across a rebuild, and only a genuinely new title (never seen before)
+still defaults to checked. Verified with a small simulation across
+several rounds: an unrelated rebuild correctly preserves an unchecked
+title, and a brand new title added mid-session correctly defaults to
+checked without disturbing anything already set.
+
 ## Discord embeds, on the same payload as Home Assistant
 
 Every webhook payload now also includes a genuine Discord embed — a
