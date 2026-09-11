@@ -538,6 +538,46 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## Recommended picks, and linked bonus-features discs
+
+**A "Recommended" checkbox** in Catalog → Inventory, alongside the
+existing Featured one — a small gold badge on the poster (a star icon
+and "Pick"), and a more prominent "RECOMMENDED PICK" line in the
+detail view. Deliberately its own separate flag from Featured, not a
+reuse of it: Featured only ever controls what shows up in the rotating
+hero at the top of Browse, while Recommended is a plain staff-pick
+signal that shows everywhere that title already appears, with no
+effect on the hero at all.
+
+**A bonus-features disc can now be linked to its main movie** — a
+"Bonus disc for" dropdown in Inventory (movies and digital titles
+only; doesn't apply to games) lets one title point at another as the
+disc it belongs with. A linked bonus disc is hidden from the main
+Browse grid and every other customer-facing surface that lists
+titles for browsing — Surprise Me, Double Feature, the featured hero,
+and TV mode all got this same exclusion added consistently, the exact
+same six places that needed the same treatment when Digital Copies was
+first introduced as its own type. It's only ever reachable through a
+"Bonus features" section that now shows up in its main movie's own
+detail view, with its title linking straight through to the bonus
+disc's own page.
+
+Deliberately left the admin's manual-checkout dropdown and the label
+generator untouched by this exclusion — a bonus disc is still a real,
+physical thing that needs to be checked out and labeled like anything
+else; hiding it from casual browsing doesn't mean hiding it from the
+tools that actually manage physical inventory.
+
+**Caught and fixed a real slip before it shipped**: while building the
+bonus-features link in the modal, I used a raw 🎬 emoji directly — the
+exact same mistake I'd caught myself making once before in this same
+project, after a whole prior pass specifically replacing every emoji
+in the app with SVG icons. Caught it immediately this time and
+replaced it with a proper icon, then ran a full re-scan of the entire
+file afterward to confirm nothing else had slipped through — only the
+one already-known, intentional exception (the avatar emoji-input
+placeholder) remains.
+
 ## A genuinely different approach: print from a dedicated new window
 
 Removing the diagnostic CSS conflict still didn't resolve it. Six
