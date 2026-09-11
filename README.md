@@ -538,6 +538,45 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## Performance: admin panels no longer rebuild on every unrelated event
+
+Investigated rather than guessed at what "slow" might mean here first:
+`render()` runs on every single SSE broadcast — any checkout, return,
+or hardware event anywhere in the app, whether or not it has anything
+to do with what's currently on screen — and none of the nine
+admin-only panels (Inventory, the two Bay Dashboard copies, Rentals,
+Wishlist, Household, Bay Layout) had any check for whether their own
+data had actually changed before rebuilding their entire HTML from
+scratch. That gets more expensive the larger the catalog and rental
+history grow, and Bay Dashboard was doing this work *twice* every
+single pass — once for the normal copy, once for Service Mode's.
+
+Three of the highest-impact ones are fixed so far — Inventory (which
+also now skips its search/filter/sort work entirely when nothing
+relevant changed, not just the DOM rebuild), both Bay Dashboard copies
+together, and Rentals. Each gets a cheap signature computed from just
+the data it actually depends on, compared against what it last
+rendered; identical signature means an immediate return with no DOM
+touched at all.
+
+Rentals needed real care, not the same pattern copy-pasted blindly:
+its "days left" countdown changes purely with time passing, not just
+with the rental data itself changing, so a signature built only from
+the rentals array could have left that text stale for hours between
+SSE events. Folded the current day number into the signature instead
+of the exact time — enough to guarantee a rebuild at least once a day,
+matching the actual granularity of what's displayed, since it only
+ever shows whole days anyway. Also handled a real edge case in the
+same function: switching the renter filter needed to visibly update
+the filter chips even on a call where the underlying rental data
+hadn't changed at all — verified this specific path directly with a
+small simulation before calling it done, not just assumed the general
+pattern would cover it.
+
+The remaining six panels (Wishlist, Household, Bay Layout, and a few
+others) still rebuild unconditionally — same shape of fix, not done
+yet.
+
 ## Recommended picks, and linked bonus-features discs
 
 **A "Recommended" checkbox** in Catalog → Inventory, alongside the

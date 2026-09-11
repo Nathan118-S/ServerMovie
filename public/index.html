@@ -1370,6 +1370,12 @@
   let featuredTvId = null;
   let pendingAdminPoster = "";
   let adminListPage = 0;
+  let lastAdminListSig = "";
+  let lastBayDashboardSig = { "#bayDashboard": "", "#serviceBayDashboard": "" };
+  let lastRentalsSig = "";
+  let lastWishlistSig = "";
+  let lastUsersListSig = "";
+  let lastBayLayoutSig = "";
   let inventorySearch = "";
   let inventoryTypeFilter = "";
   let inventoryLocationFilter = "";
@@ -2652,15 +2658,49 @@
     if(titleSelect){
       const inStock = catalog.filter(m => m.stock > 0 && m.condition !== 'unavailable').sort((a,b) => a.title.localeCompare(b.title));
       const prevValue = titleSelect.value;
-      titleSelect.innerHTML = inStock.length
-        ? inStock.map(m => `<option value="${m.id}">${m.title}${seriesTag(m) ? ' ('+seriesTag(m)+')' : ''} — ${m.stock} in stock</option>`).join("")
-        : `<option value="">Nothing in stock right now</option>`;
-      if(inStock.some(m => m.id === prevValue)) titleSelect.value = prevValue;
+      // Only rebuilt when the actual set of in-stock titles changes —
+      // this dropdown doesn't need the same skip-check the list below
+      // does (a plain string comparison here is enough), but it was
+      // still being rebuilt from scratch on every single render pass
+      // regardless, which risked interrupting someone mid-selection for
+      // no reason.
+      const stockSig = inStock.map(m=>m.id+":"+m.stock).join(",");
+      if(titleSelect.dataset.stockSig !== stockSig){
+        titleSelect.dataset.stockSig = stockSig;
+        titleSelect.innerHTML = inStock.length
+          ? inStock.map(m => `<option value="${m.id}">${m.title}${seriesTag(m) ? ' ('+seriesTag(m)+')' : ''} — ${m.stock} in stock</option>`).join("")
+          : `<option value="">Nothing in stock right now</option>`;
+        if(inStock.some(m => m.id === prevValue)) titleSelect.value = prevValue;
+      }
     }
+
+    // "Days left" counts down purely with time passing, not just with
+    // data changing — a signature built only from the rentals array
+    // could leave that text stale for hours between SSE events. Folding
+    // in the current day number (not the exact time, which would never
+    // let this skip anything at all) means the signature naturally
+    // changes once every day, matching the actual granularity of what's
+    // displayed — it only ever shows whole days anyway.
+    const dayBucket = Math.floor(Date.now() / 86400000);
+    const sig = JSON.stringify(rentals) + "|" + renterFilter + "|" + dayBucket;
+    if(sig === lastRentalsSig){
+      // The renter-filter chip row still needs to reflect renterFilter
+      // even when nothing else changed, since clicking a different chip
+      // shouldn't require a data change to visibly take effect.
+      if(chipsEl && chipsEl.dataset.renderedFilter !== renterFilter){
+        const names = ["All", ...Array.from(new Set(rentals.map(r=>r.renterName||"Unknown"))).sort()];
+        chipsEl.innerHTML = names.map(n => `<button data-renter="${n}" style="font-size:12px;padding:7px 12px;border-radius:20px;border:1px solid ${renterFilter===n?'var(--red)':'var(--line)'};background:${renterFilter===n?'var(--red)':'transparent'};color:${renterFilter===n?'#fff':'var(--muted)'};cursor:pointer;">${n}</button>`).join("");
+        chipsEl.querySelectorAll("button").forEach(b => b.onclick = () => { renterFilter = b.dataset.renter; renderRentals(); });
+        chipsEl.dataset.renderedFilter = renterFilter;
+      }
+      return;
+    }
+    lastRentalsSig = sig;
 
     const names = ["All", ...Array.from(new Set(rentals.map(r=>r.renterName||"Unknown"))).sort()];
     chipsEl.innerHTML = names.map(n => `<button data-renter="${n}" style="font-size:12px;padding:7px 12px;border-radius:20px;border:1px solid ${renterFilter===n?'var(--red)':'var(--line)'};background:${renterFilter===n?'var(--red)':'transparent'};color:${renterFilter===n?'#fff':'var(--muted)'};cursor:pointer;">${n}</button>`).join("");
     chipsEl.querySelectorAll("button").forEach(b => b.onclick = () => { renterFilter = b.dataset.renter; renderRentals(); });
+    chipsEl.dataset.renderedFilter = renterFilter;
 
     const list = rentals.filter(r => renterFilter==="All" || (r.renterName||"Unknown")===renterFilter);
     if(list.length===0){ el.innerHTML = `<div style="color:var(--muted);font-size:14px;">No discs checked out.</div>`; return; }
@@ -3154,6 +3194,17 @@
 
   function renderAdminList(){
     const el = $("#adminList");
+    // Cheap to compute, far cheaper than what it guards — rebuilding
+    // this list means regenerating a dropdown-and-button-heavy row for
+    // every title that matches, on every single admin render pass,
+    // which fires on any SSE broadcast anywhere in the app (a checkout
+    // on the kiosk, a hardware event, anything) whether or not it has
+    // anything to do with Inventory at all. Skipped entirely, filter
+    // work included, when nothing this panel actually cares about has
+    // changed since the last time it ran.
+    const sig = JSON.stringify(catalog) + "|" + bays.map(b=>b.number+":"+b.titleId).join(",") + "|" + inventorySearch + inventoryTypeFilter + inventoryLocationFilter + inventoryConditionFilter + inventorySort + adminListPage;
+    if(sig === lastAdminListSig) return;
+    lastAdminListSig = sig;
     // Search, filter, and sort all apply here, before pagination —
     // paginating the raw catalog first (the old behavior) would have
     // meant filters only ever searched whatever happened to already be
@@ -4419,9 +4470,21 @@
   // than either duplicating this whole function or physically moving
   // DOM nodes back and forth between two different subtabs.
   function renderBayDashboard(selector){
-    const el = $(selector || "#bayDashboard");
+    const key = selector || "#bayDashboard";
+    const el = $(key);
     if(!el) return;
-    if(bays.length===0){ el.innerHTML = `<div style="color:var(--muted);font-size:14px;">No bays yet — add one above with its number.</div>`; return; }
+    if(bays.length===0){
+      if(lastBayDashboardSig[key] !== "empty"){ el.innerHTML = `<div style="color:var(--muted);font-size:14px;">No bays yet — add one above with its number.</div>`; lastBayDashboardSig[key] = "empty"; }
+      return;
+    }
+    // Rebuilds a select dropdown listing every title for every single
+    // bay — genuinely expensive once the catalog is any real size, and
+    // this used to happen twice per render pass (once for the normal
+    // copy, once for Service Mode's copy) regardless of whether
+    // anything about bays or titles had actually changed.
+    const sig = JSON.stringify(bays) + "|" + JSON.stringify(catalog.map(m => ({id:m.id, title:m.title, seriesName:m.seriesName, season:m.season, discNumber:m.discNumber, stock:m.stock, condition:m.condition})));
+    if(lastBayDashboardSig[key] === sig) return;
+    lastBayDashboardSig[key] = sig;
     const sorted = bays.slice().sort((a,b) => Number(a.number)-Number(b.number));
     const titleOptions = catalog.slice().sort((a,b)=>a.title.localeCompare(b.title))
       .map(m => `<option value="${m.id}">${m.title}${seriesTag(m) ? ' ('+seriesTag(m)+')' : ''}</option>`).join("");
