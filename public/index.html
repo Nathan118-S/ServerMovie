@@ -436,6 +436,21 @@
   .modal-close:hover{background:rgba(0,0,0,0.6);transform:rotate(90deg);}
   .modal-body{padding:20px;}
 
+  /* Movie detail modal specifically — scoped to #movieModal alone, not
+     every modal sharing .modal-card/.modal-overlay (TV Send, Double
+     Feature, Request Support, etc. all keep their existing centered-card
+     size; this only touches the one modal that opens when a title is
+     tapped). Fills the viewport instead of floating as a centered card:
+     a taller, more cinematic header, and the body content kept at a
+     readable width and centered within the now much wider container,
+     rather than stretching every line of text and every button edge to
+     edge just because the outer card grew. */
+  #movieModal.modal-overlay{padding:0;}
+  #movieModal .modal-card{width:100vw;height:100vh;max-width:100vw;max-height:100vh;border-radius:0;}
+  #movieModal .modal-header{min-height:48vh;}
+  #movieModal .modal-body{max-width:640px;margin:0 auto;padding:28px 24px 40px;}
+  #movieModal .modal-close{top:16px;right:16px;width:34px;height:34px;font-size:18px;}
+
   /* ---- TV page ---- */
   #tvRoot{min-height:100vh;background:var(--bg);}
   .tv-header{padding:36px 56px 8px;}

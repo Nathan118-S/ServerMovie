@@ -538,6 +538,35 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## The movie detail modal is full-screen now
+
+Picking this back up from where it was set aside a few turns ago — the
+task never actually got started until now, since two different
+requests came in right after it was first mentioned and took priority.
+
+Scoped specifically to `#movieModal` — the one modal that opens when a
+title gets tapped — not the shared `.modal-card`/`.modal-overlay`
+classes every other modal in this app also uses. TV Send, Double
+Feature, and Request Support all keep their existing centered-card
+size untouched; only this one fills the screen.
+
+Rather than just stretch the existing centered-card layout to the
+edges of the viewport, which would have left every line of text and
+every button spanning edge to edge on a wide screen, the header got
+taller and more cinematic (48% of the viewport height instead of the
+original ~260px), while the body content underneath stays constrained
+to a readable width and centered within the now much wider container —
+the actual content reads the same as it always did, just inside a
+more immersive frame.
+
+Checked rather than assumed that the series-group modal (discs bundled
+under one series name) shares the exact same `.modal-card` /
+`.modal-header` / `.modal-close` structure as the single-movie modal,
+both rendering into this same `#movieModal` container — confirmed it
+does, so it becomes full-screen too as a natural, structurally
+consistent result of this change, not a separate thing that needed
+building twice.
+
 ## Genre and rating filter chips, and "Customers also watched" from real data
 
 **Two new chip rows** in Browse, alongside the existing mood row —
