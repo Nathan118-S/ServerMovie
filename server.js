@@ -1384,6 +1384,22 @@ app.post("/api/autofill", async (req, res) => {
   if(!getOmdbKey() && !getTmdbKey() && !(getIgdbClientId() && getIgdbClientSecret())){
     return res.status(500).json({ error: "No OMDb/TMDb key or IGDB Client ID+Secret configured — paste them under Manage inventory.", code: "NO_API_KEY" });
   }
+  // A specific field ("poster", "genre", etc.) switches this from its
+  // normal "only fill in what's actually missing" behavior into a
+  // targeted force-refresh instead: every eligible title gets
+  // re-queried and that one field gets overwritten with whatever comes
+  // back, whether or not it already had a value — everything else about
+  // the title is left completely alone. Genre and rating were already
+  // being fetched from the API on every normal autofill run and simply
+  // never applied to anything, a real gap sitting here beforehand, not
+  // something new introduced just to support forcing a genre refresh
+  // specifically — fixed as part of adding this rather than left
+  // sitting there once it was actually noticed.
+  const forceField = req.body && req.body.field;
+  const validFields = ["poster", "backdrop", "description", "genre", "rating", "imdbId", "logo", "trailerKey"];
+  if(forceField && !validFields.includes(forceField)){
+    return res.status(400).json({ error: "Unknown field to refresh." });
+  }
   // Games get a poster + backdrop (via IGDB screenshots) + description —
   // no logo or trailer, since IGDB doesn't track those the way TMDb does
   // for movies, so checking for those on a game would make it look
@@ -1394,10 +1410,13 @@ app.post("/api/autofill", async (req, res) => {
   // to find for a personal recording; the entire point of this being
   // its own separate media type is that these were never going to be
   // found on OMDb, TMDb, or IGDB no matter how the lookup ran.
-  const targets = db.titles.filter(t => t.mediaType === 'homevideo' ? false
-    : t.mediaType === 'game'
-    ? (!t.poster || !t.backdrop || !t.description)
-    : (!t.poster || !t.backdrop || !t.description || !t.trailerKey || (t.seriesName && !t.logo)));
+  const targets = db.titles.filter(t => {
+    if(t.mediaType === 'homevideo') return false;
+    if(forceField) return true; // force mode targets every eligible title, not just ones missing something
+    return t.mediaType === 'game'
+      ? (!t.poster || !t.backdrop || !t.description)
+      : (!t.poster || !t.backdrop || !t.description || !t.trailerKey || (t.seriesName && !t.logo));
+  });
   let updated = 0, notFound = 0, failed = 0;
   const cache = new Map();
   for(const t of targets){
@@ -1411,12 +1430,16 @@ app.post("/api/autofill", async (req, res) => {
         result = await lookupMetadata(t.title, t.year, type);
         cache.set(cacheKey, result);
       }
-      if(!t.poster && result.poster) t.poster = result.poster;
-      if(!t.backdrop && result.backdrop) t.backdrop = result.backdrop;
-      if(!t.description && result.description) t.description = result.description;
-      if(!t.imdbId && result.imdbId) t.imdbId = result.imdbId;
-      if(!t.logo && result.logo) t.logo = result.logo;
-      if(!t.trailerKey && result.trailerKey) t.trailerKey = result.trailerKey;
+      if(forceField){
+        if(result[forceField]) t[forceField] = result[forceField];
+      } else {
+        if(!t.poster && result.poster) t.poster = result.poster;
+        if(!t.backdrop && result.backdrop) t.backdrop = result.backdrop;
+        if(!t.description && result.description) t.description = result.description;
+        if(!t.imdbId && result.imdbId) t.imdbId = result.imdbId;
+        if(!t.logo && result.logo) t.logo = result.logo;
+        if(!t.trailerKey && result.trailerKey) t.trailerKey = result.trailerKey;
+      }
       updated++;
     }catch(e){
       cache.set(cacheKey, null);

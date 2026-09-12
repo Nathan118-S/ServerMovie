@@ -954,6 +954,24 @@
           <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Don't have these yet? Create an app at <a href="https://dev.twitch.tv/console/apps" target="_blank" rel="noopener" style="color:var(--muted);">dev.twitch.tv/console/apps</a> (free) — IGDB runs on Twitch's developer platform.</div>
           <button class="primary" id="autofillBtn"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Auto-fill missing titles</button>
           <span id="autofillStatus" style="font-size:11px;color:var(--muted);margin-left:8px;"></span>
+          <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line);">
+            <div class="display" style="font-size:13px;margin-bottom:4px;">Force refresh one field on everything</div>
+            <div class="scan-msg" style="margin-top:0;margin-bottom:10px;">The button above only ever fills in what's actually missing — leaves anything already set alone. These re-check every eligible title instead and overwrite just the one field picked below, whether or not it already had a value. Nothing else about any title gets touched.</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <select id="autofillForceFieldInput" style="min-width:160px;">
+                <option value="poster">Posters</option>
+                <option value="backdrop">Backdrops</option>
+                <option value="description">Descriptions</option>
+                <option value="genre">Genres</option>
+                <option value="rating">Ratings</option>
+                <option value="imdbId">IMDb ids</option>
+                <option value="logo">Title logos</option>
+                <option value="trailerKey">Trailers</option>
+              </select>
+              <button class="secondary" id="autofillForceBtn" style="padding:9px 14px;font-size:12px;">Force refresh</button>
+              <span id="autofillForceStatus" style="font-size:11px;color:var(--muted);"></span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -3752,7 +3770,58 @@
     $("#gatePinPad").innerHTML = pinPadHtml();
     wirePinPad($("#gatePinPad"), pinInput);
     $("#gatePinLoginBtn").onclick = () => pinLogin(pinInput.value);
-    pinInput.addEventListener("keydown", e => { if(e.key==="Enter") pinLogin(pinInput.value); });
+    // A barcode scan landing here needs its own handling, not just the
+    // global scanner capture — that capture specifically skips whenever
+    // a text input has focus, and this PIN field auto-focuses the
+    // instant this gate opens, so without this a scan would otherwise
+    // just get typed character-by-character into a field meant for a
+    // 4-digit PIN. maxlength="4" on this input also means the field's
+    // own value would silently truncate a longer scanned code before it
+    // could ever be read back out — this tracks the full scanned text
+    // in a separate buffer instead, built up the same speed-based way
+    // the global capture already distinguishes a scanner from someone
+    // actually typing their PIN by hand: characters arriving faster
+    // than any real typing pace reset that buffer's timer-based
+    // grouping the same way, so a genuine scan and someone entering
+    // their PIN digit by digit don't get confused for one another here
+    // either.
+    let pinScanBuffer = "";
+    let pinScanLastKeyTime = 0;
+    // A local threshold rather than reusing the global scanner
+    // capture's own SCAN_KEY_GAP_MS — that constant is declared inside
+    // the DOMContentLoaded callback that sets the global capture up,
+    // not at this file's outer scope, so it was never actually
+    // reachable from here in the first place. Same 50ms value, kept in
+    // sync with that one deliberately, just declared locally instead of
+    // referencing something out of scope that would have thrown a
+    // reference error the first time anyone actually opened this gate.
+    const PIN_SCAN_KEY_GAP_MS = 50;
+    pinInput.addEventListener("keydown", e => {
+      const now = Date.now();
+      if(now - pinScanLastKeyTime > PIN_SCAN_KEY_GAP_MS) pinScanBuffer = "";
+      pinScanLastKeyTime = now;
+      if(e.key === "Enter"){
+        // A completed scan ends in Enter same as every other scan
+        // context in this app — long enough to be a real scanned code,
+        // not just someone's PIN happening to end with an Enter press.
+        // Handled in this same listener as the PIN-submit case below
+        // rather than a second, separate one — two listeners both
+        // reacting to Enter here would both fire on a scan, the second
+        // one going on to call pinLogin() with whatever the now-cleared
+        // field holds and showing a spurious error right after a
+        // successful scan login.
+        if(pinScanBuffer.length >= 3){
+          e.preventDefault();
+          handleScannedCode(pinScanBuffer);
+          pinScanBuffer = "";
+          pinInput.value = "";
+        } else {
+          pinLogin(pinInput.value);
+        }
+        return;
+      }
+      if(e.key.length === 1) pinScanBuffer += e.key;
+    });
     pinInput.addEventListener("input", () => { if(pinInput.value.length===4) pinLogin(pinInput.value); });
     $("#gateBrowseBtn").onclick = closeLoginGate;
     overlay.onclick = (e) => { if(e.target===overlay) closeLoginGate(); };
@@ -4702,7 +4771,8 @@
   .user-label{width:3.2in;height:1.6in;border:1px dashed #999;border-top-width:6px;border-top-style:solid;border-top-color:${LABEL_TYPE_COLORS.user};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px;box-sizing:border-box;background:#fff;color:#111;}
   .user-label-type{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:${LABEL_TYPE_COLORS.user};}
   .user-label .user-label-title{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:18px;font-weight:700;letter-spacing:0.5px;}
-  .user-label img{max-width:2.8in;max-height:0.65in;object-fit:contain;}
+  .user-label img{max-width:2.8in;max-height:0.6in;object-fit:contain;}
+  .user-label-pin{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:12px;color:#555;letter-spacing:2px;}
 </style>
 </head>
 <body>
@@ -4710,6 +4780,7 @@
     <div class="user-label-type">${labelTypeName("user")}</div>
     <div class="user-label-title">${user.name}</div>
     ${barcodeDataUrl ? `<img src="${barcodeDataUrl}" />` : `<div style="font-size:11px;">Couldn't generate a barcode image</div>`}
+    <div class="user-label-pin">PIN: ${user.pin || '—'}</div>
   </div>
 </body></html>`;
 
@@ -4837,6 +4908,15 @@
       const titleId = pendingAssignTitleId;
       pendingAssignTitleId = null;
       if(!title){ box.innerHTML = ""; return; }
+      // Re-checked here, not just trusted from whenever this got set —
+      // an admin could have scanned the disc and then logged out before
+      // getting to this second scan, and the earlier check has no way
+      // to see that coming.
+      if(!(loggedInUser && loggedInUser.isAdmin)){
+        box.innerHTML = `<div class="match-card"><div class="t">Bay ${bayNumber}</div><div class="g">Reassigning a title to a bay needs an admin logged in.</div></div>`;
+        recordLastScan(rawScanned, `Bay ${bayNumber} — assignment blocked, not logged in as admin`);
+        return;
+      }
       await assignBayTitle(bayNumber, titleId);
       box.innerHTML = `<div class="match-card">
         <div class="t">Assigned to Bay ${bayNumber}</div>
@@ -6196,6 +6276,37 @@
     }
   }
 
+  // Overwrites one specific field on every eligible title, whether or
+  // not it already had a value — unlike the normal auto-fill above,
+  // which only ever fills in what's missing. A confirmation step first
+  // since this can genuinely clobber something someone corrected by
+  // hand (a wrong genre the API keeps insisting on, for instance) —
+  // worth a pause before running catalog-wide, not something to fire
+  // off on a single click the way the "fill in what's missing" version
+  // reasonably can.
+  async function autofillForceField(){
+    const fieldSel = $("#autofillForceFieldInput");
+    const field = fieldSel.value;
+    const fieldLabel = fieldSel.options[fieldSel.selectedIndex].textContent;
+    if(!confirm(`Force refresh ${fieldLabel} on every eligible title? This overwrites the current value even where one's already set — including anything corrected by hand.`)) return;
+    const btn = $("#autofillForceBtn");
+    const status = $("#autofillForceStatus");
+    if(btn) btn.disabled = true;
+    if(status) status.textContent = `Refreshing ${fieldLabel.toLowerCase()} — this can take a while...`;
+    try{
+      const result = await api.send("POST", "/api/autofill", { field });
+      if(status) status.textContent = "";
+      if(btn) btn.disabled = false;
+      if(result.error){ toast(result.error); return; }
+      toast(`Checked ${result.checked} title(s) — updated ${result.updated}, ${result.notFound} not found${result.failed?`, ${result.failed} failed`:''}`);
+      await refetch("titles");
+    }catch(e){
+      if(status) status.textContent = "";
+      if(btn) btn.disabled = false;
+      toast("Couldn't reach the server for auto-fill");
+    }
+  }
+
   // ---------- scanning ----------
   let pendingAssignTitleId = null; // set when a disc with no bay was just scanned, waiting for a bay barcode
   let returnMode = false; // Scan tab "Return a disc" toggle — next disc scan is treated as a return-and-place
@@ -6358,7 +6469,17 @@
       box.querySelectorAll("[data-return-scan]").forEach(b => b.onclick = () => {
         startReturn(rentals.find(r=>r.id===b.dataset.returnScan));
       });
-      pendingAssignTitleId = hasBay ? null : match.id;
+      // Bay reassignment via scanning is admin-only — checked here at
+      // the moment a disc gets scanned (never even sets a pending
+      // assignment for a non-admin in the first place, not just
+      // blocked once someone tries the second scan), and again at
+      // handleBayBarcodeScanned() below when that pending assignment
+      // actually gets consumed, in case an admin scans the disc, then
+      // logs out before getting to the bay barcode — the second check
+      // is what actually stops that specific case, since this one
+      // alone can't see into the future.
+      const isAdminNow = !!(loggedInUser && loggedInUser.isAdmin);
+      pendingAssignTitleId = (hasBay || !isAdminNow) ? null : match.id;
       // The full modal opens automatically on a match, the same one
       // that opens from tapping the title's poster — this small card
       // still gets built above it regardless (the return-marking button
@@ -6931,6 +7052,7 @@
     };
 
     $("#autofillBtn").onclick = autofillCatalog;
+    $("#autofillForceBtn").onclick = autofillForceField;
     $("#saveOmdbKeyBtn").onclick = () => setOmdbApiKey($("#omdbKeyInput").value);
     $("#omdbKeyShow").onchange = (e) => { $("#omdbKeyInput").type = e.target.checked ? "text" : "password"; };
     $("#saveTmdbKeyBtn").onclick = () => setTmdbApiKey($("#tmdbKeyInput").value);

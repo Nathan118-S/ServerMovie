@@ -538,6 +538,113 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## Barcode login now works from the login gate itself, and PINs print on the barcode card
+
+Found a real gap while looking into this rather than assuming barcode
+login already worked everywhere it should: the login gate's PIN field
+auto-focuses the moment that screen opens, and the global scanner
+capture specifically skips whenever any text input has focus — so a
+barcode scan landing there was just getting typed character-by-
+character into a field meant for a 4-digit PIN, not recognized as a
+scan at all. The field's own `maxlength="4"` would have silently
+truncated a longer scanned code before it could even be read back out,
+on top of that.
+
+Gave the PIN field its own scan detection instead of trying to route
+around the global capture — same speed-based approach that capture
+already uses (characters arriving faster than any real typing pace get
+treated as a scan, not human PIN entry), but tracking the scanned text
+in a separate buffer so it survives independently of whatever the
+field's own truncated value shows. Verified this distinction directly
+with simulated keystroke timing: fast input correctly gets treated as
+a scan, slow deliberate typing correctly still goes to normal PIN
+login.
+
+Caught a scoping bug and a listener-conflict bug while building this,
+neither of which a syntax check alone would have caught:
+
+- Reached for the global capture's own 50ms threshold constant first,
+  before realizing it's declared inside the one-time startup callback
+  that sets that capture up — not reachable from here at all. Would
+  have thrown a reference error the first time anyone actually opened
+  the login gate. Declared a local one instead, same value, kept in
+  sync deliberately rather than depending on something out of scope.
+- Almost added the scan-handling as a second, separate "Enter" listener
+  alongside the field's existing PIN-submit one — both would have fired
+  on every scan, the second one going on to call the PIN login with
+  whatever the now-cleared field held and showing a spurious error
+  right after a successful scan login. Merged both into one listener
+  instead.
+
+Separately: the printed login barcode card now shows the person's PIN
+alongside the barcode itself, so the card works as a fallback even
+without a scanner handy.
+
+## Bay reassignment via the barcode scanner is admin-only now
+
+A real gap this closed, not a hypothetical one: scanning a disc with no
+bay assigned, then scanning a bay's own barcode, reassigned that title
+to that bay — and this worked for anyone, logged in as admin or not,
+or not logged in at all. Nothing about it checked who was actually
+scanning.
+
+Checked in two places, not just one: at the moment a disc gets
+scanned — a non-admin never even gets a pending assignment set in the
+first place, not just blocked later when they try the second scan —
+and again when a bay barcode actually completes it, specifically for
+the case where someone was an admin at the first scan but isn't
+anymore by the second one (logged out in between, however that
+happened). The first check alone can't see that coming; only the
+second one actually closes it.
+
+Kept this as a client-side check, consistent with how every other
+admin gate in this app already works — a home kiosk with client-side
+PIN checks, not a public-facing service with server-issued auth
+tokens, so enforcing this server-side too would have meant a genuinely
+different, larger architectural change than what was actually asked
+for here.
+
+Verified all three shapes of this directly with a simulation: a
+non-admin scanning both a disc and a bay correctly never assigns
+anything, an admin doing the same correctly still works exactly as
+before, and an admin who logs out between the two scans is correctly
+blocked at the second one specifically — not just assumed the first
+check would somehow also cover that case.
+
+## Force-refresh one metadata field at a time, on everything
+
+New section under Auto-Fill — pick a field (posters, backdrops,
+descriptions, genres, ratings, IMDb ids, title logos, trailers) and
+re-check every eligible title, overwriting just that one field with
+whatever comes back, whether or not it already had a value. The
+existing "Auto-fill missing titles" button above it is untouched and
+still does exactly what it always did — only ever fills in what's
+actually missing, leaves everything already set alone. This is a
+genuinely different mode, not a replacement for that one.
+
+Investigated the existing endpoint before writing anything new, rather
+than assumed how it already worked — and found a real, pre-existing
+gap while looking: genre and rating were already being fetched from
+OMDb/TMDb/IGDB on every single normal autofill run, and simply never
+applied to the title afterward. That data had been silently discarded
+this whole time, not something newly introduced by adding force-
+refresh — fixed as part of this, since building "force refresh all
+genres" only makes sense once genre is actually one of the fields this
+endpoint knows how to write.
+
+A confirmation prompt before running, unlike the original button —
+this can genuinely overwrite something corrected by hand, like a
+stubbornly wrong genre the API keeps insisting on, which the "only
+fills in what's missing" version could never do by its own design.
+Worth a pause before running catalog-wide.
+
+Verified the actual selection and overwrite logic directly with a
+small simulation: normal mode correctly skips a title that already has
+everything set, force mode correctly includes it anyway, the overwrite
+itself correctly replaces an existing value, and a home video —
+excluded from metadata lookup entirely — stays excluded in both modes,
+not just the normal one.
+
 ## Color-coded every kind of printed barcode label
 
 Movie, TV show, game, home video, bay, and user — six distinct colors,
