@@ -538,6 +538,60 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## Fixed: bay barcodes weren't printing correctly
+
+Reported vaguely at first as "bay barcodes not working," which led to
+a wrong first guess before the actual symptom came out — they weren't
+printing properly, not a scanning or checkout problem at all. That
+redirected this entirely: not a bug in `handleBayBarcodeScanned()` or
+the bay-checkout/return endpoints, but the print output itself.
+
+This is the exact same class of problem disc labels had several
+rounds of fixes ago — the print output for bay barcodes was still
+built on the older, more fragile technique: reusing a hidden
+`#label-sheet` element on the main page, trying to isolate it from
+everything else during print with CSS. Disc labels moved off that
+approach entirely once it kept producing blank or broken print output
+despite several individually-reasonable attempts to fix it in place,
+replaced with something that sidesteps the problem rather than
+patches around it — a self-contained HTML document with its own
+minimal styling, printed from a dedicated new window instead of
+trying to coexist with this app's own complex page. Bay barcodes never
+got the same treatment; applied the already-proven fix here instead of
+debugging the old technique a second time for what's fundamentally the
+same underlying issue.
+
+Left one small, genuinely harmless thing alone rather than expand this
+fix's scope: `#label-sheet` and its grid container are now completely
+unused by any JavaScript at all, since both disc labels and bay
+barcodes have moved off it. Didn't clean up that dead markup here — it
+shares a print media-query rule with the shelf-map feature, which is
+still active and unrelated, and removing it added risk to that
+separate, still-working feature for no functional benefit to the
+actual bug being fixed.
+
+## Fixed: the gradient fade was visually cutting off posters
+
+A real bug the previous entry's gradient fade introduced, not a new
+feature — worth tracing precisely rather than just describing the
+fix. `.modal-header-poster` (used for a title with no backdrop image,
+just a poster) already correctly used `object-fit:contain`, which
+shows the whole image without cropping it. But the new gradient fade
+added right before this also sat at the same z-index — and a `::after`
+pseudo-element always renders after an element's real content
+regardless of a matching z-index value, so the gradient was actually
+painting on top of the poster, fading its lower portion toward the
+page background. The image file itself was never cropped; it just
+looked cut off because something else was drawn over it.
+
+Fixed by moving the poster above the gradient specifically — the
+gradient still does its job fading the landscape backdrop into the
+body below it, but the poster (portrait art meant to be seen in full)
+now sits above that fade entirely rather than being faded out the same
+way. Also corrected the comment on the gradient rule itself, which had
+claimed it already sat above the poster — it didn't, and that wrong
+assumption is exactly what let this ship in the first place.
+
 ## Reworked the movie modal toward a Prime Video-style layout
 
 Not a vague "make it feel more premium" pass — worked from the actual,

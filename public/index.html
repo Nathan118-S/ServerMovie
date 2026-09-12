@@ -426,7 +426,7 @@
   .modal-header{padding:26px 20px;position:relative;min-height:260px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;}
   .modal-header-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:brightness(0.5) blur(2px);transform:scale(1.08);}
   .modal-header-bg.sharp{filter:brightness(0.72);transform:scale(1);}
-  .modal-header-poster{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:1;}
+  .modal-header-poster{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:2;}
   .modal-header > .eyebrow, .modal-header > .t, .modal-header > .title-logo{position:relative;z-index:2;}
   .modal-header .eyebrow{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.8);}
   .modal-header .t{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:26px;font-weight:600;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.6);}
@@ -455,10 +455,12 @@
      the page's own background color by the bottom edge, so the header
      image dissolves smoothly into the body content below it instead of
      ending on a hard, visible line the way the un-faded backdrop did.
-     z-index:1 puts it above the plain background image/poster (which
-     sit at the default stacking level) but below the title text and
-     close button (z-index 2 and 3), so it never obscures anything that
-     needs to stay legible. */
+     Only actually applies to the plain background-image backdrop (z-index
+     auto/0, below this) — the poster specifically sits ABOVE this at
+     z-index:2, not below it. A poster is portrait art meant to be seen
+     in full; fading out its bottom edge the same way a landscape
+     backdrop fades would have visually cut it off even though the
+     underlying image itself was never actually cropped. */
   #movieModal .modal-header::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(to bottom, transparent 55%, var(--bg) 100%);pointer-events:none;}
 
   /* ---- TV page ---- */
@@ -4472,55 +4474,61 @@
     toast(`Removed bay ${number}`);
   }
 
-  // Prints one barcode label per existing bay (not per disc) — stuck on
-  // the shelf itself. Encodes "BAY:<number>" so the scanner can tell a bay
-  // label apart from a disc's own barcode.
+  // Rebuilt on the exact same technique generateLabels() ended up
+  // using after several rounds of the disc-label print output coming
+  // out blank or broken — a self-contained HTML document with its own
+  // minimal styling, printed from a dedicated new window instead of
+  // trying to isolate part of this app's own complex, overlay-heavy
+  // page during print. This was still on the older, more fragile
+  // #label-sheet approach; bay barcodes printing incorrectly is the
+  // exact same class of problem that approach had for disc labels, so
+  // this applies the already-proven fix rather than debugging the old
+  // technique further.
   async function printBayBarcodes(){
     if(bays.length===0){ toast("Add at least one bay first"); return; }
     const sorted = bays.slice().sort((a,b) => Number(a.number)-Number(b.number));
-    const sheet = $("#label-sheet");
-    sheet.innerHTML = `<div class="bay-label-grid" id="bayLabelSheetGrid"></div>`;
-    const grid = $("#bayLabelSheetGrid");
-    const cards = sorted.map(bay => {
-      const card = document.createElement("div");
-      card.className = "bay-label";
-      const title = document.createElement("div");
-      title.className = "bay-label-title";
-      title.textContent = "Bay " + bay.number;
-      card.appendChild(title);
-      const img = document.createElement("img");
-      card.appendChild(img);
-      grid.appendChild(card);
-      return { bay, img };
-    });
-    await Promise.all(cards.map(async ({bay, img}) => {
+
+    toast(`Preparing ${sorted.length} bay label${sorted.length===1?'':'s'}…`);
+    const baysWithBarcodes = await Promise.all(sorted.map(async bay => {
       try{
         const data = await api.get("/api/barcode?text=" + encodeURIComponent("BAY:"+bay.number));
-        img.src = data.dataUrl;
-      }catch(e){ img.replaceWith(document.createTextNode(String(bay.number))); }
+        return { number: bay.number, barcodeDataUrl: data.dataUrl };
+      }catch(e){
+        return { number: bay.number, barcodeDataUrl: null };
+      }
     }));
-    // Restoring #label-sheet's normal disc-label container needs to wait
-    // until printing has actually finished, not run on the very next
-    // line after window.print() — that call's exact blocking behavior
-    // varies by browser, and in plenty of them the print dialog opens
-    // without JS execution actually pausing for it. Resetting the DOM
-    // immediately after calling print() risked the browser capturing an
-    // already-emptied #label-sheet instead of the bay barcodes that were
-    // supposed to be there — a real, known anti-pattern, not a
-    // theoretical one. The "afterprint" event exists specifically for
-    // this: it only fires once the print dialog has actually closed, so
-    // the restore is guaranteed to happen after, never during or before.
-    setTimeout(() => {
-      window.print();
-      const restoreLabelSheet = () => { sheet.innerHTML = `<div class="label-sheet-grid" id="labelSheetGrid"></div>`; };
-      window.addEventListener("afterprint", restoreLabelSheet, { once: true });
-      // Not every browser fires afterprint reliably (some mobile/kiosk
-      // WebViews skip it entirely) — this fallback guarantees the
-      // restore still happens eventually even there, just later than
-      // the ideal moment, rather than leaving #label-sheet stuck showing
-      // bay barcodes indefinitely if afterprint never fires at all.
-      setTimeout(restoreLabelSheet, 5000);
-    }, 200);
+
+    const cardsHtml = baysWithBarcodes.map(bay => `
+      <div class="bay-label">
+        <div class="bay-label-title">Bay ${bay.number}</div>
+        ${bay.barcodeDataUrl ? `<img src="${bay.barcodeDataUrl}" />` : `<div style="font-size:11px;">${bay.number}</div>`}
+      </div>`).join("");
+
+    const printHtml = `<!DOCTYPE html>
+<html><head><title>Sandy Server — Bay Labels</title>
+<style>
+  body{margin:0;padding:0.2in;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;}
+  .bay-label-grid{display:grid;grid-template-columns:repeat(3,2.6in);gap:0.15in;justify-items:center;}
+  .bay-label{width:2.6in;height:1.3in;border:1px dashed #999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:10px;box-sizing:border-box;background:#fff;color:#111;}
+  .bay-label .bay-label-title{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:16px;font-weight:700;letter-spacing:0.5px;}
+  .bay-label img{max-width:2.2in;max-height:0.6in;object-fit:contain;}
+</style>
+</head>
+<body>
+  <div class="bay-label-grid">${cardsHtml}</div>
+</body></html>`;
+
+    const printWindow = window.open("", "_blank", "width=900,height=700");
+    if(!printWindow){
+      toast("Couldn't open the print window — your browser may be blocking pop-ups for this page.");
+      return;
+    }
+    printWindow.document.write(printHtml);
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+    };
   }
 
   async function setBayLedIndex(number, ledIndex){
