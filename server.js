@@ -1146,12 +1146,33 @@ app.post("/api/scan-return", (req, res) => {
   archiveRentalToHistory(rental);
   db.rentals = db.rentals.filter(r => r.id !== rental.id);
   db.pendingReturn = null;
+  // Scanning the disc itself confirms only that the disc is back — not
+  // where. Any existing bay assignment for this title (an admin could
+  // have manually set one while it was still checked out, expecting it
+  // to go back there) goes stale the moment the actual return happens
+  // this way instead of by bay placement: the system would otherwise
+  // keep claiming it's in a bay nobody actually put it in. Clearing it
+  // puts the title correctly into bulk storage instead, matching what's
+  // actually known for certain rather than what was merely assumed
+  // earlier.
+  const bayCleared = unassignBayForTitle(title.id);
   saveDb();
   broadcast("titles");
   broadcast("rentals");
   broadcast("pending-return");
-  updateBayLedForTitle(title);
-  autoAssignOpenBays();
+  if(bayCleared) broadcast("bays");
+  // No autoAssignOpenBays() here on purpose, unlike the other return
+  // paths — that function would immediately refill some other open bay
+  // with this exact title the moment it sorts alphabetically into an
+  // open slot, directly undoing the bulk-storage placement this
+  // endpoint now specifically puts it into. The fully manual admin
+  // return path still calls it, since that path genuinely has no way
+  // to know where the disc went physically and auto-filling gaps there
+  // is a reasonable best guess — this path is different: the person
+  // scanning the disc's own barcode instead of using a bay is itself
+  // the signal that nothing about its physical placement is actually
+  // known, so guessing a bay for it here would be working against the
+  // very thing that scan was just used to establish.
   res.json({ ok: true, title: title.title });
 });
 

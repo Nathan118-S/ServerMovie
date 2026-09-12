@@ -510,15 +510,14 @@
 <div class="topbar">
   <div class="logo" id="logoHome">SANDY SERVER</div>
   <button class="secondary" id="surpriseMeBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Surprise Me</button>
-  <button class="secondary" id="requestTitleBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.3 7-11.5A7 7 0 0 0 5 9.5C5 14.7 12 21 12 21Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 6v7M8.5 9.5h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Request a Title</button>
   <button class="secondary" id="doubleFeatureBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="2.5" y="6" width="10" height="13" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="11.5" y="6" width="10" height="13" rx="1.5" stroke="currentColor" stroke-width="2"/></svg> Double Feature</button>
-  <button class="secondary" id="topBarReturnBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 1 1 2.3 5.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 17v-5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Return</button>
-  <button class="secondary" id="adminConsoleBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;display:none;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Admin Console</button>
+  <button class="secondary" id="topBarServiceModeBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;display:none;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 1 5.4-5.4l-2.7 2.7-1.5-1.5 2.7-2.7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Service mode</button>
   <button class="theme-toggle" id="themeToggleBtn" title="Switch light/dark" type="button">
     <svg class="icon-sun" viewBox="0 0 24 24" fill="none" width="18" height="18"><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="2"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="2.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="21.5"/><line x1="2.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="21.5" y2="12"/><line x1="5.1" y1="5.1" x2="6.9" y2="6.9"/><line x1="17.1" y1="17.1" x2="18.9" y2="18.9"/><line x1="5.1" y1="18.9" x2="6.9" y2="17.1"/><line x1="17.1" y1="6.9" x2="18.9" y2="5.1"/></g></svg>
     <svg class="icon-moon" viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
   </button>
   <button class="secondary" id="requestSupportBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;margin-left:auto;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2 1.8-2 3.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.3" r="0.9" fill="currentColor"/></svg> Request Support</button>
+  <div id="scanLoginArea"></div>
 </div>
 
 <div class="nav">
@@ -528,11 +527,6 @@
   <button data-tab="browsedigital">Digital Copies</button>
 </div>
 
-<div class="scan-bar" id="scanBarRow">
-  <svg class="icon-svg" viewBox="0 0 24 24" fill="none" width="18" height="18" style="flex-shrink:0;"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/><line x1="7" y1="8" x2="7" y2="16" stroke="currentColor" stroke-width="2"/><line x1="10" y1="8" x2="10" y2="16" stroke="currentColor" stroke-width="1"/><line x1="12.5" y1="8" x2="12.5" y2="16" stroke="currentColor" stroke-width="2"/><line x1="15" y1="8" x2="15" y2="16" stroke="currentColor" stroke-width="1"/><line x1="17.5" y1="8" x2="17.5" y2="16" stroke="currentColor" stroke-width="2"/></svg>
-  <input id="barcodeInput" placeholder="Scan or type a barcode, then press Enter — works with a USB scanner too" />
-  <div id="scanLoginArea"></div>
-</div>
 <div id="returnModeBanner"></div>
 <div id="kioskTvBanner" class="scan-bar-under"></div>
 <div id="scanResult" class="scan-bar-under"></div>
@@ -592,7 +586,10 @@
       <svg class="btn-icon" viewBox="0 0 24 24" fill="none" width="22" height="22"><path d="M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 1 5.4-5.4l-2.7 2.7-1.5-1.5 2.7-2.7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
       <div class="display" style="font-size:17px;">Service mode</div>
     </div>
-    <button class="primary" id="exitServiceModeBtn">Exit service mode</button>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button class="secondary" id="serviceModeAdminConsoleBtn"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Admin Console</button>
+      <button class="primary" id="exitServiceModeBtn">Exit service mode</button>
+    </div>
   </div>
   <div class="service-mode-body">
     <div class="scan-msg" style="margin-top:0;margin-bottom:20px;">Alerts (the door-open prompt, the "who took this?" chime) reach this device now, bypassing the main kiosk, if one's set — so nothing gets missed while you're actively working the shelf. This turns off automatically the moment you exit.</div>
@@ -1757,7 +1754,7 @@
     // console is open, drop back to the customer view automatically.
     const isAdmin = !!(loggedInUser && loggedInUser.isAdmin);
     if(adminMode && !isAdmin) exitAdminConsole();
-    const consoleBtn = $("#adminConsoleBtn");
+    const consoleBtn = $("#topBarServiceModeBtn");
     if(consoleBtn) consoleBtn.style.display = isAdmin ? "inline-flex" : "none";
     const bar = $("#adminModeBar");
     if(bar){
@@ -3593,29 +3590,46 @@
   }
 
   function renderLoginArea(){
-    renderLoginWidget("#scanLoginArea");
+    renderLoginWidget("#scanLoginArea", true);
     renderLoginWidget("#myRentalsLoginArea");
   }
 
   // The barcode bar and My Rentals no longer have their own PIN entry —
   // logging in only ever happens through the one login gate (openLoginGate).
-  // These widgets just show who's checked in.
-  function renderLoginWidget(selector){
+  // These widgets just show who's checked in. compact=true renders a
+  // version sized to sit naturally among the topbar's row of small,
+  // pill-shaped buttons — no bordered box, no width:100% (which would
+  // otherwise try to fill the entire flex row), a shorter, name-only
+  // logged-in line instead of the fuller "(N/M discs out)" detail. The
+  // My Rentals tab keeps the original, roomier version — it's the only
+  // thing in its own area of the page, not one item among several
+  // topbar buttons, so it doesn't have the same width constraint.
+  function renderLoginWidget(selector, compact){
     const el = $(selector);
     if(!el) return;
     if(loggedInUser){
       const count = rentals.filter(r => r.renterName===loggedInUser.name).length;
       const initial = loggedInUser.name.trim().charAt(0).toUpperCase() || "?";
       const avatarHtml = `<span id="myActivityAvatarBtn" title="See your activity" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:${loggedInUser.color||'#B3261E'};font-size:${loggedInUser.avatar?'14px':'12px'};font-weight:700;color:#fff;flex-shrink:0;cursor:pointer;">${loggedInUser.avatar || initial}</span>`;
-      el.innerHTML = `<div class="login-box">
-        <span class="who" style="display:flex;align-items:center;gap:8px;">${avatarHtml} Checking out as ${loggedInUser.name} <span style="font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:12px;color:var(--muted);">(${count}/${maxCheckouts} discs out)</span></span>
-        <button class="secondary" data-logout>Not you? Log out</button>
-      </div>`;
+      if(compact){
+        el.innerHTML = `<div style="display:flex;align-items:center;gap:8px;">
+          ${avatarHtml}
+          <span style="font-size:13px;white-space:nowrap;">${loggedInUser.name}</span>
+          <button class="secondary" data-logout style="padding:9px 14px;font-size:13px;white-space:nowrap;">Log out</button>
+        </div>`;
+      } else {
+        el.innerHTML = `<div class="login-box">
+          <span class="who" style="display:flex;align-items:center;gap:8px;">${avatarHtml} Checking out as ${loggedInUser.name} <span style="font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:12px;color:var(--muted);">(${count}/${maxCheckouts} discs out)</span></span>
+          <button class="secondary" data-logout>Not you? Log out</button>
+        </div>`;
+      }
       el.querySelector("[data-logout]").onclick = pinLogout;
       const avatarBtn = el.querySelector("#myActivityAvatarBtn");
       if(avatarBtn) avatarBtn.onclick = openMyActivity;
     } else {
-      el.innerHTML = `<button class="primary" data-openlogin style="width:100%;">Log in to rent</button>`;
+      el.innerHTML = compact
+        ? `<button class="secondary" data-openlogin style="padding:9px 16px;font-size:13px;white-space:nowrap;">Log in to rent</button>`
+        : `<button class="primary" data-openlogin style="width:100%;">Log in to rent</button>`;
       el.querySelector("[data-openlogin]").onclick = openLoginGate;
     }
   }
@@ -6021,9 +6035,10 @@
     if(banner) banner.innerHTML = returnMode
       ? `<div class="return-mode-banner">Return mode on — scan the disc you're returning. Once it's found, place it in a bay slot (or scan its bay barcode) to log the return.</div>`
       : "";
-    if(returnMode){
-      $("#barcodeInput").focus();
-    }
+    // No dedicated input to focus anymore now that the scan bar's gone —
+    // the global scanner capture picks this up regardless of what's
+    // focused (or isn't), so nothing further is needed here to make a
+    // scan actually land correctly once return mode is on.
   }
 
   async function handleReturnModeScan(code){
@@ -6159,6 +6174,16 @@
         startReturn(rentals.find(r=>r.id===b.dataset.returnScan));
       });
       pendingAssignTitleId = hasBay ? null : match.id;
+      // The full modal opens automatically on a match, the same one
+      // that opens from tapping the title's poster — this small card
+      // still gets built above it regardless (the return-marking button
+      // for an active rental lives only here, not in the modal, and it
+      // stays reachable once the modal's closed). Skipped specifically
+      // while Service Mode's own full-screen overlay is up — scanning
+      // there is for admin/testing purposes against Service Mode's own
+      // tools, not for pulling up the customer-facing browsing modal on
+      // top of it.
+      if(!serviceMode) openMovieModal(match.id);
     } else {
       pendingAssignTitleId = null;
       box.innerHTML = `<div class="match-card">
@@ -6354,15 +6379,13 @@
   document.addEventListener("DOMContentLoaded", async () => {
     setTheme(getTheme()); // sync the button's icon to whatever the inline head script already applied
     $("#themeToggleBtn").onclick = toggleTheme;
-    $("#topBarReturnBtn").onclick = () => openReturnFlow();
     $("#surpriseMeBtn").onclick = surpriseMe;
-    $("#requestTitleBtn").onclick = openRequestTitleModal;
     $("#requestSupportBtn").onclick = openRequestSupport;
     $("#requestSupportCancelBtn").onclick = closeRequestSupport;
     $("#requestSupportSendBtn").onclick = sendSupportRequest;
     $("#requestSupportOverlay").onclick = (e) => { if(e.target===$("#requestSupportOverlay")) closeRequestSupport(); };
     $("#doubleFeatureBtn").onclick = openDoubleFeature;
-    $("#adminConsoleBtn").onclick = () => enterAdminConsole();
+    $("#topBarServiceModeBtn").onclick = () => openServiceMode();
     $("#exitAdminConsoleBtn").onclick = exitAdminConsole;
     $("#manualCheckoutBtn").onclick = () => {
       const titleId = $("#manualCheckoutTitle").value;
@@ -6586,9 +6609,6 @@
       if(e.key.length === 1) globalScanBuffer += e.key; // a single printable character — excludes Shift, Arrow keys, Tab, etc.
     });
 
-    $("#barcodeInput").addEventListener("keydown", e => {
-      if(e.key==="Enter"){ handleScannedCode($("#barcodeInput").value); $("#barcodeInput").value=""; }
-    });
     $("#bulkAssignInput").addEventListener("keydown", e => {
       if(e.key==="Enter"){ handleBulkAssignScan($("#bulkAssignInput").value); $("#bulkAssignInput").value=""; }
     });
@@ -6598,6 +6618,12 @@
     renderBulkAssignStatus();
     $("#enterServiceModeBtn").onclick = openServiceMode;
     $("#exitServiceModeBtn").onclick = closeServiceMode;
+    // enterAdminConsole() already has its own check for serviceMode being
+    // on, re-showing this exact overlay on top of the admin console once
+    // it opens — so service mode correctly stays active underneath
+    // rather than needing to be exited first just to reach the fuller
+    // admin console for something this quicker overlay doesn't cover.
+    $("#serviceModeAdminConsoleBtn").onclick = () => enterAdminConsole();
     $("#serviceTestLedsBtn").onclick = async () => {
       try{ await api.send("POST", "/api/test-bay-leds"); toast("Cycling through each bay's LED now…"); }
       catch(e){ toast(e.message || "Couldn't start the LED test"); }

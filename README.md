@@ -538,6 +538,172 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## Fixed: returning by scanning the disc left a stale bay assignment behind
+
+A real, concrete gap, found by checking the actual endpoint rather
+than assuming: when a return completes by scanning the disc's own
+barcode — instead of the physical bay-sensor path, which already
+correctly re-homes a title to whatever bay it's actually placed in —
+the endpoint never touched that title's existing bay assignment at
+all. An admin manually assigning a bay to a title while it was still
+checked out (expecting it to go back there) would leave that
+assignment sitting there completely untouched once the disc actually
+came back by scan instead, with the system still confidently claiming
+it lived in a bay nobody had actually put it in.
+
+Fixed by clearing any existing bay assignment the moment a return
+completes this way — reusing `unassignBayForTitle()`, the same helper
+already built for checkout clearing a bay, rather than writing a
+second version of the same logic. The title now correctly lands in
+bulk storage, matching what's actually known for certain (the disc is
+back) rather than what was only ever assumed earlier (which bay it'd
+end up in).
+
+Caught something that would have quietly undone this fix entirely
+before it ever shipped: this same endpoint already called
+`autoAssignOpenBays()` at the end, an existing behavior that fills
+empty bays with unassigned titles automatically. Left in place, it
+would have immediately re-filled some other open bay with this exact
+title the moment it happened to sort alphabetically into an open slot
+— undoing the bulk-storage placement within the same request that had
+just set it. Removed that call from this specific endpoint only, not
+from the other return paths that still legitimately need it: the
+fully manual admin return genuinely has no way to know where a disc
+physically went, so guessing there is reasonable. Here, scanning the
+disc's own barcode instead of a bay *is* the signal that nothing about
+its physical placement is actually known — guessing a bay for it would
+work directly against the thing that scan was just used to establish.
+
+Verified the full sequence directly with a small simulation rather
+than just trusting the reasoning: a title with bay 5 assigned, scan-
+returned, correctly ends up with no bay assigned at all afterward.
+
+## Removed Return and Request a Title from the topbar
+
+Both real functionality removals, not just tidying — worth being
+precise about what each one actually took with it, not just that a
+button disappeared.
+
+**Request a Title had no other way in anywhere in the app** — checked
+directly rather than assumed, and confirmed this topbar button was
+its only trigger. Removing it means customers can no longer request a
+new title be added at all; the admin can still see and manage
+whatever's already on the wishlist from the admin panel, but nothing
+new can get added to it from the customer side anymore.
+
+**Return turned out to be a genuinely different, more significant
+loss than it first looked** — investigated before touching it rather
+than assumed it was a simple duplicate of something else. It wasn't a
+toggle for a scan-interpretation mode the way it looked from its own
+variable name; it was the only trigger for a separate, dedicated
+"return a disc" overlay with its own PIN-entry step, built
+specifically so someone could return something *without* first
+logging in through the normal gate. My Rentals still has its own
+"Return disc" button per active rental, so returning by scanning
+after normally logging in still works exactly as it always did — but
+that's a genuinely different path than the one just removed, not a
+duplicate of it, and the specific "return without logging in first"
+flow is gone now that its only entry point is removed.
+
+The underlying functions both buttons called (`openReturnFlow()`,
+`openRequestTitleModal()`, and everything the dedicated return overlay
+used) are still sitting in the code, just now completely unreachable —
+left alone rather than torn out along with the buttons, matching how
+earlier dead code from this same kind of change (the old scan-bar
+input, `#label-sheet`) was handled: removing an entire now-orphaned
+subsystem is real, separate surgery with its own risk, not something
+worth bundling into "remove two buttons" without being asked to.
+
+Caught something worth flagging before it shipped, not after: the
+click handlers for both buttons were direct, unguarded
+`$("#id").onclick = ...` assignments — with the elements now gone,
+those specific two lines would have thrown on page load and silently
+broken every single piece of setup wired after them in that same
+startup sequence, the exact same class of bug traced all the way back
+during the label-generator investigation a while ago. Removed both
+lines along with the buttons rather than leave them as landmines.
+
+## Flipped the topbar entry point: Service Mode first, Admin Console from inside it
+
+The customer topbar used to go straight into the full Admin Console;
+Service Mode was one option buried inside it. That's reversed now —
+the topbar button (same admin-only visibility it always had) opens
+Service Mode directly, and Admin Console became a button inside
+Service Mode instead, for the times the fuller console is actually
+needed.
+
+This turned out to need less restructuring than it might sound like —
+`openServiceMode()` never actually depended on the admin console being
+open in the first place; it just shows its own independent full-screen
+overlay, so calling it straight from the topbar works exactly the same
+as calling it from inside the console always did. And
+`enterAdminConsole()` already had its own check for service mode being
+on, re-showing this exact same overlay on top of the console once it
+opens — a safety net originally built for a service-mode session left
+on by a crashed browser tab, but it does exactly what's needed here
+too: service mode stays active underneath rather than needing to be
+exited first just to reach the console.
+
+Renamed the underlying button id throughout (it used to say
+`adminConsoleBtn` while actually opening something else, which would
+have been a confusing landmine for whoever next needed to trace what
+that button did) and fixed a layout detail while placing the new
+button: Service Mode's header uses `justify-content:space-between`
+expecting exactly two groups — the title on one side, actions on the
+other. Adding a third top-level button there would have spread it out
+into an awkward middle gap instead of sitting grouped with Exit;
+wrapped both buttons in their own container so the header stays a
+clean two-group split.
+
+## Removed the scan bar, moved login into the topbar
+
+The visible "Scan or type a barcode" input row (and its icon) is gone
+from the customer page entirely — scanning still works exactly as
+before, since the global scanner capture added a while back already
+picks up a scan from anywhere on the page regardless of what's
+focused, or isn't. That field had become redundant for scanning itself
+once that landed; removing it now that it's not needed for that is
+what actually made this safe to do.
+
+The account/login widget that used to live inside that same row moved
+into the topbar itself, at the far right after Request Support — the
+conventional spot for account status in a layout like this. It didn't
+just get relocated as-is: the version that lived in the wide scan bar
+was sized for that context (a bordered box, `width:100%` on the
+logged-out button), which would have looked broken squeezed into a
+flex row of small, pill-shaped buttons. Built a genuinely compact
+version instead — no box, no full-width button, a shorter name-only
+line when logged in instead of the fuller "(N/M discs out)" detail —
+and kept the original, roomier version intact for My Rentals, which
+still has the room for it and isn't sharing space with anything else.
+
+Worth being direct about one real trade-off, not just describing the
+result: that scan bar was also the only visible hint on the page that
+scanning was supported at all. Removing it means someone unfamiliar
+with this kiosk has no on-screen cue that picking up a scanner and
+using it will actually do something — worth keeping in mind if this
+ever gets used somewhere unfamiliar guests interact with it directly.
+
+## Scanning a disc now opens its full detail view automatically
+
+The same full-screen modal that opens from tapping a title's poster
+now opens automatically the moment a matching disc is scanned — no
+need to also find and tap the poster after scanning it.
+
+The smaller scan-result card still gets built underneath it exactly as
+before, not replaced — its return-marking button for an active rental
+doesn't exist in the modal at all, and stays reachable there once the
+modal's closed, so nothing that already worked was given up to add
+this.
+
+Deliberately skipped while Service Mode's own full-screen overlay is
+up — scanning there is for admin and testing purposes against Service
+Mode's own tools (the new "Last scan" box included), not for pulling
+the customer-facing browsing modal up on top of it. Verified this
+specific gating directly: normal browsing correctly opens the modal on
+a scan, Service Mode correctly doesn't, while the scan-result card
+itself still gets built either way.
+
 ## Service Mode now shows what you scanned and what to test labels against
 
 A real gap this surfaced, not just a nice-to-have: the normal
