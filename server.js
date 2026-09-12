@@ -1160,6 +1160,38 @@ app.get("/api/pending-return", (req, res) => {
   else res.json(null);
 });
 app.get("/api/titles", (req, res) => res.json(db.titles));
+
+// "Customers also watched" — built from what actually happened, not a
+// guess based on genre or any other metadata. Finds everyone who's
+// ever completed a rental of this title, then tallies up every OTHER
+// title those same people have also completed a rental of, ranked by
+// how many of them share it. A title only two people in the whole
+// household have ever watched will naturally surface a thinner, more
+// tentative list than one twenty people have been through — that's
+// real signal, not a bug, so no artificial floor is applied to force
+// a full list out of too little actual data.
+app.get("/api/titles/:id/also-watched", (req, res) => {
+  const titleId = req.params.id;
+  const renters = new Set(db.rentalHistory.filter(r => r.movieId === titleId).map(r => r.renterName).filter(Boolean));
+  if(renters.size === 0) return res.json({ titles: [] });
+  const counts = new Map(); // otherTitleId -> { title, count }
+  db.rentalHistory.forEach(r => {
+    if(r.movieId === titleId || !renters.has(r.renterName)) return;
+    const entry = counts.get(r.movieId) || { id: r.movieId, title: r.title, count: 0 };
+    entry.count++;
+    counts.set(r.movieId, entry);
+  });
+  const ranked = Array.from(counts.values())
+    .sort((a,b) => b.count - a.count)
+    .slice(0, 8)
+    .map(entry => ({ id: entry.id, title: entry.title, count: entry.count }))
+    // Only keeps titles that still actually exist in the catalog — a
+    // discontinued or deleted title showing up here with nowhere to
+    // actually click through to would be worse than just omitting it.
+    .filter(entry => db.titles.some(t => t.id === entry.id));
+  res.json({ titles: ranked });
+});
+
 app.get("/api/rentals", (req, res) => res.json(db.rentals));
 app.get("/api/users", (req, res) => res.json(db.users));
 app.get("/api/settings", (req, res) => res.json(db.settings));

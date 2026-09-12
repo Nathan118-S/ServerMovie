@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Sandy Server</title>
 <script>
   // Applied immediately, before the stylesheet paints, so there's no
@@ -168,7 +169,7 @@
      min-height is taller than before — a shorter hero would finish
      fading before there's much space left to feel like a real
      transition into the catalog grid below it. */
-  .hero{position:relative;width:100vw;left:50%;right:50%;margin-left:-50vw;margin-right:-50vw;min-height:82vh;display:flex;align-items:flex-end;overflow:hidden;margin-bottom:8px;transition:opacity 0.1s linear;}
+  .hero{position:relative;width:100vw;left:50%;right:50%;margin-left:-50vw;margin-right:-50vw;min-height:60vh;display:flex;align-items:flex-end;overflow:hidden;margin-bottom:8px;transition:opacity 0.1s linear;}
   @keyframes heroKenBurns{0%{transform:scale(1);}100%{transform:scale(1.08);}}
   /* A fixed dasharray/dashoffset larger than any realistic chart path
      length, animating the offset down to 0 — the standard CSS trick for
@@ -330,6 +331,39 @@
     #shelf-map-sheet{display:block!important;width:100%;}
   }
 
+  /* Tablet-sized screens (roughly a 10" tablet in either orientation
+     and smaller) — this app had exactly one media query before this,
+     for print, and none at all for screen size. Everything below is
+     scoped to the customer-facing kiosk experience specifically
+     (topbar, scan bar, hero, poster grid), not the admin console,
+     which is a separate, less frequently touch-driven interface. */
+  @media (max-width: 1024px){
+    .topbar, .scan-bar{padding-left:18px;padding-right:18px;}
+    .poster-grid{padding-left:18px;padding-right:18px;}
+    .hero-content{padding-left:18px;padding-right:18px;}
+    .hero-title{font-size:32px;}
+    .hero-btn{padding:14px 24px;font-size:15px;}
+    /* Roughly 36-40px tall as originally sized — under the generally
+       recommended ~44px minimum touch target. This selector isn't
+       scoped to just the customer-facing kiosk — it applies to every
+       button using these three base classes anywhere on the page,
+       admin console included. That's intentional here, not an
+       oversight: a bigger touch target is a plain improvement even in
+       admin, since the same tablet could reasonably be used for both. */
+    button.primary, button.secondary, button.teal{padding-top:13px;padding-bottom:13px;}
+  }
+  /* Landscape tablets specifically — width alone doesn't catch this,
+     since a tablet in landscape can be wider than 1024px while still
+     being short enough for the hero to crowd out everything below it.
+     Height is the actual constraint here, not width. Needs to stay
+     shorter than the 60vh base below, not just repeat it — a short
+     landscape viewport is the single most cramped case this app runs
+     in, and deserves more reduction than the general case gets, not
+     the same amount. */
+  @media (max-height: 700px) and (orientation: landscape){
+    .hero{min-height:48vh;}
+  }
+
   .adjbtn{background:var(--surf2);border:1px solid var(--line);color:var(--white);border-radius:10px;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;transition:background 0.18s ease,transform 0.1s ease;}
   .adjbtn:hover{background:var(--surf4);}
   .adjbtn:active{transform:scale(0.9);}
@@ -484,6 +518,8 @@
   <div class="panel active" data-panel="browse">
     <div id="browseHero"></div>
     <div id="moodRow" style="display:flex;gap:8px;flex-wrap:wrap;padding:0 40px 18px;position:relative;z-index:1;"></div>
+    <div id="genreFilterRow" style="display:flex;gap:8px;flex-wrap:wrap;padding:0 40px 10px;position:relative;z-index:1;"></div>
+    <div id="ratingFilterRow" style="display:flex;gap:8px;flex-wrap:wrap;padding:0 40px 18px;position:relative;z-index:1;"></div>
     <div id="browseRows"></div>
   </div>
 
@@ -1365,17 +1401,23 @@
   let query = "";
   let featuredBrowseId = null;
   let moodFilter = null; // one of MOOD_PRESETS' keys, or null for no mood filter active
+  let genreFilter = null; // one of GENRE_COLORS' keys, or null for no genre filter active
+  let ratingFilter = null; // one of the standard MPAA ratings, or null for no rating filter active
   let featuredGamesId = null;
   let featuredDigitalId = null;
   let featuredTvId = null;
   let pendingAdminPoster = "";
   let adminListPage = 0;
   let lastAdminListSig = "";
+  let lastPendingReturnSig = "";
+  let lastPendingCheckoutSig = "";
   let lastBayDashboardSig = { "#bayDashboard": "", "#serviceBayDashboard": "" };
   let lastRentalsSig = "";
   let lastWishlistSig = "";
   let lastUsersListSig = "";
-  let lastBayLayoutSig = "";
+  let lastDashboardSig = "";
+  let lastActivityFeedSig = "";
+  let lastActivityPanelSig = "";
   let inventorySearch = "";
   let inventoryTypeFilter = "";
   let inventoryLocationFilter = "";
@@ -2491,6 +2533,48 @@
     });
   }
 
+  // Genre chips reuse each genre's own established color (the same one
+  // behind the poster-glow effect elsewhere) for its active state,
+  // rather than the generic red every other chip row uses — makes an
+  // active genre filter visually match the same color language the
+  // genre already carries throughout the rest of Browse.
+  function renderGenreFilterRow(){
+    const el = $("#genreFilterRow");
+    if(!el) return;
+    el.innerHTML = Object.keys(GENRE_COLORS).map(genre => {
+      const active = genreFilter === genre;
+      const color = GENRE_COLORS[genre];
+      return `<button class="secondary${active?' active':''}" data-genre="${genre}" style="padding:8px 14px;font-size:12.5px;white-space:nowrap;${active?`background:${color};color:#fff;border-color:${color};`:''}">${genre}</button>`;
+    }).join("");
+    el.querySelectorAll("[data-genre]").forEach(btn => {
+      btn.onclick = () => {
+        genreFilter = (genreFilter === btn.dataset.genre) ? null : btn.dataset.genre;
+        lastBrowseSig = "";
+        renderBrowse();
+        const newBtn = $(`#genreFilterRow [data-genre="${genreFilter||btn.dataset.genre}"]`);
+        if(newBtn && genreFilter){ newBtn.style.animation="none"; void newBtn.offsetWidth; newBtn.style.animation="tabPop 0.25s ease"; }
+      };
+    });
+  }
+
+  function renderRatingFilterRow(){
+    const el = $("#ratingFilterRow");
+    if(!el) return;
+    el.innerHTML = ["G","PG","PG-13","R"].map(rating => {
+      const active = ratingFilter === rating;
+      return `<button class="secondary${active?' active':''}" data-rating="${rating}" style="padding:8px 14px;font-size:12.5px;white-space:nowrap;${active?'background:var(--red);color:#fff;border-color:var(--red);':''}">${rating}</button>`;
+    }).join("");
+    el.querySelectorAll("[data-rating]").forEach(btn => {
+      btn.onclick = () => {
+        ratingFilter = (ratingFilter === btn.dataset.rating) ? null : btn.dataset.rating;
+        lastBrowseSig = "";
+        renderBrowse();
+        const newBtn = $(`#ratingFilterRow [data-rating="${ratingFilter||btn.dataset.rating}"]`);
+        if(newBtn && ratingFilter){ newBtn.style.animation="none"; void newBtn.offsetWidth; newBtn.style.animation="tabPop 0.25s ease"; }
+      };
+    });
+  }
+
   function renderBrowse(){
     const heroEl = $("#browseHero");
     const rowsEl = $("#browseRows");
@@ -2504,14 +2588,18 @@
     // be a worse experience than the small cost of updating it here on
     // every call.
     renderMoodRow();
+    renderGenreFilterRow();
+    renderRatingFilterRow();
     if(moodFilter && MOOD_PRESETS[moodFilter]) movieItems = movieItems.filter(MOOD_PRESETS[moodFilter].test);
+    if(genreFilter) movieItems = movieItems.filter(m => m.genre === genreFilter);
+    if(ratingFilter) movieItems = movieItems.filter(m => m.rating === ratingFilter);
 
     // Skip the (expensive, and DOM-destroying) rebuild entirely when
     // nothing that actually affects this grid has changed since last
     // time — this is what stops the poster stagger-in and scroll-reveal
     // animations from replaying every time an unrelated checkout/return
     // happens anywhere in the app and triggers a global render() pass.
-    const sig = (moodFilter||"") + "|" + browseSignature(movieItems, q);
+    const sig = (moodFilter||"") + "|" + (genreFilter||"") + "|" + (ratingFilter||"") + "|" + browseSignature(movieItems, q);
     if(sig === lastBrowseSig) return;
     lastBrowseSig = sig;
 
@@ -2729,6 +2817,16 @@
     const statsEl = $("#dashboardStats");
     const attentionEl = $("#dashboardAttention");
     if(!statsEl || !attentionEl) return;
+
+    // The overdue count is time-sensitive the same way Rentals' "days
+    // left" is — a rental can become overdue purely because time passed,
+    // with no data actually changing — so the day number is folded into
+    // the signature to guarantee at least a daily refresh, same
+    // reasoning as that earlier fix.
+    const dayBucket = Math.floor(Date.now() / 86400000);
+    const sig = JSON.stringify(rentals) + "|" + JSON.stringify(catalog.map(m=>({s:m.stock,c:m.condition}))) + "|" + dayBucket;
+    if(sig === lastDashboardSig) return;
+    lastDashboardSig = sig;
 
     const activeCount = rentals.length;
     const overdueCount = rentals.filter(r => r.dueOn < Date.now()).length;
@@ -3076,6 +3174,16 @@
   function renderActivityFeed(){
     const el = $("#activityFeed");
     if(!el) return;
+    // Shows "5 minutes ago"-style relative time, which drifts stale
+    // with time passing the same way "days left" and the overdue count
+    // do elsewhere — but at minute granularity, not daily, so the
+    // signature folds in the current minute rather than the current
+    // day, guaranteeing this refreshes at least that often even with no
+    // new activity at all.
+    const minuteBucket = Math.floor(Date.now() / 60000);
+    const sig = JSON.stringify(rentals.map(r=>({t:r.title,o:r.renterName,at:r.rentedOn}))) + "|" + JSON.stringify(rentalHistory.map(r=>({t:r.title,o:r.renterName,at:r.returnedOn}))) + "|" + minuteBucket;
+    if(sig === lastActivityFeedSig) return;
+    lastActivityFeedSig = sig;
     const checkoutEvents = rentals.map(r => ({ type: "checkout", at: r.rentedOn, title: r.title, who: r.renterName }));
     const returnEvents = rentalHistory.map(r => ({ type: "return", at: r.returnedOn, title: r.title, who: r.renterName }));
     const events = checkoutEvents.concat(returnEvents)
@@ -3106,6 +3214,13 @@
     const popEl = $("#popularList");
     const logEl = $("#checkoutLog");
     if(!popEl || !logEl) return;
+
+    // Shows calendar dates (toLocaleDateString), not relative time, so
+    // unlike Dashboard/Rentals/Activity Feed above, nothing here goes
+    // stale purely from time passing — a plain data signature is enough.
+    const sig = JSON.stringify(rentals) + "|" + JSON.stringify(rentalHistory);
+    if(sig === lastActivityPanelSig) return;
+    lastActivityPanelSig = sig;
 
     // Popularity: every checkout ever, active or already returned, tallied
     // by title. Counts don't change once a rental's created, so this is
@@ -3385,6 +3500,11 @@
   function renderWishlist(){
     const el = $("#wishlistList");
     if(!el) return;
+    // Shows calendar dates, not relative time — no time-sensitivity
+    // concern here, a plain data signature is enough.
+    const sig = JSON.stringify(wishlist);
+    if(sig === lastWishlistSig) return;
+    lastWishlistSig = sig;
     if(wishlist.length === 0){
       el.innerHTML = `<div style="color:var(--muted);font-size:14px;">Nothing requested yet.</div>`;
       return;
@@ -3507,6 +3627,13 @@
   function renderUsersList(){
     const el = $("#usersList");
     if(!el) return;
+    // Depends on rentals/rentalHistory too, not just users — each row
+    // shows what that person currently has checked out and how many
+    // past rentals they have, both of which can change from a rental
+    // event alone with users itself untouched.
+    const sig = JSON.stringify(users) + "|" + JSON.stringify(rentals) + "|" + JSON.stringify(rentalHistory);
+    if(sig === lastUsersListSig) return;
+    lastUsersListSig = sig;
     if(users.length===0){ el.innerHTML = `<div style="color:var(--muted);font-size:14px;">No users yet — add household members and their PINs above.</div>`; return; }
     el.innerHTML = `<div class="list-group">` + users.map(u => {
       const active = rentals.filter(r => r.renterName===u.name);
@@ -3586,6 +3713,40 @@
     modalMovieId = id;
     renderModal();
     playThemeSongFor(catalog.find(x => x.id === id));
+    loadAlsoWatched(id);
+  }
+
+  // Fetched and dropped into its own slot after the modal's initial
+  // synchronous render, the same pattern the trailer section already
+  // uses — this needs a network round-trip, so it can't be part of the
+  // modal's normal render pass without either blocking it or leaving it
+  // stuck showing stale data from whichever title was open before.
+  async function loadAlsoWatched(id){
+    const slot = $("#alsoWatchedSlot-modal");
+    if(!slot) return;
+    slot.innerHTML = "";
+    let data;
+    try{ data = await api.get("/api/titles/"+id+"/also-watched"); }
+    catch(e){ return; }
+    // The modal could have moved on to a different title (or closed
+    // entirely) by the time this actually resolves — checking modalMovieId
+    // is still this same id before touching the DOM avoids painting a
+    // stale recommendation list into whatever's showing now.
+    if(modalMovieId !== id) return;
+    const items = (data.titles || []).map(t => catalog.find(c => c.id === t.id)).filter(Boolean).slice(0, 6);
+    if(items.length === 0) return;
+    slot.innerHTML = `<div style="margin-bottom:16px;">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Customers also watched</div>
+      <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;">
+        ${items.map(t => `<div data-openalso="${t.id}" style="flex-shrink:0;width:90px;cursor:pointer;">
+          <div style="width:90px;height:135px;border-radius:8px;background-size:cover;background-position:center;background-color:#222;${t.poster?`background-image:url('${t.poster}');`:''}"></div>
+          <div style="font-size:11px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.title}</div>
+        </div>`).join("")}
+      </div>
+    </div>`;
+    slot.querySelectorAll("[data-openalso]").forEach(el => {
+      el.onclick = () => openMovieModal(el.dataset.openalso);
+    });
   }
 
   function openSeriesModal(seriesName){
@@ -3671,6 +3832,7 @@
           </div>`;
         })()}
         ${(m.seriesName && m.themeSong) ? `<button class="secondary" id="themeStopBtn" style="font-size:11px;padding:6px 10px;margin-bottom:16px;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M4 9v6h4l5 4V5L8 9H4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Playing theme — tap to stop</button>` : ''}
+        <div id="alsoWatchedSlot-modal"></div>
         <div id="trailerSlot-modal" style="margin-bottom:16px;"></div>
         <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:16px;">${imdbLinkHtml(m)}${trailerButtonHtml(m, "trailerSlot-modal")}</div>
         ${actionHtml}
@@ -4567,11 +4729,20 @@
         wireBayCardDrag(card, bay.number);
       }
       const status = bayLayoutStatus(bay);
-      card.innerHTML = `
-        <div class="bay-layout-num">BAY ${bay.number}</div>
-        <div class="bay-layout-title">${status.name || '—'}</div>
-        <div class="bay-layout-status"><span class="bay-layout-dot" style="background:${status.color};"></span>${status.text}</div>
-      `;
+      // Already reuses the same card element across renders (for drag
+      // state) rather than rebuilding the whole canvas — this adds the
+      // other half: skipping even the innerHTML write for a card whose
+      // own status hasn't actually changed, rather than writing it
+      // unconditionally for every bay on every single render pass.
+      const cardSig = status.name + "|" + status.color + "|" + status.text;
+      if(card.dataset.statusSig !== cardSig){
+        card.dataset.statusSig = cardSig;
+        card.innerHTML = `
+          <div class="bay-layout-num">BAY ${bay.number}</div>
+          <div class="bay-layout-title">${status.name || '—'}</div>
+          <div class="bay-layout-status"><span class="bay-layout-dot" style="background:${status.color};"></span>${status.text}</div>
+        `;
+      }
     });
     // Remove cards for bays that no longer exist (deleted since the last render)
     canvas.querySelectorAll(".bay-layout-card").forEach(card => {
@@ -4794,7 +4965,7 @@
       // so the admin flow stays exactly as fast as before — and only
       // when rentByMovie actually succeeded, not on every call, since it
       // fails silently after its own toast rather than throwing.
-      if(ok) showRentalCompleteScreen({ title: movie.title, renterName });
+      if(ok) showRentalCompleteScreen({ title: movie.title, renterName, bulkStorage: true });
       return;
     }
     try{
@@ -4900,17 +5071,35 @@
   function renderPendingReturnOverlay(){
     const el = $("#pendingReturnOverlay");
     if(!el) return;
-    if(!pendingReturn){ el.style.display = "none"; el.innerHTML = ""; return; }
+    if(!pendingReturn){ el.style.display = "none"; el.innerHTML = ""; lastPendingReturnSig = ""; return; }
     el.style.display = "flex";
+    // This overlay is a full-screen, opaque layer sitting on top of the
+    // entire page (including the scan bar in the topbar, which lives in
+    // the normal page underneath it) — the earlier version of this told
+    // people to "scan in the scanner bar," but that bar is completely
+    // covered by this exact overlay the whole time it's showing, making
+    // that instruction impossible to actually follow. Fixed by giving
+    // the overlay its own scan field instead, wired to the same
+    // handleScannedCode() the main scan bar already uses.
+    //
+    // Guarded against rebuilding on every render pass (this used to
+    // happen unconditionally) specifically so that scan field keeps
+    // focus and whatever's mid-scan isn't wiped out by an unrelated
+    // event elsewhere in the app re-rendering this overlay out from
+    // under someone actively scanning into it.
+    const sig = pendingReturn.titleId + "|" + pendingReturn.title;
+    if(sig === lastPendingReturnSig) return;
+    lastPendingReturnSig = sig;
     const hasBay = bays.some(b => b.titleId === pendingReturn.titleId);
     const instructions = hasBay
-      ? `Place "${pendingReturn.title}" in a bay to finish the return — or scan that bay's barcode if you're testing this without hardware wired up yet.`
-      : `"${pendingReturn.title}" isn't assigned to a bay — scan its own barcode in the scanner bar to confirm it's back.`;
+      ? `Place "${pendingReturn.title}" in a bay to finish the return — or scan that bay's barcode below if you're testing this without hardware wired up yet.`
+      : `"${pendingReturn.title}" isn't assigned to a bay — scan its own barcode below to confirm it's back.`;
     const isAdmin = !!(loggedInUser && loggedInUser.isAdmin);
     el.innerHTML = `
       <div class="spinner"></div>
       <div class="t">Return pending</div>
       <div class="g">${instructions}</div>
+      <input id="pendingReturnScanInput" placeholder="Scan or type a barcode, then press Enter" style="max-width:320px;margin:4px 0 10px;" autocomplete="off" />
       <div style="display:flex;gap:8px;">
         <button class="secondary" id="cancelPendingReturnBtn">Cancel</button>
         ${isAdmin ? `<button class="teal" id="adminForceReturnBtn">Complete now (admin)</button>` : ""}
@@ -4918,22 +5107,31 @@
     `;
     $("#cancelPendingReturnBtn").onclick = cancelPendingReturn;
     if(isAdmin) $("#adminForceReturnBtn").onclick = adminForceCompleteReturn;
+    const scanInput = $("#pendingReturnScanInput");
+    scanInput.addEventListener("keydown", e => {
+      if(e.key==="Enter"){ handleScannedCode(scanInput.value); scanInput.value=""; }
+    });
+    scanInput.focus();
   }
 
   function renderPendingCheckoutOverlay(){
     const el = $("#pendingCheckoutOverlay");
     if(!el) return;
-    if(!pendingCheckout){ el.style.display = "none"; el.innerHTML = ""; return; }
+    if(!pendingCheckout){ el.style.display = "none"; el.innerHTML = ""; lastPendingCheckoutSig = ""; return; }
     el.style.display = "flex";
+    const sig = pendingCheckout.titleId + "|" + pendingCheckout.title;
+    if(sig === lastPendingCheckoutSig) return;
+    lastPendingCheckoutSig = sig;
     const hasBay = bays.some(b => b.titleId === pendingCheckout.titleId);
     const instructions = hasBay
-      ? `Take "${pendingCheckout.title}" out of its bay to finish checking it out — or scan that bay's barcode if you're testing this without hardware wired up yet.`
-      : `"${pendingCheckout.title}" isn't assigned to a bay — scan its own barcode in the scanner bar to confirm you're taking it.`;
+      ? `Take "${pendingCheckout.title}" out of its bay to finish checking it out — or scan that bay's barcode below if you're testing this without hardware wired up yet.`
+      : `"${pendingCheckout.title}" isn't assigned to a bay — scan its own barcode below to confirm you're taking it.`;
     const isAdmin = !!(loggedInUser && loggedInUser.isAdmin);
     el.innerHTML = `
       <div class="spinner"></div>
       <div class="t">Rental pending</div>
       <div class="g">${instructions}</div>
+      <input id="pendingCheckoutScanInput" placeholder="Scan or type a barcode, then press Enter" style="max-width:320px;margin:4px 0 10px;" autocomplete="off" />
       <div style="display:flex;gap:8px;">
         <button class="secondary" id="cancelPendingCheckoutBtn">Cancel</button>
         ${isAdmin ? `<button class="teal" id="adminForceCheckoutBtn">Complete now (admin)</button>` : ""}
@@ -4941,6 +5139,11 @@
     `;
     $("#cancelPendingCheckoutBtn").onclick = cancelPendingCheckout;
     if(isAdmin) $("#adminForceCheckoutBtn").onclick = adminForceCompleteCheckout;
+    const scanInput = $("#pendingCheckoutScanInput");
+    scanInput.addEventListener("keydown", e => {
+      if(e.key==="Enter"){ handleScannedCode(scanInput.value); scanInput.value=""; }
+    });
+    scanInput.focus();
   }
 
   // A proper "done!" moment instead of the pending overlay just quietly
@@ -4959,12 +5162,18 @@
       <div style="margin-bottom:16px;"><svg viewBox="0 0 24 24" fill="none" style="width:56px;height:56px;"><circle cx="12" cy="12" r="10" stroke="var(--green)" stroke-width="2"/><path d="M7.5 12.5l3 3 6-6.5" stroke="var(--green)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <div class="t">You're all set!</div>
       <div class="g">"${completed.title}" is checked out${completed.renterName ? ' to '+completed.renterName : ''} — due back ${dueDate}.</div>
+      ${completed.bulkStorage ? `<div style="display:flex;align-items:center;gap:8px;background:var(--surf3);border-radius:12px;padding:12px 16px;margin:14px 0 4px;max-width:340px;font-size:13px;color:var(--white);text-align:left;"><svg viewBox="0 0 24 24" fill="none" style="width:22px;height:22px;flex-shrink:0;" stroke="#E87C03"><path d="M3 8l9-4.5L21 8v9l-9 4.5L3 17V8Z" stroke-width="2" stroke-linejoin="round"/><path d="M3 8l9 4.5L21 8M12 12.5V21" stroke-width="2" stroke-linejoin="round"/></svg><span>This one isn't in a bay — grab it from the bulk storage pile.</span></div>` : ''}
       <button class="primary" id="rentalCompleteDoneBtn">Continue browsing</button>
     `;
     playCheckoutCompleteSound();
     const close = () => { el.style.display = "none"; el.innerHTML = ""; };
     $("#rentalCompleteDoneBtn").onclick = close;
-    rentalCompleteTimer = setTimeout(close, 5000);
+    // A longer window specifically when there's a new instruction to
+    // actually read and act on — 5 seconds is plenty for the normal
+    // "you're all set" confirmation someone already expects, but not
+    // really enough time to notice, read, and process something
+    // unexpected like "this one isn't where you'd normally look for it."
+    rentalCompleteTimer = setTimeout(close, completed.bulkStorage ? 8000 : 5000);
   }
 
   let returnCompleteTimer = null;
@@ -6234,6 +6443,40 @@
         statusEl.textContent = e.message || "Couldn't restart it.";
       }
     };
+
+    // Global barcode-scanner capture — works anywhere on the page, not
+    // just when the dedicated scan field has focus. A USB barcode
+    // scanner is a keyboard-wedge device from the browser's point of
+    // view: every character it "scans" arrives as a completely normal
+    // keydown event, indistinguishable from someone typing except for
+    // how fast the characters come in. That speed is the actual signal
+    // used here — real human typing essentially never sustains a pace
+    // this fast, even from a fast typist — rather than any special
+    // scanner-detection API, since barcode scanners don't expose one to
+    // a webpage at all.
+    let globalScanBuffer = "";
+    let globalScanLastKeyTime = 0;
+    const SCAN_KEY_GAP_MS = 50;
+    document.addEventListener("keydown", e => {
+      const active = document.activeElement;
+      const isTyping = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable);
+      // Never intercepts while someone's actually typing into a field —
+      // a PIN, a search box, a title name, the dedicated scan inputs
+      // themselves (which already handle this locally; letting both a
+      // local field handler and this global one process the exact same
+      // scan would double it). Only ever active when nothing text-based
+      // currently has focus.
+      if(isTyping){ globalScanBuffer = ""; return; }
+      const now = Date.now();
+      if(now - globalScanLastKeyTime > SCAN_KEY_GAP_MS) globalScanBuffer = "";
+      globalScanLastKeyTime = now;
+      if(e.key === "Enter"){
+        if(globalScanBuffer.length >= 3) handleScannedCode(globalScanBuffer); // a real scan, not a stray Enter press with nothing built up
+        globalScanBuffer = "";
+        return;
+      }
+      if(e.key.length === 1) globalScanBuffer += e.key; // a single printable character — excludes Shift, Arrow keys, Tab, etc.
+    });
 
     $("#barcodeInput").addEventListener("keydown", e => {
       if(e.key==="Enter"){ handleScannedCode($("#barcodeInput").value); $("#barcodeInput").value=""; }

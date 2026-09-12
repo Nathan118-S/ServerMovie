@@ -538,6 +538,210 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## Genre and rating filter chips, and "Customers also watched" from real data
+
+**Two new chip rows** in Browse, alongside the existing mood row —
+genre and rating, both built on the exact same toggle pattern the
+mood row already established (tap to filter, tap again to clear).
+Genre chips use each genre's own established color for its active
+state (the same one behind the poster-glow effect elsewhere) rather
+than the generic red every other chip uses, so an active genre filter
+visually matches the color language that genre already carries
+throughout the rest of Browse.
+
+**"Customers also watched," built from what actually happened** — a
+new endpoint finds everyone who's genuinely completed a rental of a
+given title, then tallies every other title those same people have
+also completed a rental of, ranked by how many of them share it.
+Verified this specific algorithm with a small simulation before wiring
+it up: a title two different renters both went on to rent correctly
+outranked one only a single renter also picked up. Deliberately no
+artificial floor forcing a full row out of thin data — a title only a
+couple of people have ever watched shows an honestly thinner list, and
+one with no rental history yet shows nothing at all rather than a
+misleading gesture at a recommendation. Fetched asynchronously into
+its own slot after the modal opens, the same pattern the trailer
+section already used, with a guard against painting a stale
+recommendation list in if the modal has already moved on to a
+different title by the time the fetch actually resolves.
+
+## A shorter featured hero, and a full-screen heads-up for bulk storage
+
+**The featured hero is shorter now** — 60% of the viewport height by
+default instead of 82%, so the first row of titles is at least
+partially visible without having to scroll down first. This isn't
+tablet-specific like the earlier pass — it's the general default now,
+movies, games, and Digital Copies alike, since seeing something below
+the hero without scrolling is a reasonable expectation on any screen,
+not just a smaller one. Had to fix something while in there: the
+earlier tablet-specific override was the same value as this new
+default (now redundant, removed), and the landscape-tablet override
+had actually become *taller* than the new base would've been — kept
+that one, but reduced it to stay meaningfully shorter than the general
+case, since a short landscape viewport is still the single most
+cramped situation this app runs in and deserves more reduction than
+just matching everyone else. TV mode's own hero is untouched — that's
+an ambient display where a bigger, more cinematic hero still makes
+sense, and this request was specifically about the browsing experience
+where getting to actual titles quickly matters more.
+
+**A full-screen heads-up when a checked-out disc isn't in a bay** — the
+existing full-screen checkout-complete overlay is already shown for
+every bulk-storage checkout, so rather than build a second, separate
+popup, this adds the actual explanation to that same moment: "this one
+isn't in a bay — grab it from the bulk storage pile," alongside the
+normal due-date confirmation. Extended how long it stays on screen
+specifically for this case, too — 8 seconds instead of the usual 5,
+since a plain "you're all set" needs less time to read than an
+unexpected new instruction someone wasn't expecting to see.
+
+## Optimized the Main Kiosk view for tablet-sized screens
+
+Investigated the actual CSS first rather than guessing at what "tablet
+optimized" should mean — found the app had exactly one media query in
+the entire file, for print, and nothing at all for screen size. More
+fundamentally, there was no viewport meta tag at all, which is the
+actual foundation everything else depends on: without it, a tablet
+browser typically renders the page at a default desktop-width viewport
+(~980px) and scales the whole thing down to fit, making every
+subsequent fix pointless since the browser was never rendering at the
+device's real size to begin with. Added that first.
+
+With that in place, four concrete, verified issues in the
+customer-facing kiosk view specifically (not the admin console, a
+separate, less frequently touch-driven interface):
+
+- **The hero took up 82% of the viewport height** by default —
+  fine on a large screen, but on a tablet in landscape (often only
+  600-800px tall to begin with), that leaves very little room for
+  anything below it; someone would need to scroll a fair amount just
+  to see any actual titles. Shortened it specifically for tablet-sized
+  and landscape-oriented viewports, using a separate height-based media
+  query for landscape specifically, since width alone doesn't catch a
+  tablet that's wide but short.
+- **A fixed 44px hero title** and **40px of horizontal padding**
+  throughout the topbar, scan bar, poster grid, and hero — sized for a
+  large screen, tightened for tablet.
+- **Buttons roughly 36-40px tall** — under the generally recommended
+  ~44px minimum touch target. Fixed at the base-class level
+  (`button.primary`/`.secondary`/`.teal`), which does mean this also
+  affects the admin console's buttons, not just the customer kiosk —
+  deliberate, not an oversight, since a bigger touch target is a plain
+  improvement there too if the same tablet gets used for both.
+
+The modal was already well-built for this — `max-width:100%` and
+`max-height:90vh` were already there, so it needed nothing.
+
+Worth being upfront about a real limitation here: this is CSS and
+layout work, and without an actual browser to render it in, there's no
+way to literally see the result or verify it pixel-for-pixel the way
+the earlier logic-based fixes could be tested with a script. Confirmed
+what can be confirmed without one — the CSS itself parses cleanly, and
+every specific measurement above (the 82vh hero height, the 44px title,
+the ~36-40px buttons, the 40px padding) was read directly from the
+actual stylesheet, not estimated — but the visual result on a real
+tablet is worth checking directly.
+
+## Performance: the remaining admin panels, finishing the earlier work
+
+Picks up exactly where the earlier performance pass left off — that
+one explicitly flagged six panels as still rebuilding unconditionally
+on every render. All six are done now: Dashboard, Recent Activity,
+the popularity/checkout-log panel, Wishlist, Household, and Bay
+Layout — the same signature-comparison approach as before, extended
+to cover the rest of the admin console rather than just the three
+highest-impact panels.
+
+Two of these needed the same careful handling Rentals did earlier, not
+the pattern applied blindly a second time: Dashboard's overdue count
+and Recent Activity's "5 minutes ago"-style timestamps both drift
+stale purely from time passing, with no data actually changing. Folded
+the current day number into Dashboard's signature (matching the daily
+granularity of an overdue count) and the current minute into Recent
+Activity's (matching how fine-grained its relative-time display
+actually is) — verified both bucket boundaries directly with a small
+test before calling this done, confirming a day bucket correctly holds
+steady within the same day and correctly changes across midnight, and
+a minute bucket does the same at minute granularity.
+
+Bay Layout got a different, more surgical fix than the rest — it
+already had a smarter foundation than the others: reusing each bay's
+existing card element across renders instead of rebuilding the whole
+canvas, specifically so an in-progress drag never gets interrupted.
+What it was still missing was skipping the `innerHTML` write itself
+for a card whose own status hadn't actually changed, which it was
+doing unconditionally for every bay on every render regardless. Added
+that as the other half, rather than replacing what it already did
+well.
+
+Household's list also depends on rental data for what each person
+currently has checked out, not just on the user list itself — its
+signature accounts for that. Its rows include several editable input
+fields (name, PIN, color, admin toggle) that were already being
+rebuilt from scratch on every single render before this, unconditionally;
+this doesn't fully eliminate the possibility of an unrelated rebuild
+landing mid-edit, but it meaningfully narrows the window compared to
+what was happening before, which was every render pass, all the time.
+
+## A barcode scanner now works anywhere on the page, not just in a field
+
+Previously needed the specific scan field clicked into first before a
+USB scanner's input would actually land anywhere useful. Now it works
+regardless of what's currently on screen or focused, without needing
+to hunt down a text field first.
+
+A USB barcode scanner is a keyboard-wedge device — from the browser's
+own point of view, every character it "scans" arrives as a completely
+normal keystroke, indistinguishable from someone typing except for how
+fast the characters come in. That speed is the actual signal this
+uses to tell a scan apart from someone typing normally, since barcode
+scanners don't expose any special "I am a scanner" API to a webpage at
+all — there's nothing else to go on.
+
+Deliberately never intercepts while an actual text field has focus —
+a PIN pad, a search box, someone typing a title name, or one of the
+dedicated scan inputs that already handle this locally. Letting both a
+local field's own handler and this global one process the exact same
+scan would double it. This only ever activates when nothing text-based
+currently has focus, which is the normal state for most of the app
+most of the time.
+
+Verified the actual speed-based detection directly with a small
+simulation across three scenarios, not just trusted the logic looked
+right: fast, scanner-speed input with nothing focused gets correctly
+picked up; slow, human-paced typing at the same "nothing focused"
+state correctly does *not* get treated as one scan; and fast,
+scan-speed input while a text field genuinely has focus is correctly
+left alone entirely.
+
+## Fixed: the Rental/Return pending screens said "scan" but hid the scanner
+
+A genuine, direct contradiction, not a vague "can't scan" — the
+Rental pending and Return pending overlays are a full-screen, opaque
+layer sitting on top of the entire page, including the scan bar up in
+the topbar, which lives underneath it in the normal page. Both
+overlays' own instructions said to "scan in the scanner bar," but that
+bar was completely covered by the exact overlay telling you to use it,
+the whole time it was showing — there was never actually a way to
+reach it.
+
+Fixed by giving each overlay its own scan field directly, wired to the
+same scan-handling function the main scan bar already uses, so nothing
+about how a scan gets processed needed to change — only where it can
+happen. Auto-focuses the moment the overlay appears, so a USB
+scanner's keyboard input lands there immediately.
+
+Also added a guard these overlays never had before, specifically
+because of the new scan field: they used to rebuild their entire
+content on every single render pass regardless of whether the pending
+item had actually changed, which would have reset that field and
+wiped out whatever was mid-scan on every unrelated event elsewhere in
+the app. Now they only rebuild when the actual pending item changes.
+Verified this exact behavior with a small simulation across a
+realistic sequence — the same item persisting across repeated renders
+correctly skips and preserves focus, a genuinely different item
+correctly triggers a fresh rebuild and re-focus.
+
 ## Performance: admin panels no longer rebuild on every unrelated event
 
 Investigated rather than guessed at what "slow" might mean here first:
