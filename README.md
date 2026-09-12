@@ -538,6 +538,34 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## Service Mode now shows what you scanned and what to test labels against
+
+A real gap this surfaced, not just a nice-to-have: the normal
+scan-result display lives on the main page, underneath Service Mode's
+own full-screen overlay — completely invisible the entire time Service
+Mode is up, the same issue the pending-checkout and pending-return
+overlays had before they got their own dedicated scan fields a while
+back. There was never actually a way to see what a scan resolved to
+while testing from inside Service Mode itself.
+
+New "Last scan" box shows exactly that — the raw code that came in and
+what it resolved to, whether that's a bay, a matching disc, or nothing
+recognized at all — built off one central place (`recordLastScan()`)
+that every branch of both scan-handling functions now reports back to,
+rather than duplicating that display logic at each of the several
+places a scan could resolve.
+
+Also shows a concrete, specific disc to test freshly-printed labels
+against — deliberately not a random pick, which would change on every
+single render of the box and be a genuine hassle to relocate on the
+shelf each time. Always the alphabetically-first title that already
+has a bay assigned, so the same suggestion stays put and whoever's
+testing can just leave that one disc sitting out nearby rather than
+hunting for a different one after every reload. Verified this specific
+selection logic directly with a small simulation across a realistic
+mix — a bonus disc, a digital copy, and a bay-less game all correctly
+excluded, the right eligible title correctly chosen.
+
 ## Fixed: bay barcodes weren't printing correctly
 
 Reported vaguely at first as "bay barcodes not working," which led to

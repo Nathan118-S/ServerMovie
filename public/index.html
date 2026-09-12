@@ -604,6 +604,12 @@
     </div>
 
     <div class="bulk-box">
+      <div class="display" style="font-size:15px;margin-bottom:6px;">Last scan</div>
+      <div class="scan-msg" style="margin-top:0;">The main scan result normally shows on the page underneath this overlay — invisible while Service Mode covers it. This mirrors it here instead, plus a specific disc to test freshly-printed labels against.</div>
+      <div id="serviceScanBox"></div>
+    </div>
+
+    <div class="bulk-box">
       <div class="display" style="font-size:15px;margin-bottom:6px;">Bulk assign</div>
       <div class="scan-msg" style="margin-top:0;">Scan a bay barcode, then a movie barcode, and repeat — click into the field first so a USB scanner's input lands here.</div>
       <input id="serviceBulkAssignInput" placeholder="Scan a bay barcode to begin…" style="width:100%;font-size:15px;padding:12px 14px;margin-bottom:12px;" autocomplete="off" />
@@ -1445,6 +1451,7 @@
   let lastDashboardSig = "";
   let lastActivityFeedSig = "";
   let lastActivityPanelSig = "";
+  let lastScanSummary = null; // { raw, resultText, at } — most recent scan anywhere in the app, for Service Mode's own display
   let inventorySearch = "";
   let inventoryTypeFilter = "";
   let inventoryLocationFilter = "";
@@ -3025,6 +3032,7 @@
     $("#serviceModeOverlay").style.display = "flex";
     renderBayDashboard("#serviceBayDashboard");
     renderBulkAssignStatus();
+    renderServiceScanBox();
     const input = $("#serviceBulkAssignInput");
     if(input) input.focus();
   }
@@ -4627,12 +4635,13 @@
   // Called when a scanned barcode turns out to be a bay label ("BAY:N").
   // If a disc with no bay was just scanned, this finishes that
   // assignment; otherwise it just shows what's currently in that bay.
-  async function handleBayBarcodeScanned(bayNumber){
+  async function handleBayBarcodeScanned(bayNumber, rawScanned){
     const box = $("#scanResult");
     const bay = bays.find(b => String(b.number) === String(bayNumber));
     if(!bay){
       box.innerHTML = `<div class="match-card"><div class="t">Bay ${bayNumber}</div><div class="g">This bay hasn't been added yet — create it first under Manage inventory &gt; Bays.</div></div>`;
       pendingAssignTitleId = null;
+      recordLastScan(rawScanned, `Bay ${bayNumber} — not added yet`);
       return;
     }
 
@@ -4646,6 +4655,7 @@
         <div class="t">Assigned to Bay ${bayNumber}</div>
         <div class="g">"${title.title}" is now linked to this bay.</div>
       </div>`;
+      recordLastScan(rawScanned, `Bay ${bayNumber} — assigned "${title.title}"`);
       return;
     }
 
@@ -4659,6 +4669,7 @@
         <div class="t">Checked out</div>
         <div class="g">"${result.title}" logged as rented to ${result.renterName} from Bay ${bayNumber}.</div>
       </div>`;
+      recordLastScan(rawScanned, `Bay ${bayNumber} — checked out "${result.title}"`);
       return;
     }catch(e){ /* nothing pending to check out here — try a return next */ }
 
@@ -4669,6 +4680,7 @@
         <div class="t">Returned</div>
         <div class="g">"${result.title}" logged as returned to Bay ${bayNumber}${result.movedToBay ? ' (bay assignment updated)' : ''}.</div>
       </div>`;
+      recordLastScan(rawScanned, `Bay ${bayNumber} — returned "${result.title}"`);
       return;
     }catch(e){ /* nothing pending to return here — fall through to the info view */ }
 
@@ -4677,6 +4689,7 @@
       <div class="t">Bay ${bayNumber}</div>
       <div class="g">${current ? `Currently holds "${current.title}"` : "Nothing assigned to this bay yet"} — scan a disc first, then this bay's barcode, to assign or reassign it.</div>
     </div>`;
+    recordLastScan(rawScanned, `Bay ${bayNumber} — ${current ? `holds "${current.title}"` : 'empty'}`);
   }
 
   // Accepts which container to render into, defaulting to the original
@@ -6039,9 +6052,50 @@
     toggleReturnMode(); // turn the toggle off — we're now just waiting on the physical placement / bay scan
   }
 
+  // One central place that records what the most recent scan actually
+  // was and what it resolved to, regardless of which of the several
+  // branches below handled it (a bay, a matching disc, or nothing
+  // recognized) — Service Mode's own scan-result box reads this, since
+  // the normal #scanResult display lives on the main page underneath
+  // Service Mode's full-screen overlay and is invisible while it's up,
+  // the same issue the pending-checkout/return overlays had before
+  // they got their own dedicated scan fields.
+  function recordLastScan(raw, resultText){
+    lastScanSummary = { raw, resultText, at: Date.now() };
+    renderServiceScanBox();
+  }
+
+  // Service Mode's own scan-result display — shows what the most
+  // recent scan actually was and what it resolved to (needed because
+  // the normal #scanResult box is hidden behind Service Mode's
+  // full-screen overlay), plus a concrete suggestion for which disc to
+  // grab and test freshly-printed labels against. The suggestion is the
+  // alphabetically-first title that already has a bay — deliberately
+  // not a random pick, which would change on every render and be a
+  // genuine hassle to relocate on the shelf each time; the same
+  // suggestion staying put means whoever's testing can just leave that
+  // one disc sitting out nearby.
+  function renderServiceScanBox(){
+    const el = $("#serviceScanBox");
+    if(!el) return;
+    const scanLine = lastScanSummary
+      ? `<div style="font-size:13px;margin-bottom:4px;">Scanned: <code style="background:var(--surf3);padding:2px 6px;border-radius:4px;">${lastScanSummary.raw}</code></div>
+         <div style="font-size:13px;color:var(--muted);">${lastScanSummary.resultText}</div>`
+      : `<div style="font-size:13px;color:var(--muted);">Nothing scanned yet this session.</div>`;
+    const suggestion = catalog
+      .filter(m => m.mediaType !== 'digital' && !m.bonusDiscOf && bays.some(b => b.titleId === m.id))
+      .sort((a,b) => a.title.localeCompare(b.title))[0];
+    const suggestionLine = suggestion
+      ? `Try it against: <b>${suggestion.title}</b> <span style="color:var(--muted);">(code: ${suggestion.code}, Bay ${bays.find(b=>b.titleId===suggestion.id).number})</span>`
+      : `No title with a bay assigned yet to suggest testing against.`;
+    el.innerHTML = `${scanLine}
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);">${suggestionLine}</div>`;
+  }
+
   function handleScannedCode(code){
     code = (code||"").trim();
     if(!code) return;
+    const rawScanned = code;
 
     if(returnMode){
       handleReturnModeScan(code);
@@ -6052,13 +6106,14 @@
     // assignment, or just shows what's in that bay if nothing's pending.
     if(code.indexOf("BAY:")===0){
       const bayNumber = code.slice(4);
-      handleBayBarcodeScanned(bayNumber);
+      handleBayBarcodeScanned(bayNumber, rawScanned);
       return;
     }
 
     if(code.indexOf("SANDYSERVER:")===0) code = code.slice(12);
     else if(code.indexOf("REELBOX:")===0) code = code.slice(8);
     const match = catalog.find(m => m.code === code);
+    recordLastScan(rawScanned, match ? `Matched: "${match.title}"` : "No matching disc or bay found");
     const box = $("#scanResult");
 
     // Scanning the exact disc a checkout/return is already waiting on
