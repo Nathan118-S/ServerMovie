@@ -433,6 +433,17 @@
   .title-logo{max-width:70%;max-height:80px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6));}
   .hero-logo{max-height:130px;max-width:420px;margin-bottom:6px;}
   .modal-close{position:absolute;top:10px;right:12px;z-index:3;background:rgba(0,0,0,0.4);backdrop-filter:blur(8px);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;transition:background 0.18s ease,transform 0.18s ease;}
+  /* The quick-action row sitting just below the title in the header —
+     a translucent "glass" look matching .modal-close right above it,
+     since both sit directly over the backdrop image rather than the
+     solid body background everything else in the modal sits on. A
+     rounded rectangle rather than a strict circle so it can hold either
+     just an icon (Continue on TV) or an icon plus short text (IMDb)
+     without needing two different shapes for what's otherwise the same
+     kind of button. */
+  .modal-icon-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;background:rgba(0,0,0,0.4);backdrop-filter:blur(8px);color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:20px;height:40px;padding:0 14px;cursor:pointer;transition:background 0.18s ease,transform 0.1s ease;box-sizing:border-box;}
+  .modal-icon-btn:hover{background:rgba(0,0,0,0.6);}
+  .modal-icon-btn:active{transform:scale(0.94);}
   .modal-close:hover{background:rgba(0,0,0,0.6);transform:rotate(90deg);}
   .modal-body{padding:20px;}
 
@@ -525,6 +536,7 @@
   <button data-tab="browse" class="active">Browse Movies</button>
   <button data-tab="browsegames">Browse Games</button>
   <button data-tab="browsedigital">Digital Copies</button>
+  <button data-tab="browsehomevideo">Home Videos</button>
 </div>
 
 <div id="returnModeBanner"></div>
@@ -552,6 +564,11 @@
   <div class="panel" data-panel="browsedigital">
     <div id="digitalHero"></div>
     <div id="digitalRows"></div>
+  </div>
+
+  <div class="panel" data-panel="browsehomevideo">
+    <div id="homeVideoHero"></div>
+    <div id="homeVideoRows"></div>
   </div>
 
   <div class="panel" data-panel="myrentals">
@@ -798,6 +815,7 @@
               <option value="movie" selected>Movie / TV</option>
               <option value="game">Game</option>
               <option value="digital">Digital Copy</option>
+              <option value="homevideo">Home Video</option>
             </select>
             <input id="newTitleInput" placeholder="Title" />
             <select id="newGenreInput"></select>
@@ -1275,7 +1293,10 @@
 (function(){
   const GENRE_COLORS = {
     Action:"#8B1E1E", Comedy:"#8A6A16", Drama:"#2E3E63", Horror:"#3E1420",
-    "Sci-Fi":"#175349", Animation:"#8C4A1F", Thriller:"#3E2F63"
+    "Sci-Fi":"#175349", Animation:"#8C4A1F", Thriller:"#3E2F63",
+    Documentary:"#4A5A1F", Family:"#1F6B5C", Fantasy:"#5C1F7A",
+    Mystery:"#1F3E5C", Romance:"#7A1F4E", Adventure:"#7A4E1F",
+    Crime:"#4A2020", Musical:"#7A5C1F", War:"#3E3E3E", Western:"#6B4423"
   };
   // One-tap mood presets for Browse Movies — built entirely from data
   // titles already have (genre, rating, year, when it was added), not
@@ -1296,10 +1317,22 @@
   const GAME_GENRE_COLORS = {
     Action:"#7A2E2E", Adventure:"#2E6B4F", Sports:"#1F5C8A", Racing:"#8A4E1F",
     Fighting:"#5C1F3E", Party:"#7A5C1F", RPG:"#3E2E6B", Shooter:"#4A1F1F",
-    Platformer:"#1F6B5C", Puzzle:"#5C4A8A"
+    Platformer:"#1F6B5C", Puzzle:"#5C4A8A", Strategy:"#2E4A6B", Simulation:"#1F5C4A",
+    Horror:"#3E1420", Stealth:"#2E2E2E", Rhythm:"#7A1F4E", Educational:"#1F6B8A",
+    "Open World":"#4A5A1F"
   };
   const GAME_PLATFORMS = ["Xbox One", "Wii"];
   const GAME_RATINGS = ["E", "E10+", "T", "M", "AO"]; // ESRB, not MPAA
+  // Home videos get their own small genre set too — personal recordings
+  // rather than commercial releases, so the movie/TV and game genres
+  // above don't really fit. No corresponding online metadata exists for
+  // these anywhere, which is the whole reason this media type exists
+  // separately in the first place — a home movie of a birthday party was
+  // never going to be found on OMDb.
+  const HOMEVIDEO_GENRE_COLORS = {
+    Family:"#6B4423", Vacation:"#1F6B8A", Holiday:"#8A1F4E", Birthday:"#8A6B1F",
+    Wedding:"#5C3E7A", Sports:"#1F5C4A", School:"#2E4E7A", Other:"#4A4A4A"
+  };
   // Each service's own brand color, for quick visual recognition on a
   // poster badge — not exact hex matches to official brand guidelines,
   // just close enough to read as "that's the right one" at a glance.
@@ -1434,6 +1467,7 @@
   let genreFilter = null; // one of GENRE_COLORS' keys, or null for no genre filter active
   let ratingFilter = null; // one of the standard MPAA ratings, or null for no rating filter active
   let featuredGamesId = null;
+  let featuredHomeVideoId = null;
   let featuredDigitalId = null;
   let featuredTvId = null;
   let pendingAdminPoster = "";
@@ -1673,6 +1707,7 @@
     renderBrowse();
     renderBrowseGames();
     renderBrowseDigital();
+    renderBrowseHomeVideo();
     renderMyRentalsPanel();
     renderLoginArea();
     renderModal();
@@ -1920,7 +1955,8 @@
   function posterTileHtml(m){
     const isGame = m.mediaType === 'game';
     const isDigital = m.mediaType === 'digital';
-    const color = (isGame ? GAME_GENRE_COLORS[m.genre] : GENRE_COLORS[m.genre]) || "#333";
+    const isHomeVideo = m.mediaType === 'homevideo';
+    const color = (isGame ? GAME_GENRE_COLORS[m.genre] : isHomeVideo ? HOMEVIDEO_GENRE_COLORS[m.genre] : GENRE_COLORS[m.genre]) || "#333";
     // Unavailable is functionally the same as out of stock for every
     // purpose below (can't be rented, shown the same way) even though
     // it's a different underlying reason — a title marked unavailable
@@ -2119,7 +2155,7 @@
 
   function heroHtml(m, mode){
     const isDigital = m.mediaType === 'digital';
-    const color = (m.mediaType === 'game' ? GAME_GENRE_COLORS[m.genre] : GENRE_COLORS[m.genre]) || "#333";
+    const color = (m.mediaType === 'game' ? GAME_GENRE_COLORS[m.genre] : m.mediaType === 'homevideo' ? HOMEVIDEO_GENRE_COLORS[m.genre] : GENRE_COLORS[m.genre]) || "#333";
     const out = m.stock<=0 || m.condition==='unavailable';
     const blurb = m.description
       ? (m.description.length > 200 ? m.description.slice(0, 197) + "…" : m.description)
@@ -2247,10 +2283,11 @@
   // change that only actually needed to touch the hero.
   function updateHeroOnly(tabKey){
     const configs = {
-      browse: { heroSel: "#browseHero", getItems: () => catalog.filter(m => m.mediaType !== 'game' && m.mediaType !== 'digital' && !m.bonusDiscOf), getId: () => featuredBrowseId, mode: "browse", ambientPanel: "browse", wireAction: true },
+      browse: { heroSel: "#browseHero", getItems: () => catalog.filter(m => m.mediaType !== 'game' && m.mediaType !== 'digital' && m.mediaType !== 'homevideo' && !m.bonusDiscOf), getId: () => featuredBrowseId, mode: "browse", ambientPanel: "browse", wireAction: true },
       browsegames: { heroSel: "#gamesHero", getItems: () => catalog.filter(m => m.mediaType === 'game'), getId: () => featuredGamesId, mode: "browse", ambientPanel: "browsegames", wireAction: true },
       browsedigital: { heroSel: "#digitalHero", getItems: () => catalog.filter(m => m.mediaType === 'digital'), getId: () => featuredDigitalId, mode: "browse", ambientPanel: "browsedigital", wireAction: false },
-      tv: { heroSel: "#tvHero", getItems: () => catalog.filter(m => m.mediaType !== 'game' && m.mediaType !== 'digital' && !m.bonusDiscOf), getId: () => featuredTvId, mode: "tv", ambientPanel: null, wireAction: "tv" }
+      browsehomevideo: { heroSel: "#homeVideoHero", getItems: () => catalog.filter(m => m.mediaType === 'homevideo'), getId: () => featuredHomeVideoId, mode: "browse", ambientPanel: "browsehomevideo", wireAction: true },
+      tv: { heroSel: "#tvHero", getItems: () => catalog.filter(m => m.mediaType !== 'game' && m.mediaType !== 'digital' && m.mediaType !== 'homevideo' && !m.bonusDiscOf), getId: () => featuredTvId, mode: "tv", ambientPanel: null, wireAction: "tv" }
     };
     const cfg = configs[tabKey];
     if(!cfg) return;
@@ -2305,14 +2342,17 @@
     const tabName = activePanel && activePanel.dataset.panel;
     const isGamesTab = tabName === "browsegames";
     const isDigitalTab = tabName === "browsedigital";
+    const isHomeVideoTab = tabName === "browsehomevideo";
     // Digital copies never have stock > 0 by design (there's nothing to
     // have "in stock" — see addTitle) — the equivalent of "available"
     // for one is just having an actual link to watch it.
     const pool = isDigitalTab
       ? catalog.filter(m => m.mediaType === "digital" && m.streamingUrl)
-      : catalog.filter(m => (isGamesTab ? m.mediaType === "game" : (m.mediaType !== "game" && m.mediaType !== "digital" && !m.bonusDiscOf)) && m.stock > 0 && m.condition !== "unavailable");
+      : isHomeVideoTab
+      ? catalog.filter(m => m.mediaType === "homevideo" && m.stock > 0 && m.condition !== "unavailable")
+      : catalog.filter(m => (isGamesTab ? m.mediaType === "game" : (m.mediaType !== "game" && m.mediaType !== "digital" && m.mediaType !== "homevideo" && !m.bonusDiscOf)) && m.stock > 0 && m.condition !== "unavailable");
     if(pool.length === 0){
-      toast(`No ${isDigitalTab ? 'digital copies with a streaming link' : ('in-stock ' + (isGamesTab ? 'games' : 'movies'))} to surprise you with right now.`);
+      toast(`No ${isDigitalTab ? 'digital copies with a streaming link' : isHomeVideoTab ? 'in-stock home videos' : ('in-stock ' + (isGamesTab ? 'games' : 'movies'))} to surprise you with right now.`);
       return;
     }
     const pick = pool[Math.floor(Math.random() * pool.length)];
@@ -2324,7 +2364,7 @@
     overlay.style.display = "flex";
     label.textContent = "Picking something…";
 
-    const colorMap = isGamesTab ? GAME_GENRE_COLORS : GENRE_COLORS;
+    const colorMap = isGamesTab ? GAME_GENRE_COLORS : isHomeVideoTab ? HOMEVIDEO_GENRE_COLORS : GENRE_COLORS;
     const showTitle = (m) => {
       box.style.backgroundImage = m.poster
         ? `url('${m.poster}')`
@@ -2366,9 +2406,10 @@
       return;
     }
     const isGamesTab = tabName === "browsegames";
-    const pool = catalog.filter(m => (isGamesTab ? m.mediaType === "game" : (m.mediaType !== "game" && m.mediaType !== "digital" && !m.bonusDiscOf)) && m.stock > 0 && m.condition !== "unavailable");
+    const isHomeVideoTab = tabName === "browsehomevideo";
+    const pool = catalog.filter(m => (isGamesTab ? m.mediaType === "game" : isHomeVideoTab ? m.mediaType === "homevideo" : (m.mediaType !== "game" && m.mediaType !== "digital" && m.mediaType !== "homevideo" && !m.bonusDiscOf)) && m.stock > 0 && m.condition !== "unavailable");
     if(pool.length < 2){
-      toast(`Not enough in-stock ${isGamesTab ? 'games' : 'movies'} for a pairing yet — need at least two.`);
+      toast(`Not enough in-stock ${isGamesTab ? 'games' : isHomeVideoTab ? 'home videos' : 'movies'} for a pairing yet — need at least two.`);
       return;
     }
     const first = pool[Math.floor(Math.random() * pool.length)];
@@ -2381,7 +2422,7 @@
     const body = $("#doubleFeatureBody");
     overlay.style.display = "flex";
     const posterHtml = (m) => `<div data-openpair="${m.id}" style="cursor:pointer;text-align:center;flex:1;">
-        <div style="width:100%;aspect-ratio:2/3;border-radius:10px;background-size:cover;background-position:center;background-image:${m.poster ? `url('${m.poster}')` : `linear-gradient(160deg, ${(isGamesTab?GAME_GENRE_COLORS:GENRE_COLORS)[m.genre]||'#333'}, #141414 85%)`};margin-bottom:8px;box-shadow:0 8px 20px rgba(0,0,0,0.4);"></div>
+        <div style="width:100%;aspect-ratio:2/3;border-radius:10px;background-size:cover;background-position:center;background-image:${m.poster ? `url('${m.poster}')` : `linear-gradient(160deg, ${(isGamesTab?GAME_GENRE_COLORS:isHomeVideoTab?HOMEVIDEO_GENRE_COLORS:GENRE_COLORS)[m.genre]||'#333'}, #141414 85%)`};margin-bottom:8px;box-shadow:0 8px 20px rgba(0,0,0,0.4);"></div>
         <div style="font-size:13px;color:var(--white);">${m.title}</div>
       </div>`;
     body.innerHTML = `
@@ -2539,6 +2580,7 @@
   }
   let lastBrowseSig = "";
   let lastGamesSig = "";
+  let lastHomeVideoSig = "";
   let lastDigitalSig = "";
 
   // Tapping an already-active mood clears it — a toggle, not a
@@ -2610,7 +2652,7 @@
     const heroEl = $("#browseHero");
     const rowsEl = $("#browseRows");
     if(!heroEl || !rowsEl) return;
-    let movieItems = catalog.filter(m => m.mediaType !== 'game' && m.mediaType !== 'digital' && !m.bonusDiscOf);
+    let movieItems = catalog.filter(m => m.mediaType !== 'game' && m.mediaType !== 'digital' && m.mediaType !== 'homevideo' && !m.bonusDiscOf);
     const q = query.trim().toLowerCase();
 
     // The mood row itself always reflects the current selection,
@@ -2720,6 +2762,55 @@
     if(actionBtn && !actionBtn.disabled) actionBtn.onclick = () => openMovieModal(featured.id);
 
     rowsEl.innerHTML = gridHtml("", gameItems);
+    wireBrowseCards(rowsEl, openMovieModal);
+    setupScrollReveal(rowsEl);
+    applyPendingPulses(rowsEl);
+  }
+
+  // Mirrors renderBrowseGames() above almost exactly — its own separate
+  // space, own hero, own grid, same as Games and Digital Copies each
+  // get. No genre/mood/rating filter rows, unlike Browse Movies — those
+  // were built around movie-specific data (MPAA ratings, a fixed movie
+  // genre list) that doesn't really apply to a home video the same way.
+  function renderBrowseHomeVideo(){
+    const heroEl = $("#homeVideoHero");
+    const rowsEl = $("#homeVideoRows");
+    if(!heroEl || !rowsEl) return;
+    const homeVideoItems = catalog.filter(m => m.mediaType === 'homevideo');
+    const q = query.trim().toLowerCase();
+
+    const sig = browseSignature(homeVideoItems, q);
+    if(sig === lastHomeVideoSig) return;
+    lastHomeVideoSig = sig;
+
+    if(q){
+      heroEl.innerHTML = "";
+      const matches = homeVideoItems.filter(m => (m.title||"").toLowerCase().includes(q));
+      rowsEl.innerHTML = matches.length
+        ? gridHtml(`Results for "${query}"`, matches)
+        : `<div style="color:var(--muted);font-size:14px;padding:24px 40px;">No home videos match "${query}".</div>`;
+      wireBrowseCards(rowsEl, openMovieModal);
+      setupScrollReveal(rowsEl);
+      applyPendingPulses(rowsEl);
+      return;
+    }
+
+    if(homeVideoItems.length===0){
+      heroEl.innerHTML = "";
+      rowsEl.innerHTML = `<div style="color:var(--muted);font-size:14px;padding:24px 40px;">No home videos yet — add some under Manage inventory, Media type: Home Video.</div>`;
+      return;
+    }
+
+    const featured = pickFeatured(homeVideoItems, featuredHomeVideoId, id => { featuredHomeVideoId = id; }, "browsehomevideo", () => updateHeroOnly("browsehomevideo"));
+    updateAmbientBg(featured, "browsehomevideo");
+    heroEl.innerHTML = heroHtml(featured, "browse");
+    updateHeroScrollFade();
+    const infoBtn = heroEl.querySelector("[data-hero-info]");
+    if(infoBtn) infoBtn.onclick = () => openMovieModal(featured.id);
+    const actionBtn = heroEl.querySelector("[data-hero-action]");
+    if(actionBtn && !actionBtn.disabled) actionBtn.onclick = () => openMovieModal(featured.id);
+
+    rowsEl.innerHTML = gridHtml("", homeVideoItems);
     wireBrowseCards(rowsEl, openMovieModal);
     setupScrollReveal(rowsEl);
     applyPendingPulses(rowsEl);
@@ -3409,6 +3500,7 @@
     el.innerHTML = pagerHtml + `<div class="list-group">` + pageItems.map(m => {
       const isGame = m.mediaType === 'game';
       const isDigital = m.mediaType === 'digital';
+      const isHomeVideo = m.mediaType === 'homevideo';
       return `<div class="row">
       <img class="poster-thumb" src="${m.poster || ''}" style="${m.poster?'':'visibility:hidden;'}" />
       <div style="flex:1;">
@@ -3448,8 +3540,8 @@
           <label class="file-label"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12.5" r="3.5" stroke="currentColor" stroke-width="2"/></svg> ${m.poster?'Replace photo':'Add photo'}
             <input type="file" accept="image/*" capture="environment" class="posterInput" data-poster="${m.id}" />
           </label>
-          <button class="secondary" data-lookup="${m.id}" style="padding:5px 9px;font-size:11px;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Look up on ${isGame ? 'IGDB' : 'OMDb'}</button>
-          <button class="secondary" data-pickmatch="${m.id}" style="padding:5px 9px;font-size:11px;" title="Picked the wrong movie/show/game? Choose a different match.">Wrong match?</button>
+          ${!isHomeVideo ? `<button class="secondary" data-lookup="${m.id}" style="padding:5px 9px;font-size:11px;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Look up on ${isGame ? 'IGDB' : 'OMDb'}</button>
+          <button class="secondary" data-pickmatch="${m.id}" style="padding:5px 9px;font-size:11px;" title="Picked the wrong movie/show/game? Choose a different match.">Wrong match?</button>` : ''}
           ${m.seriesName ? `<label class="file-label"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M9 18V5l11-2v13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" stroke="currentColor" stroke-width="2"/><circle cx="17.5" cy="16" r="2.5" stroke="currentColor" stroke-width="2"/></svg> ${m.themeSong?'Replace theme':'Add theme'}
             <input type="file" accept="audio/*" class="themeInput" data-theme="${m.id}" />
           </label>` : ''}
@@ -3700,6 +3792,7 @@
             <input type="checkbox" class="userAdminInput" data-user="${u.id}" style="width:auto;" ${u.isAdmin?'checked':''} /> Admin
           </label>
           <button class="secondary" data-saveuser="${u.id}" style="padding:8px 12px;font-size:12px;">Save</button>
+          <button class="secondary" data-printbarcode="${u.id}" style="padding:8px 12px;font-size:12px;">Print login barcode</button>
           <button class="secondary" data-clearhistory="${u.id}" style="padding:8px 12px;font-size:12px;" ${historyCount===0?'disabled':''} title="${historyCount===0 ? 'No history to clear' : `Permanently remove ${historyCount} past rental${historyCount===1?'':'s'} for ${u.name}`}">Clear history${historyCount>0?` (${historyCount})`:''}</button>
           <div style="width:100%;display:flex;gap:10px;flex-wrap:wrap;margin-top:2px;">
             <span style="font-size:11px;color:var(--muted);">Can't check out:</span>
@@ -3711,6 +3804,10 @@
       </div>`;
     }).join("") + `</div>`;
     el.querySelectorAll("[data-removeuser]").forEach(b => b.onclick = () => removeUser(b.dataset.removeuser));
+    el.querySelectorAll("[data-printbarcode]").forEach(b => b.onclick = () => {
+      const u = users.find(x => x.id === b.dataset.printbarcode);
+      if(u) printUserLoginBarcode(u);
+    });
     el.querySelectorAll("[data-clearhistory]").forEach(b => b.onclick = () => {
       const u = users.find(x => x.id === b.dataset.clearhistory);
       if(u) clearUserHistory(u.name);
@@ -3827,7 +3924,8 @@
     const m = catalog.find(x => x.id === modalMovieId);
     if(!m){ closeModal(); return; }
     const isDigital = m.mediaType === 'digital';
-    const color = (m.mediaType === 'game' ? GAME_GENRE_COLORS[m.genre] : GENRE_COLORS[m.genre]) || "#333";
+    const isGame = m.mediaType === 'game';
+    const color = (m.mediaType === 'game' ? GAME_GENRE_COLORS[m.genre] : m.mediaType === 'homevideo' ? HOMEVIDEO_GENRE_COLORS[m.genre] : GENRE_COLORS[m.genre]) || "#333";
     const out = m.stock<=0 || m.condition==='unavailable';
     const headerBg = m.backdrop
       ? `background-image:url('${m.backdrop}');`
@@ -3875,9 +3973,13 @@
         <button class="modal-close" id="modalCloseBtn">×</button>
         <div class="eyebrow">${m.genre} · ${m.year}${isDigital ? (m.streamingService ? ' · '+m.streamingService : '') : (m.mediaType==='game' ? (m.platform ? ' · '+m.platform : '') : (m.format==='Blu-ray' ? ' · Blu-ray' : ''))}${seriesTag(m) ? ' · '+seriesTag(m) : ''}</div>
         ${m.logo ? `<img src="${m.logo}" alt="${m.title}" class="title-logo" />` : `<div class="t">${m.title}</div>`}
+        <div style="display:flex;gap:10px;margin-top:14px;position:relative;z-index:2;">
+          <button class="modal-icon-btn" id="modalSendToTvBtn" title="Continue on TV"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg></button>
+          ${(!isGame && m.imdbId) ? `<a class="modal-icon-btn" href="https://www.imdb.com/title/${m.imdbId}/" target="_blank" rel="noopener" title="View on IMDb" style="text-decoration:none;font-size:11px;font-weight:700;">IMDb</a>` : ''}
+        </div>
       </div>
       <div class="modal-body">
-        ${m.recommended ? `<div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#FF9800;margin-bottom:16px;"><svg viewBox="0 0 24 24" fill="currentColor" style="width:13px;height:13px;"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.5 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8L12 2Z"/></svg> RECOMMENDED PICK</div>` : ""}
+        ${m.recommended ? `<div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#FFD54F;background:rgba(255,152,0,0.12);border:1px solid rgba(255,152,0,0.3);border-radius:10px;padding:10px 12px;margin-bottom:16px;"><svg viewBox="0 0 24 24" fill="currentColor" style="width:15px;height:15px;flex-shrink:0;"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.5 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8L12 2Z"/></svg> Recommended pick — a staff favorite.</div>` : ""}
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);margin-bottom:${(!isDigital && !out) ? '4px' : '16px'};">
           <span class="rating-badge">${m.rating}</span>
           <span>${isDigital ? `Streaming on ${m.streamingService || 'an unspecified service'}` : (m.condition==='unavailable' ? 'Unavailable' : out ? 'Out of stock' : m.stock+' disc'+(m.stock===1?'':'s')+' on hand')}</span>
@@ -3898,14 +4000,9 @@
         ${(m.seriesName && m.themeSong) ? `<button class="secondary" id="themeStopBtn" style="font-size:11px;padding:6px 10px;margin-bottom:16px;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M4 9v6h4l5 4V5L8 9H4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Playing theme — tap to stop</button>` : ''}
         <div id="alsoWatchedSlot-modal"></div>
         <div id="trailerSlot-modal" style="margin-bottom:16px;"></div>
-        <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:16px;">${imdbLinkHtml(m)}${trailerButtonHtml(m, "trailerSlot-modal")}</div>
+        <div style="margin-bottom:16px;">${trailerButtonHtml(m, "trailerSlot-modal")}</div>
         ${accountLineHtml}
-        <div style="display:flex;gap:10px;align-items:stretch;">
-          <div style="flex:1;min-width:0;">${actionHtml}</div>
-          <button class="secondary" id="modalSendToTvBtn" title="Continue on TV" style="flex-shrink:0;width:52px;height:52px;box-sizing:border-box;padding:0;display:flex;align-items:center;justify-content:center;border-radius:50%;">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="width:19px;height:19px;"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg>
-          </button>
-        </div>
+        ${actionHtml}
       </div>
     </div>`;
     overlay.style.display = "flex";
@@ -4018,7 +4115,7 @@
     const rowsEl = $("#tvRows");
     if(!heroEl || !rowsEl) return;
 
-    const tvItems = catalog.filter(m => m.mediaType !== 'game' && m.mediaType !== 'digital' && !m.bonusDiscOf); // "Send to Kiosk" only makes sense for a physical title someone can actually go pull off a shelf
+    const tvItems = catalog.filter(m => m.mediaType !== 'game' && m.mediaType !== 'digital' && m.mediaType !== 'homevideo' && !m.bonusDiscOf); // "Send to Kiosk" only makes sense for a physical title someone can actually go pull off a shelf
     if(tvItems.length===0){
       heroEl.innerHTML = "";
       rowsEl.innerHTML = `<div style="color:var(--muted);font-size:20px;padding:24px 56px;">No titles yet.</div>`;
@@ -4376,6 +4473,24 @@
     });
   }
 
+  // Shared by both PIN login and the new barcode login below — finding
+  // the right user differs between the two, but everything that
+  // actually happens once that user is found (setting loggedInUser,
+  // closing whichever prompt got them here, the session/lights API
+  // calls, the welcome toast) is identical either way.
+  function completeLogin(u){
+    loggedInUser = { id: u.id, name: u.name, isAdmin: !!u.isAdmin, color: u.color || "#B3261E", avatar: u.avatar || "" };
+    closeLoginGate();
+    hideDoorLoginPrompt();
+    renderLoginArea();
+    renderModal();
+    renderNavVisibility();
+    resetAutoLogoutTimer();
+    api.send("PUT", "/api/active-session", { userId: u.id, name: u.name }).catch(()=>{});
+    api.send("POST", "/api/welcome-lights", { color: loggedInUser.color }).catch(()=>{}); // a nice-to-have flourish — never worth surfacing an error over
+    toast(u.isAdmin ? `Welcome, ${u.name} (admin)` : `Welcome, ${u.name}`);
+  }
+
   function pinLogin(pin){
     pin = (pin||"").trim();
     const setMsg = (text) => {
@@ -4392,16 +4507,25 @@
     if(pin.length!==4){ setMsg("Enter all 4 digits."); shakeInputs(); return; }
     const u = users.find(x => x.pin === pin);
     if(!u){ setMsg("PIN not recognized. Ask an admin to add you under Manage users."); shakeInputs(); return; }
-    loggedInUser = { id: u.id, name: u.name, isAdmin: !!u.isAdmin, color: u.color || "#B3261E", avatar: u.avatar || "" };
-    closeLoginGate();
-    hideDoorLoginPrompt();
-    renderLoginArea();
-    renderModal();
-    renderNavVisibility();
-    resetAutoLogoutTimer();
-    api.send("PUT", "/api/active-session", { userId: u.id, name: u.name }).catch(()=>{});
-    api.send("POST", "/api/welcome-lights", { color: loggedInUser.color }).catch(()=>{}); // a nice-to-have flourish — never worth surfacing an error over
-    toast(u.isAdmin ? `Welcome, ${u.name} (admin)` : `Welcome, ${u.name}`);
+    completeLogin(u);
+  }
+
+  // A user's own barcode logs them in from anywhere the global scanner
+  // capture is already listening — no need to be on the login gate
+  // first the way PIN entry requires. Reuses the user's own id directly
+  // as the barcode value rather than generating and storing a separate
+  // field for it — that id is already a unique, permanent token the
+  // moment a user is created, so there's nothing this needs beyond
+  // what's already there. Silently does nothing on no match rather than
+  // showing an error, since a barcode scan landing here at all could
+  // just as easily be someone scanning a disc while logged out with
+  // nothing else focused — not every unrecognized scan here is a failed
+  // login attempt someone needs to be told about.
+  function barcodeLogin(userId){
+    const u = users.find(x => x.id === userId);
+    if(!u) return false;
+    completeLogin(u);
+    return true;
   }
 
   function pinLogout(){
@@ -4521,7 +4645,8 @@
     }));
 
     const cardsHtml = baysWithBarcodes.map(bay => `
-      <div class="bay-label">
+      <div class="bay-label" style="border-top:6px solid ${LABEL_TYPE_COLORS.bay};">
+        <div class="bay-label-type" style="color:${LABEL_TYPE_COLORS.bay};">${labelTypeName("bay")}</div>
         <div class="bay-label-title">Bay ${bay.number}</div>
         ${bay.barcodeDataUrl ? `<img src="${bay.barcodeDataUrl}" />` : `<div style="font-size:11px;">${bay.number}</div>`}
       </div>`).join("");
@@ -4531,13 +4656,61 @@
 <style>
   body{margin:0;padding:0.2in;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;}
   .bay-label-grid{display:grid;grid-template-columns:repeat(3,2.6in);gap:0.15in;justify-items:center;}
-  .bay-label{width:2.6in;height:1.3in;border:1px dashed #999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:10px;box-sizing:border-box;background:#fff;color:#111;}
+  .bay-label{width:2.6in;height:1.3in;border:1px dashed #999;border-top-width:6px;border-top-style:solid;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:10px;box-sizing:border-box;background:#fff;color:#111;}
+  .bay-label-type{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;}
   .bay-label .bay-label-title{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:16px;font-weight:700;letter-spacing:0.5px;}
-  .bay-label img{max-width:2.2in;max-height:0.6in;object-fit:contain;}
+  .bay-label img{max-width:2.2in;max-height:0.55in;object-fit:contain;}
 </style>
 </head>
 <body>
   <div class="bay-label-grid">${cardsHtml}</div>
+</body></html>`;
+
+    const printWindow = window.open("", "_blank", "width=900,height=700");
+    if(!printWindow){
+      toast("Couldn't open the print window — your browser may be blocking pop-ups for this page.");
+      return;
+    }
+    printWindow.document.write(printHtml);
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+    };
+  }
+
+  // Same dedicated-new-window print technique as disc labels and bay
+  // barcodes, not the older, more fragile approach either of those used
+  // before — no reason for a third print flow in this app to risk
+  // repeating a problem already solved twice. Encodes "USER:<their own
+  // id>" — the exact same value (and prefix convention) handleScannedCode()
+  // already checks for, since that id is already a permanent, unique
+  // token the moment the user was created, with nothing new needed to
+  // generate or store for this.
+  async function printUserLoginBarcode(user){
+    toast(`Preparing ${user.name}'s login barcode…`);
+    let barcodeDataUrl = null;
+    try{
+      const data = await api.get("/api/barcode?text=" + encodeURIComponent("USER:"+user.id));
+      barcodeDataUrl = data.dataUrl;
+    }catch(e){ /* falls through to the id-as-text fallback below */ }
+
+    const printHtml = `<!DOCTYPE html>
+<html><head><title>Sandy Server — ${user.name}'s Login Barcode</title>
+<style>
+  body{margin:0;padding:0.2in;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;display:flex;justify-content:center;}
+  .user-label{width:3.2in;height:1.6in;border:1px dashed #999;border-top-width:6px;border-top-style:solid;border-top-color:${LABEL_TYPE_COLORS.user};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px;box-sizing:border-box;background:#fff;color:#111;}
+  .user-label-type{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:${LABEL_TYPE_COLORS.user};}
+  .user-label .user-label-title{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:18px;font-weight:700;letter-spacing:0.5px;}
+  .user-label img{max-width:2.8in;max-height:0.65in;object-fit:contain;}
+</style>
+</head>
+<body>
+  <div class="user-label">
+    <div class="user-label-type">${labelTypeName("user")}</div>
+    <div class="user-label-title">${user.name}</div>
+    ${barcodeDataUrl ? `<img src="${barcodeDataUrl}" />` : `<div style="font-size:11px;">Couldn't generate a barcode image</div>`}
+  </div>
 </body></html>`;
 
     const printWindow = window.open("", "_blank", "width=900,height=700");
@@ -6125,6 +6298,18 @@
       return;
     }
 
+    // A user's own login barcode ("USER:<id>") logs them in directly —
+    // its own distinct prefix, the same convention bay barcodes already
+    // use, so there's no risk of colliding with an actual disc's code
+    // no matter how that code happens to be formatted. Stripped the
+    // same way "BAY:" is before the bay number gets used — loginBarcode
+    // itself is stored as just the raw token, not the prefixed string.
+    if(code.indexOf("USER:")===0){
+      const loggedIn = barcodeLogin(code.slice(5));
+      recordLastScan(rawScanned, loggedIn ? "Logged in via barcode" : "Login barcode not recognized");
+      return;
+    }
+
     if(code.indexOf("SANDYSERVER:")===0) code = code.slice(12);
     else if(code.indexOf("REELBOX:")===0) code = code.slice(8);
     const match = catalog.find(m => m.code === code);
@@ -6258,6 +6443,30 @@
   // every possible interaction with the main page's layout, its many
   // overlays, and its print-media rules entirely, rather than trying
   // to make those rules behave correctly around a page this complex.
+  // One consistent color scheme across every kind of label this app
+  // prints — movie, TV show, game, home video, bay, and user — so
+  // sorting a stack of printed labels by type is possible at a glance
+  // without needing to read the barcode itself or scan it first. Movie
+  // and TV show are the same underlying mediaType ('movie') and only
+  // differ by whether a title has a seriesName set, so that split has
+  // to be computed per-item at print time rather than read directly
+  // off a field. Paired with a short text label on every card, not
+  // just the color alone — a black-and-white printer would otherwise
+  // make every card indistinguishable from every other one.
+  const LABEL_TYPE_COLORS = {
+    movie: "#1F5C8A", tvshow: "#5C1F7A", game: "#1F6B4F",
+    homevideo: "#8A4E1F", bay: "#1F8A8A", user: "#8A1F4E"
+  };
+  function labelTypeFor(m){
+    if(m.mediaType === "game") return "game";
+    if(m.mediaType === "homevideo") return "homevideo";
+    if(m.seriesName) return "tvshow";
+    return "movie";
+  }
+  function labelTypeName(type){
+    return { movie: "Movie", tvshow: "TV Show", game: "Game", homevideo: "Home Video", bay: "Bay", user: "User" }[type] || type;
+  }
+
   async function generateLabels(){
     const ids = $$(".labelCheck:checked").map(c=>c.value);
     const items = catalog.filter(m => ids.includes(m.id));
@@ -6267,14 +6476,15 @@
     const itemsWithBarcodes = await Promise.all(items.map(async m => {
       try{
         const data = await api.get("/api/barcode?text=" + encodeURIComponent(m.code));
-        return { title: m.title, code: m.code, barcodeDataUrl: data.dataUrl };
+        return { title: m.title, code: m.code, barcodeDataUrl: data.dataUrl, type: labelTypeFor(m) };
       }catch(e){
-        return { title: m.title, code: m.code, barcodeDataUrl: null };
+        return { title: m.title, code: m.code, barcodeDataUrl: null, type: labelTypeFor(m) };
       }
     }));
 
     const cardsHtml = itemsWithBarcodes.map(m => `
-      <div class="disc-label">
+      <div class="disc-label" style="border-top:6px solid ${LABEL_TYPE_COLORS[m.type]};">
+        <div class="disc-label-type" style="color:${LABEL_TYPE_COLORS[m.type]};">${labelTypeName(m.type)}</div>
         <div class="disc-label-title">${m.title}</div>
         ${m.barcodeDataUrl ? `<img src="${m.barcodeDataUrl}" />` : `<div style="font-size:11px;">${m.code}</div>`}
         <div class="disc-label-code">${m.code}</div>
@@ -6285,9 +6495,10 @@
 <style>
   body{margin:0;padding:0.2in;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;}
   .label-sheet-grid{display:grid;grid-template-columns:repeat(3,2.6in);gap:0.15in;justify-items:center;}
-  .disc-label{width:2.6in;height:1.1in;border:1px dashed #999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:8px;box-sizing:border-box;background:#fff;color:#111;overflow:hidden;}
+  .disc-label{width:2.6in;height:1.1in;border:1px dashed #999;border-top-width:6px;border-top-style:solid;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px;box-sizing:border-box;background:#fff;color:#111;overflow:hidden;}
+  .disc-label-type{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;}
   .disc-label-title{font-family:'Poppins',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:13px;font-weight:600;line-height:1.15;text-align:center;max-width:2.4in;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .disc-label img{max-width:2.3in;max-height:0.45in;object-fit:contain;}
+  .disc-label img{max-width:2.3in;max-height:0.4in;object-fit:contain;}
   .disc-label-code{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:8px;color:#555;}
 </style>
 </head>
@@ -6337,6 +6548,9 @@
     } else if(tab === "browsedigital"){
       const m = catalog.find(x => x.id === featuredDigitalId);
       if(m) updateAmbientBg(m, "browsedigital");
+    } else if(tab === "browsehomevideo"){
+      const m = catalog.find(x => x.id === featuredHomeVideoId);
+      if(m) updateAmbientBg(m, "browsehomevideo");
     }
     // Same idea for the hero scroll-fade — the new tab's hero should
     // immediately reflect whatever scroll position carried over from
@@ -6496,16 +6710,21 @@
       const mediaType = $("#newMediaTypeInput").value;
       const isGame = mediaType === "game";
       const isDigital = mediaType === "digital";
+      const isHomeVideo = mediaType === "homevideo";
       const genreSel = $("#newGenreInput");
       const prevGenre = genreSel.value;
-      const genreKeys = Object.keys(isGame ? GAME_GENRE_COLORS : GENRE_COLORS);
+      const genreKeys = Object.keys(isGame ? GAME_GENRE_COLORS : isHomeVideo ? HOMEVIDEO_GENRE_COLORS : GENRE_COLORS);
       genreSel.innerHTML = genreKeys.map(g=>`<option>${g}</option>`).join("");
       if(genreKeys.includes(prevGenre)) genreSel.value = prevGenre;
 
       const ratingSel = $("#newRatingInput");
       ratingSel.innerHTML = isGame
         ? GAME_RATINGS.map(r=>`<option ${r==='T'?'selected':''}>${r}</option>`).join("")
-        : `<option>G</option><option>PG</option><option selected>PG-13</option><option>R</option>`;
+        // Home videos default straight to G — there's no MPAA rating to
+        // look up for a personal recording, and defaulting to something
+        // higher would be an odd, meaningless guess for content that was
+        // never actually rated by anyone.
+        : `<option ${isHomeVideo?'selected':''}>G</option><option>PG</option><option ${!isHomeVideo?'selected':''}>PG-13</option><option>R</option>`;
 
       const streamingSel = $("#newStreamingServiceInput");
       if(!streamingSel.options.length) streamingSel.innerHTML = Object.keys(STREAMING_SERVICES).map(s=>`<option>${s}</option>`).join("");

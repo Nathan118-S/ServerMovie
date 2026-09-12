@@ -538,6 +538,170 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## Color-coded every kind of printed barcode label
+
+Movie, TV show, game, home video, bay, and user — six distinct colors,
+one consistent scheme shared across all three places this app prints a
+barcode, so sorting a stack of printed labels by type is possible at a
+glance without needing to scan or read the code itself.
+
+Movie and TV show needed their own split even though they're the same
+underlying media type in the data — a TV disc is just a movie-type
+title with a series name set, nothing else distinguishes it. Computed
+that per-item at print time rather than added as a stored field, since
+the information to derive it (whether `seriesName` is set) already
+exists on every title. Verified this specific logic directly across
+all four disc-type cases — plain movie, TV episode, game, home video —
+each one landing on the color its type is actually supposed to get.
+
+Paired every color with a short text label on the card too, not color
+alone — a black-and-white printer would otherwise make every label
+indistinguishable from every other one regardless of how many distinct
+colors this defines, so the color is a fast visual sort for someone
+with a color printer, and the text label is what actually guarantees
+the type is still readable either way.
+
+## Added more genres for movies and games
+
+Movies went from 7 to 17 — added Documentary, Family, Fantasy, Mystery,
+Romance, Adventure, Crime, Musical, War, and Western alongside the
+original set (Action, Comedy, Drama, Horror, Sci-Fi, Animation,
+Thriller), covering the common classifications a real catalog is
+likely to actually need. Games went from 10 to 17 the same way — added
+Strategy, Simulation, Horror, Stealth, Rhythm, Educational, and Open
+World.
+
+Left the Home Video genre list untouched — a smaller, more specialized
+set (Family, Vacation, Holiday, Birthday, Wedding, Sports, School,
+Other) for personal recordings rather than a commercial catalog, and
+the existing options already cover the common occasions reasonably
+well without needing to be padded out for its own sake.
+
+Both new lists flow through automatically everywhere genres already
+show up — Add Title's genre dropdown, the Browse Movies genre filter
+chips, the poster glow colors, the featured hero's fallback background
+— none of that needed touching separately, since all of it already
+read from these two lists directly rather than a separate hardcoded
+copy anywhere. Verified there were no duplicate keys introduced across
+either expanded list, since a typo there would have silently
+overwritten an existing genre's color rather than throwing any kind of
+visible error.
+
+## Quick-action icons moved up near the title, matching a reference layout
+
+Worked from a screenshot of a real streaming service's title page —
+adapted its actual structural pattern (quick-action icons sitting just
+below the title, separate from the primary action area below) rather
+than copying it directly. Left out anything that's either
+service-specific branding (a logo, a subscription-trial upsell) or
+data this app genuinely doesn't have (cast listings, an episode list) —
+adapting the *pattern* without pulling in what doesn't actually apply
+here.
+
+"Continue on TV" moved up into this new row, styled as a translucent
+glass-look button matching the existing close button right above it,
+since both now sit directly over the backdrop image rather than the
+solid body background. Added an IMDb icon button alongside it for
+titles that have an IMDb id on file, replacing the plain text link that
+used to sit lower in the body. The "Recommended pick" badge is a
+proper callout box now — a background and border, not just colored
+text — matching the reference's "why you might like this" treatment.
+
+Caught two real bugs while doing this, not just cosmetic changes:
+
+- Used a variable (`isGame`) in the new IMDb button's condition that
+  this function never actually defined — it only ever had `isDigital`.
+  Would have thrown a reference error the moment anyone actually
+  opened a title with an IMDb id set, not something a syntax check
+  alone would have caught.
+- Moving "Continue on TV" up into the header without removing its
+  original copy in the body would have left two buttons sharing the
+  exact same id — confirmed after removing the old one that the
+  duplicate-id audit came back clean specifically for that id, not
+  just assumed removing one copy was enough.
+
+## Users can log in by scanning their own barcode now
+
+Works from anywhere the global scanner capture is already listening —
+no need to be on the login gate first the way PIN entry requires.
+Extracted the actual "you're logged in now" logic (setting the active
+user, closing whatever prompt got them here, the session and welcome-
+lights calls, the toast) into one shared function first, since PIN
+login already had all of that working correctly — barcode login only
+ever needed a different way to find *which* user, not a second copy of
+everything that happens once one's found.
+
+Didn't add a new field to generate and store for this — a user's own
+id is already a permanent, unique token the moment they're created, so
+the barcode just encodes "USER:" plus that existing id directly, the
+same prefix convention bay barcodes already established. New "Print
+login barcode" button per person in Household, built on the exact same
+dedicated-new-window print technique disc labels and bay barcodes
+already use — not the older, more fragile approach either of those
+needed fixing away from earlier; no reason to risk a third print flow
+repeating a problem already solved twice.
+
+A barcode that doesn't match anyone fails silently rather than showing
+an error — a scan landing here at all could just as easily be someone
+scanning a disc while logged out with nothing else focused, so not
+every unrecognized scan is actually a failed login attempt worth
+interrupting someone over.
+
+Verified the full flow directly with a small simulation: a real user's
+barcode logs the right person in, an unrecognized one is handled
+gracefully instead of crashing, and a normal disc code correctly falls
+through to disc-matching instead of ever being mistaken for a login
+attempt.
+
+## A new Home Videos section, deliberately without any metadata import
+
+Its own separate space — own nav button, own hero, own grid — mirroring
+how Browse Games already works, not folded into Browse Movies as
+another filter. A new "Home Video" option in Add Title, with its own
+small genre set (Family, Vacation, Holiday, Birthday, Wedding, Sports,
+School, Other) distinct from both the movie and game genres, defaulting
+straight to a G rating rather than guessing at something higher — there's
+no MPAA rating to look up for a personal recording in the first place.
+
+**Excluded entirely from metadata lookup, at both places it could
+happen** — not just the batch Auto-Fill process, but the per-title
+"Look up on OMDb" and "Wrong match?" buttons in Inventory too, which
+turned out to be a genuinely separate button most media types don't
+otherwise skip. There's no online metadata anywhere for a home movie of
+a birthday party; the entire reason this exists as its own media type
+is that these were never going to be found on OMDb, TMDb, or IGDB no
+matter how the lookup ran.
+
+Building this surfaced something worth being direct about: adding a new
+media type to an app already built around three others (movies, games,
+digital) doesn't mean everywhere those three are already handled
+correctly — several specific places genuinely needed an explicit fourth
+branch, not just a passive "doesn't match the other three so it's
+fine" assumption:
+
+- Both the Browse Movies and TV mode featured-hero pools would have
+  silently included home videos in their rotation without an explicit
+  exclusion
+- Surprise Me and Double Feature both had dedicated branches for games
+  and digital copies, but nothing for home videos — clicking either
+  from the Home Videos tab would have shown a random *movie* instead,
+  not an error, which would have made this a genuinely confusing bug to
+  ever notice or diagnose
+- Three separate genre-color lookups (the poster glow, the browse hero,
+  the modal header background) all fell back to a generic gray for any
+  genre not in the movie list, since "Family" or "Vacation" don't exist
+  in that list — home videos would have rendered with no color glow at
+  all despite their own genre set existing
+- Double Feature's poster-gradient fallback had the exact same
+  gray-fallback gap independently, in a completely different function
+
+Verified all of this together with a direct simulation, not by tracing
+through each fix individually and trusting they'd compose correctly —
+a mixed catalog of a movie, a game, a digital copy, and two home videos,
+confirming home videos show up in their own pool and nowhere else:
+not Browse Movies, not TV mode, not the Surprise Me/Double Feature pool
+either tab falls back to.
+
 ## Fixed: returning by scanning the disc left a stale bay assignment behind
 
 A real, concrete gap, found by checking the actual endpoint rather

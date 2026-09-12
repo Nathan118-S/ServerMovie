@@ -1388,7 +1388,14 @@ app.post("/api/autofill", async (req, res) => {
   // no logo or trailer, since IGDB doesn't track those the way TMDb does
   // for movies, so checking for those on a game would make it look
   // perpetually incomplete and get re-queried every run for no reason.
-  const targets = db.titles.filter(t => t.mediaType === 'game'
+  // Home videos never go through any of this at all — excluded
+  // entirely, not just skipped for missing fields the way a
+  // fully-detailed movie would be. There's no metadata anywhere online
+  // to find for a personal recording; the entire point of this being
+  // its own separate media type is that these were never going to be
+  // found on OMDb, TMDb, or IGDB no matter how the lookup ran.
+  const targets = db.titles.filter(t => t.mediaType === 'homevideo' ? false
+    : t.mediaType === 'game'
     ? (!t.poster || !t.backdrop || !t.description)
     : (!t.poster || !t.backdrop || !t.description || !t.trailerKey || (t.seriesName && !t.logo)));
   let updated = 0, notFound = 0, failed = 0;
