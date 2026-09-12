@@ -383,7 +383,7 @@
   .pinpad-key{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:22px;font-weight:600;padding:16px 0;border-radius:12px;background:var(--surf1);border:1px solid var(--line);color:var(--white);cursor:pointer;transition:background 0.1s ease,transform 0.1s ease;}
   .pinpad-key:active{background:var(--surf2);transform:scale(0.94);}
   .pinpad-key.pinpad-wide{font-size:15px;color:var(--muted);}
-  .login-box{background:var(--surf3);backdrop-filter:blur(12px);color:var(--white);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;animation:fadeIn 0.3s ease both;}
+  .login-box{background:var(--surf3);backdrop-filter:blur(12px);color:var(--white);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;animation:fadeIn 0.3s ease both;}
   .login-box .who{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;}
 
   .modal-overlay{position:fixed;inset:0;background:rgba(5,6,9,0.75);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;animation:fadeIn 0.2s ease;}
@@ -450,6 +450,16 @@
   #movieModal .modal-header{min-height:48vh;}
   #movieModal .modal-body{max-width:640px;margin:0 auto;padding:28px 24px 40px;}
   #movieModal .modal-close{top:16px;right:16px;width:34px;height:34px;font-size:18px;}
+  /* The Prime Video-style fade — a gradient sitting over the backdrop
+     image, transparent through the upper two-thirds and blending into
+     the page's own background color by the bottom edge, so the header
+     image dissolves smoothly into the body content below it instead of
+     ending on a hard, visible line the way the un-faded backdrop did.
+     z-index:1 puts it above the plain background image/poster (which
+     sit at the default stacking level) but below the title text and
+     close button (z-index 2 and 3), so it never obscures anything that
+     needs to stay legible. */
+  #movieModal .modal-header::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(to bottom, transparent 55%, var(--bg) 100%);pointer-events:none;}
 
   /* ---- TV page ---- */
   #tvRoot{min-height:100vh;background:var(--bg);}
@@ -532,7 +542,7 @@
 
   <div class="panel active" data-panel="browse">
     <div id="browseHero"></div>
-    <div id="moodRow" style="display:flex;gap:8px;flex-wrap:wrap;padding:0 40px 18px;position:relative;z-index:1;"></div>
+    <div id="moodRow" style="display:flex;gap:8px;flex-wrap:wrap;padding:0 40px 10px;position:relative;z-index:1;"></div>
     <div id="genreFilterRow" style="display:flex;gap:8px;flex-wrap:wrap;padding:0 40px 10px;position:relative;z-index:1;"></div>
     <div id="ratingFilterRow" style="display:flex;gap:8px;flex-wrap:wrap;padding:0 40px 18px;position:relative;z-index:1;"></div>
     <div id="browseRows"></div>
@@ -3801,23 +3811,38 @@
     let actionHtml;
     // No stock, no login, no checkout flow at all for a digital copy —
     // there's nothing here to check out, just somewhere to send someone.
+    // Every button-shaped branch below gets an explicit height (52px,
+    // matching the Continue-on-TV icon button it sits beside) rather
+    // than however tall its own padding happens to make it — needed
+    // specifically so that icon button, a fixed-width circle relying on
+    // border-radius:50%, actually renders as a circle instead of an
+    // oval stretched to match whatever height the sibling naturally
+    // came out to.
     if(isDigital){
       actionHtml = m.streamingUrl
-        ? `<a class="primary" href="${m.streamingUrl}" target="_blank" rel="noopener" style="display:block;text-align:center;width:100%;text-decoration:none;">▶ Watch on ${m.streamingService || 'streaming'}</a>`
-        : `<div style="font-size:13px;color:var(--muted);">No streaming link added yet.</div>`;
+        ? `<a class="primary" href="${m.streamingUrl}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:52px;box-sizing:border-box;text-decoration:none;"><svg viewBox="0 0 24 24" fill="currentColor" style="width:15px;height:15px;"><path d="M6 4l14 8-14 8V4Z"/></svg> Watch on ${m.streamingService || 'streaming'}</a>`
+        : `<div style="font-size:13px;color:var(--muted);height:52px;display:flex;align-items:center;">No streaming link added yet.</div>`;
     } else if(out){
-      actionHtml = `<div style="font-size:13px;color:#E87C03;">${m.condition==='unavailable' ? 'Unavailable' : 'Out of stock'}</div>`;
+      actionHtml = `<div style="font-size:13px;color:#E87C03;height:52px;display:flex;align-items:center;">${m.condition==='unavailable' ? 'Unavailable' : 'Out of stock'}</div>`;
     } else if(loggedInUser){
       const count = rentals.filter(r => r.renterName===loggedInUser.name).length;
       const atLimit = count >= maxCheckouts;
-      actionHtml = `<div class="login-box" style="margin-bottom:0;">
-        <span class="who">Checking out as ${loggedInUser.name} <span style="font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:400;font-size:12px;color:var(--muted);">(${count}/${maxCheckouts} discs out)</span></span>
-        <button class="secondary" id="modalLogoutBtn">Not you?</button>
-      </div>
-      <button class="primary" id="modalRentBtn" style="width:100%;margin-top:12px;" ${atLimit?'disabled':''}>${atLimit?'Checkout limit reached':'Rent this disc'}</button>`;
+      actionHtml = `<button class="primary" id="modalRentBtn" style="width:100%;height:52px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:8px;" ${atLimit?'disabled':''}>${atLimit?'Checkout limit reached':`<svg viewBox="0 0 24 24" fill="currentColor" style="width:15px;height:15px;"><path d="M6 4l14 8-14 8V4Z"/></svg> Rent this disc`}</button>`;
     } else {
-      actionHtml = `<button class="primary" id="modalOpenLoginBtn" style="width:100%;">Log in to rent</button>`;
+      actionHtml = `<button class="primary" id="modalOpenLoginBtn" style="width:100%;height:52px;box-sizing:border-box;">Log in to rent</button>`;
     }
+    // The small "who's renting" line sits above the action row instead
+    // of inside its own boxed panel — a Prime Video detail page doesn't
+    // wrap its account context in a bordered card next to the play
+    // button, it's just a quiet line of text, so this follows that same
+    // restraint rather than giving it equal visual weight to the actual
+    // action.
+    const accountLineHtml = (!isDigital && !out && loggedInUser)
+      ? `<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);margin-bottom:10px;">
+          <span>Checking out as ${loggedInUser.name} (${rentals.filter(r => r.renterName===loggedInUser.name).length}/${maxCheckouts} discs out)</span>
+          <button class="secondary" id="modalLogoutBtn" style="padding:5px 10px;font-size:11px;">Not you?</button>
+        </div>`
+      : '';
 
     overlay.innerHTML = `<div class="modal-card">
       <div class="modal-header">
@@ -3828,14 +3853,14 @@
         ${m.logo ? `<img src="${m.logo}" alt="${m.title}" class="title-logo" />` : `<div class="t">${m.title}</div>`}
       </div>
       <div class="modal-body">
-        ${m.recommended ? `<div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#FF9800;margin-bottom:10px;"><svg viewBox="0 0 24 24" fill="currentColor" style="width:13px;height:13px;"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.5 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8L12 2Z"/></svg> RECOMMENDED PICK</div>` : ""}
-        <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);margin-bottom:14px;">
+        ${m.recommended ? `<div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#FF9800;margin-bottom:16px;"><svg viewBox="0 0 24 24" fill="currentColor" style="width:13px;height:13px;"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.5 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8L12 2Z"/></svg> RECOMMENDED PICK</div>` : ""}
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);margin-bottom:${(!isDigital && !out) ? '4px' : '16px'};">
           <span class="rating-badge">${m.rating}</span>
           <span>${isDigital ? `Streaming on ${m.streamingService || 'an unspecified service'}` : (m.condition==='unavailable' ? 'Unavailable' : out ? 'Out of stock' : m.stock+' disc'+(m.stock===1?'':'s')+' on hand')}</span>
         </div>
         ${(!isDigital && !out) ? (() => {
           const bay = bays.find(b => b.titleId === m.id);
-          return `<div style="font-size:12px;color:var(--muted);margin-bottom:14px;margin-top:-8px;">${bay ? `Bay ${bay.number}` : `In bulk storage — ask if you can't find it`}</div>`;
+          return `<div style="font-size:12px;color:var(--muted);margin-bottom:16px;">${bay ? `Bay ${bay.number}` : `In bulk storage — ask if you can't find it`}</div>`;
         })() : ''}
         ${m.description ? `<div style="font-size:13px;color:#D8D4CC;line-height:1.5;margin-bottom:16px;">${m.description}</div>` : ''}
         ${(() => {
@@ -3850,8 +3875,13 @@
         <div id="alsoWatchedSlot-modal"></div>
         <div id="trailerSlot-modal" style="margin-bottom:16px;"></div>
         <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:16px;">${imdbLinkHtml(m)}${trailerButtonHtml(m, "trailerSlot-modal")}</div>
-        ${actionHtml}
-        <button class="secondary" id="modalSendToTvBtn" style="width:100%;margin-top:10px;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg> Continue on TV</button>
+        ${accountLineHtml}
+        <div style="display:flex;gap:10px;align-items:stretch;">
+          <div style="flex:1;min-width:0;">${actionHtml}</div>
+          <button class="secondary" id="modalSendToTvBtn" title="Continue on TV" style="flex-shrink:0;width:52px;height:52px;box-sizing:border-box;padding:0;display:flex;align-items:center;justify-content:center;border-radius:50%;">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="width:19px;height:19px;"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg>
+          </button>
+        </div>
       </div>
     </div>`;
     overlay.style.display = "flex";
@@ -3894,7 +3924,7 @@
         <button class="secondary" id="modalLogoutBtn">Not you?</button>
       </div>`;
     } else {
-      loginHtml = `<button class="primary" id="modalOpenLoginBtn" style="width:100%;margin-bottom:10px;">Log in to rent</button>`;
+      loginHtml = `<button class="primary" id="modalOpenLoginBtn" style="width:100%;margin-bottom:16px;">Log in to rent</button>`;
     }
 
     const discRows = discs.map(d => {
@@ -3924,7 +3954,7 @@
         <div id="trailerSlot-series" style="margin-bottom:16px;"></div>
         <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:16px;">${imdbLinkHtml(rep)}${trailerButtonHtml(rep, "trailerSlot-series")}</div>
         ${loginHtml}
-        <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">${discRows}</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">${discRows}</div>
       </div>
     </div>`;
     overlay.style.display = "flex";

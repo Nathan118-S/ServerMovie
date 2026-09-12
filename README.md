@@ -538,6 +538,102 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## Reworked the movie modal toward a Prime Video-style layout
+
+Not a vague "make it feel more premium" pass — worked from the actual,
+specific patterns that make a Prime Video title page recognizable as
+one, and rebuilt the modal around those instead of guessing at a
+general aesthetic:
+
+- **A gradient fade on the backdrop.** The header image used to end on
+  a hard, visible edge where the body content started. Now it fades
+  smoothly from transparent through the upper portion into the page's
+  own background color by the bottom — the same soft dissolve from
+  image into content Prime Video's title pages use, instead of a flat
+  cut.
+- **One prominent action, not a stack of full-width buttons.** The
+  rent/login/watch button used to sit above a second, separate
+  full-width "Continue on TV" button below it — two equally-weighted
+  full-width actions stacked vertically. Now the primary action sits in
+  a horizontal row next to Continue on TV shrunk down to a compact,
+  circular icon-only button, the same "one clear primary action next to
+  smaller secondary ones" pattern Prime Video's own play button and its
+  neighboring icon actions use.
+- **The account context lost its box.** "Checking out as [name]" used
+  to live in its own bordered panel with equal visual weight to the
+  actual rent button next to it. Now it's a plain, quiet line of text
+  above the action row — Prime Video doesn't wrap account context in
+  its own card beside the play button either, so this follows that
+  same restraint.
+
+Caught and fixed a real sizing bug while building the icon button: it's
+sized as a fixed-width circle relying on `border-radius:50%`, with its
+height originally left to `align-items:stretch` to match whatever
+height its neighboring action button happened to render at. Different
+action branches (a button vs. a plain status line, different text
+lengths) don't naturally come out to the same height on their own,
+which would have made that "circle" render as an oval depending on
+which branch was showing. Fixed by giving every branch and the icon button
+itself an explicit, matching height instead of leaving it to whatever
+stretch worked out — the circle stays a circle regardless of which
+action is currently displayed.
+
+Also swapped a leftover raw "▶" character for a proper SVG play icon in
+the digital-copy "Watch on" link while working through this area — an
+incidental improvement, not something this task set out to fix
+specifically, but a stray inconsistency worth closing while directly
+looking at that exact line anyway.
+
+## Normalized spacing across the modal and the new filter rows
+
+Investigated the actual CSS values first rather than guessing at what
+looked "uneven" — mostly in the movie detail modal and the series
+modal, which is where the real inconsistency was concentrated.
+
+Found genuine, specific inconsistencies, not a vague sense that
+something was off: section gaps throughout the movie modal's body
+alternated between 10px, 14px, and 16px depending on which section —
+the "Recommended pick" banner, the rating row, the bay-location line,
+the description, bonus features, and the rest all used different
+values from each other with no reason for the difference. The
+bay-location line also relied on a negative top margin to pull it
+closer to the line above it — replaced that with a smaller *positive*
+margin on the line above instead, applied only when the bay line is
+actually about to follow it, which does the same visual job without
+the fragility of a negative value. `.login-box`, a shared class the
+modal already used, carried its own 14px default, and the same "Log in
+to rent" button had no margin at all in one modal but a different 10px
+value in the other — both normalized to the same 16px now used
+throughout.
+
+The three new filter rows (mood, genre, rating) had the same issue at
+a different scale: the gap between mood and genre was 18px, between
+genre and rating only 10px, then back to 18px before the grid — three
+stacked rows with two different, inconsistent gaps between them, not
+evenly spaced at all despite looking like one connected block.
+Normalized to a consistent, tighter gap between the three filter rows
+themselves, with a deliberately larger gap only where the actual grid
+begins — a genuine section change, not just another row of chips,
+which is why that one gap staying larger is intentional rather than a
+leftover inconsistency.
+
+Also considered and deliberately reverted one attempted fix along the
+way: the "Customers also watched" section has no margin at all while
+it's still empty, waiting on its async fetch to resolve, which could
+briefly leave a smaller gap than the rest for a moment after the modal
+opens. Tried closing that with a negative margin, then reconsidered
+it — a negative-margin hack for a sub-second, barely visible timing
+window wasn't worth the risk of overlap if the margin-collapsing
+assumption behind it turned out wrong. Left that one alone rather than
+ship a fix that couldn't be verified.
+
+Worth repeating plainly: this is CSS and layout work, and without an
+actual browser to render it in, there's no way to see the result
+directly the way the logic-based fixes elsewhere could be checked with
+a script. Every specific value above was read directly from the
+stylesheet, not estimated — but the real visual result is worth a
+direct look once this is loaded somewhere it can actually render.
+
 ## The movie detail modal is full-screen now
 
 Picking this back up from where it was set aside a few turns ago — the
