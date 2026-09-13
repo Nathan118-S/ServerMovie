@@ -538,6 +538,88 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## Removed genuinely dead code — not a claim of optimizing "everything"
+
+"Optimize everything" is an unbounded request for a codebase this
+size, so rather than make a vague, unverifiable claim, this was scoped
+to something concrete and checkable: dead code, previously flagged in
+earlier sessions but never actually cleaned up.
+
+Removed the entire pre-removal "Return flow" UI — six functions
+(`openReturnFlow` and everything downstream of it: the PIN step, the
+checked-out-items step, the step that actually starts a return) plus
+its own overlay markup, unreachable ever since the topbar's Return
+button itself was removed. Also removed `openRequestTitleModal()` and
+its overlay, unreachable the same way since Request a Title was
+removed. Verified every function in both cases had zero callers
+anywhere else in the file before removing anything — not just the
+entry point, every function in the chain.
+
+Also removed `#label-sheet`, flagged as dead in an earlier session but
+left in place at the time specifically because the print media query
+depended on it being listed alongside `#shelf-map-sheet` for that
+selector to work. Confirmed `#shelf-map-sheet` and its print button
+are still genuinely live before touching any of this, then removed
+`#label-sheet` and its now-pointless CSS (never applied to anything —
+disc and bay labels print through their own separate, self-contained
+new windows now, with their own independent styling, not through this
+element at all) and simplified the print rule down to what it actually
+still needs.
+
+Checked server.js for the same kind of dead code too, rather than
+assuming the frontend was the only place worth checking. An automated
+first pass flagged four functions as apparently unused, but checking
+each one individually caught that all four are real false positives —
+passed as bare function references to setInterval, setTimeout, and
+process.on rather than called with parentheses, which the first pass's
+simple text search didn't account for. Left server.js untouched once
+that confirmed there was nothing there to actually remove.
+
+A side benefit worth noting: the return-flow cleanup also resolved a
+pre-existing duplicate-id issue in the same pass — that dead code had
+its own `returnFlowCancelBtn` id defined in three different places
+within its own templates, now gone entirely along with the rest of it.
+
+Net effect: file went from just over 7,150 lines to 6,998, with the
+usual full verification pass after every single removal — syntax
+checks, missing/duplicate-id checks, and a CSS brace-balance check
+each time, not just once at the end.
+
+## Added a login sound
+
+A synthesized two-note chime — the classic "ding-dong" doorbell
+interval, a rising perfect fourth — using the same lazy AudioContext
+and tone-generation helpers every other sound in this app already
+shares, rather than a new audio system introduced just for this one.
+Kept deliberately shorter and simpler than the rent/checkout/return
+sounds — this one fires constantly throughout a normal day, so it
+needs to read as instantly familiar rather than be sat through, and a
+two-note doorbell shape reads that way in well under half a second.
+
+Wired into the one shared completeLogin() function both PIN login and
+barcode login already run through, so it plays no matter which way
+someone actually logs in — the same reason Service Mode's auto-open
+from last time only needed adding in one place too.
+
+## Service Mode opens automatically when an admin logs in
+
+Added to the one shared completeLogin() function both PIN login and
+barcode login already run through — covers whichever way an admin
+actually logs in, not just one of the two, without needing the same
+check written twice.
+
+Worth being upfront about what this actually does, since it's not
+obvious from "auto opens the service panel": Service Mode isn't a
+per-person view — it's a shared setting the server stores and applies
+kiosk-wide, changing what happens when any disc gets scanned (into
+Service Mode's own tools instead of the regular customer browsing
+modal) until someone turns it back off. So this doesn't just open a
+panel for the admin who logged in — it puts the whole kiosk into
+Service Mode for anyone using it, for as long as it stays on. Built
+exactly as asked, since that's clearly the intended behavior for how
+this one gets used, but worth having stated plainly rather than
+silently.
+
 ## Barcode login now works from the login gate itself, and PINs print on the barcode card
 
 Found a real gap while looking into this rather than assuming barcode

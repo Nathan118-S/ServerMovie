@@ -302,32 +302,24 @@
   .label-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
   .label-list .row label{display:flex;align-items:center;gap:10px;font-size:14px;}
 
-  #label-sheet{display:none;}
-  .disc-label{width:2.6in;height:1.1in;border:1px dashed #999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:8px;box-sizing:border-box;background:#fff;color:#111;overflow:hidden;}
-  .disc-label .disc-label-title{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:13px;font-weight:600;line-height:1.15;text-align:center;max-width:2.4in;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .disc-label img{max-width:2.3in;max-height:0.45in;object-fit:contain;}
-  .disc-label .disc-label-code{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:8px;color:#555;}
-  .label-sheet-grid{display:grid;grid-template-columns:repeat(3,2.6in);gap:0.15in;justify-items:center;}
-  .bay-label-grid{display:grid;grid-template-columns:repeat(3,2.6in);gap:0.15in;justify-items:center;}
-  .bay-label{width:2.6in;height:1.3in;border:1px dashed #999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:10px;box-sizing:border-box;background:#fff;color:#111;}
-  .bay-label .bay-label-title{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:16px;font-weight:700;letter-spacing:0.5px;}
-  .bay-label img{max-width:2.2in;max-height:0.6in;object-fit:contain;}
-
   @media print{
     /* A simpler, more direct technique than the visibility-based one
        this used before — that approach set body * to visibility:hidden
        (keeping every hidden element's layout space reserved) and then
-       relied on position:absolute + !important to place #label-sheet
-       on top of everything else, a more fragile combination than
-       necessary. This instead removes every OTHER direct child of body
-       from the render tree entirely with display:none — not just the
-       two named app containers, since any other overlay (a modal
-       that happens to be open) would otherwise still show up
-       alongside the print target. #label-sheet then naturally flows to
-       the top of an otherwise empty page with no absolute positioning
-       needed at all. */
-    body > *:not(#label-sheet):not(#shelf-map-sheet){display:none!important;}
-    #label-sheet{display:block!important;}
+       relied on position:absolute + !important to place the print
+       target on top of everything else, a more fragile combination
+       than necessary. This instead removes every OTHER direct child of
+       body from the render tree entirely with display:none — not just
+       the named app container, since any other overlay (a modal that
+       happens to be open) would otherwise still show up alongside the
+       print target. #shelf-map-sheet then naturally flows to the top
+       of an otherwise empty page with no absolute positioning needed
+       at all. Disc labels, bay barcodes, and user login barcodes each
+       print through their own separate, self-contained new window
+       instead (with their own independent styling), so this rule only
+       still needs to account for the shelf map, the one label type
+       that still prints straight from the main page. */
+    body > *:not(#shelf-map-sheet){display:none!important;}
     #shelf-map-sheet{display:block!important;width:100%;}
   }
 
@@ -580,10 +572,6 @@
 
 </div>
 
-<div id="label-sheet">
-  <div class="label-sheet-grid" id="labelSheetGrid"></div>
-</div>
-
 <div id="shelf-map-sheet" style="display:none;padding:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#000;">
   <div style="font-size:20px;font-weight:700;margin-bottom:4px;">Sandy Server — Shelf Map</div>
   <div style="font-size:12px;color:#555;margin-bottom:20px;" id="shelfMapPrintedAt"></div>
@@ -638,11 +626,6 @@
     </div>
   </div>
 </div>
-<div id="requestTitleOverlay" class="modal-overlay">
-  <div class="modal-card" style="width:380px;">
-    <div class="modal-body" id="requestTitleBody" style="padding:26px 22px;"></div>
-  </div>
-</div>
 <div id="doubleFeatureOverlay" class="modal-overlay">
   <div class="modal-card" style="width:460px;">
     <div class="modal-body" id="doubleFeatureBody" style="padding:26px 22px;"></div>
@@ -670,11 +653,6 @@
 <div id="surpriseSpinOverlay" class="pending-return-overlay">
   <div id="surpriseSpinBox" style="width:200px;aspect-ratio:2/3;border-radius:14px;background-size:cover;background-position:center;box-shadow:0 20px 50px rgba(0,0,0,0.5);margin-bottom:18px;"></div>
   <div id="surpriseSpinLabel" class="t" style="font-size:18px;"></div>
-</div>
-<div id="returnFlowOverlay" class="modal-overlay">
-  <div class="modal-card" style="width:360px;">
-    <div class="modal-body" id="returnFlowBody" style="padding:28px 22px;"></div>
-  </div>
 </div>
 <div id="loginGateOverlay" class="modal-overlay"></div>
 <div id="matchPickerOverlay" class="modal-overlay">
@@ -1861,97 +1839,6 @@
     setTab("browse");
   }
 
-  // ---------- Return flow: PIN -> show what's checked out -> pending ----------
-  function openReturnFlow(){
-    const overlay = $("#returnFlowOverlay");
-    overlay.style.display = "flex";
-    renderReturnFlowPinStep();
-  }
-
-  function closeReturnFlow(){
-    $("#returnFlowOverlay").style.display = "none";
-  }
-
-  function renderReturnFlowPinStep(){
-    const body = $("#returnFlowBody");
-    body.innerHTML = `
-      <div class="t" style="font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:20px;font-weight:700;color:var(--white);margin-bottom:14px;">Return a disc</div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Enter your 4-digit PIN</div>
-      <div style="display:flex;gap:8px;align-items:center;justify-content:center;">
-        <input id="returnFlowPinInput" class="pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" />
-        <button class="primary" id="returnFlowPinSubmitBtn">Enter</button>
-      </div>
-      <div id="returnFlowPinMsg" style="font-size:12px;color:#E87C03;margin-top:8px;min-height:16px;"></div>
-      <div id="returnFlowPinPad"></div>
-      <button class="secondary" id="returnFlowCancelBtn" style="margin-top:14px;width:100%;">Cancel</button>
-    `;
-    const input = $("#returnFlowPinInput");
-    input.focus();
-    $("#returnFlowPinPad").innerHTML = pinPadHtml();
-    wirePinPad($("#returnFlowPinPad"), input);
-    input.addEventListener("input", () => { if(input.value.length===4) submitReturnFlowPin(); });
-    $("#returnFlowPinSubmitBtn").onclick = submitReturnFlowPin;
-    input.addEventListener("keydown", e => { if(e.key==="Enter") submitReturnFlowPin(); });
-    $("#returnFlowCancelBtn").onclick = closeReturnFlow;
-  }
-
-  function submitReturnFlowPin(){
-    const input = $("#returnFlowPinInput");
-    const pin = (input.value||"").trim();
-    const msgEl = $("#returnFlowPinMsg");
-    const shake = () => { input.style.animation="none"; void input.offsetWidth; input.style.animation="shakeX 0.4s ease"; };
-    if(pin.length!==4){ msgEl.textContent = "Enter all 4 digits."; shake(); return; }
-    const u = users.find(x => x.pin === pin);
-    if(!u){ msgEl.textContent = "PIN not recognized."; shake(); return; }
-    const theirRentals = rentals.filter(r => r.renterName === u.name);
-    renderReturnFlowCheckedOutStep(u, theirRentals);
-  }
-
-  function renderReturnFlowCheckedOutStep(user, theirRentals){
-    const body = $("#returnFlowBody");
-    if(theirRentals.length === 0){
-      body.innerHTML = `
-        <div class="t" style="font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:20px;font-weight:700;color:var(--white);margin-bottom:10px;">Nothing checked out</div>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">${user.name} doesn't have anything rented right now.</div>
-        <button class="secondary" id="returnFlowCancelBtn" style="width:100%;">Close</button>
-      `;
-      $("#returnFlowCancelBtn").onclick = closeReturnFlow;
-      return;
-    }
-
-    const rowsHtml = theirRentals.map(r => `<div class="row" data-returnflowpick="${r.id}" style="cursor:pointer;">
-      <div class="display" style="font-size:15px;">${r.title}</div>
-    </div>`).join("");
-
-    body.innerHTML = `
-      <div class="t" style="font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:20px;font-weight:700;color:var(--white);margin-bottom:6px;">Hi, ${user.name}</div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">
-        ${theirRentals.length===1 ? "Here's what you've got checked out:" : "Tap the one you're returning:"}
-      </div>
-      <div style="display:flex;flex-direction:column;gap:8px;">${rowsHtml}</div>
-      <button class="secondary" id="returnFlowCancelBtn" style="margin-top:16px;width:100%;">Cancel</button>
-    `;
-    $("#returnFlowCancelBtn").onclick = closeReturnFlow;
-
-    if(theirRentals.length === 1){
-      // exactly one thing out — show it, pause a beat, then move on automatically
-      setTimeout(() => {
-        if($("#returnFlowOverlay").style.display !== "none") proceedReturnFlow(theirRentals[0]);
-      }, 2500);
-    } else {
-      // more than one — a deliberate tap picks which one, no need to also wait
-      body.querySelectorAll("[data-returnflowpick]").forEach(row => {
-        row.onclick = () => proceedReturnFlow(theirRentals.find(r => r.id === row.dataset.returnflowpick));
-      });
-    }
-  }
-
-  function proceedReturnFlow(rental){
-    if(!rental) return;
-    closeReturnFlow();
-    startReturn(rental);
-  }
-
   // ---------- Browse: hero + genre rows ----------
   function seriesTag(m){
     if(!m.seriesName) return "";
@@ -2549,42 +2436,6 @@
       statusEl.style.color = "#E87C03";
       btn.disabled = false;
     }
-  }
-
-  function openRequestTitleModal(){
-    const overlay = $("#requestTitleOverlay");
-    const body = $("#requestTitleBody");
-    overlay.style.display = "flex";
-    body.innerHTML = `
-      <div class="t" style="font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:19px;font-weight:700;color:var(--white);margin-bottom:4px;">Request a title</div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">We don't have it, but you want it — this just goes on a list for whoever manages the catalog to see.</div>
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        <input id="requestTitleInput" placeholder="Title" />
-        <input id="requestTitleNote" placeholder="Note (optional) — platform, why, whatever" />
-        <input id="requestTitleName" placeholder="Your name (optional)" value="${loggedInUser ? loggedInUser.name : ''}" />
-      </div>
-      <div style="display:flex;gap:8px;margin-top:16px;">
-        <button class="secondary" id="requestTitleCancelBtn" style="flex:1;">Cancel</button>
-        <button class="primary" id="requestTitleSubmitBtn" style="flex:1;">Submit</button>
-      </div>
-    `;
-    $("#requestTitleInput").focus();
-    const close = () => { overlay.style.display = "none"; body.innerHTML = ""; };
-    $("#requestTitleCancelBtn").onclick = close;
-    overlay.onclick = (e) => { if(e.target===overlay) close(); };
-    $("#requestTitleSubmitBtn").onclick = async () => {
-      const title = $("#requestTitleInput").value.trim();
-      if(!title){ toast("Enter a title first"); return; }
-      try{
-        await api.send("POST", "/api/wishlist", {
-          title,
-          note: $("#requestTitleNote").value,
-          requestedBy: $("#requestTitleName").value
-        });
-        close();
-        toast(`Requested "${title}" — thanks!`);
-      }catch(e){ toast(e.message || "Couldn't save that request"); }
-    };
   }
 
   // Everything that could actually change what the Browse grid looks
@@ -4555,9 +4406,21 @@
     renderModal();
     renderNavVisibility();
     resetAutoLogoutTimer();
+    playLoginSound();
     api.send("PUT", "/api/active-session", { userId: u.id, name: u.name }).catch(()=>{});
     api.send("POST", "/api/welcome-lights", { color: loggedInUser.color }).catch(()=>{}); // a nice-to-have flourish — never worth surfacing an error over
     toast(u.isAdmin ? `Welcome, ${u.name} (admin)` : `Welcome, ${u.name}`);
+    // Not awaited, same fire-and-forget pattern as the calls just above —
+    // openServiceMode() already reports its own error via toast if the
+    // settings write fails, so there's nothing left for this call site
+    // to do with the result either way. Worth being clear about what
+    // this actually does, though: turning service mode on isn't a
+    // per-person view — it's a shared setting on the server that
+    // changes scan behavior for the whole kiosk (a scanned disc opens
+    // Service Mode's tools instead of the customer browsing modal)
+    // until someone turns it back off, not just something this admin
+    // sees on their own screen.
+    if(u.isAdmin) openServiceMode();
   }
 
   function pinLogin(pin){
@@ -5651,6 +5514,23 @@
       playTone(ctx, now, 659.3, 0.10, 0.15, "sine", 0.19);  // E5
       playTone(ctx, now, 523.25, 0.20, 0.15, "sine", 0.19); // C5
       playChord(ctx, now, [261.6, 329.6, 392.0], 0.29, 0.48, "sine", 0.16); // C major chord, an octave down — the landing
+    }catch(e){}
+  }
+
+  // A distinct moment from all four rental sounds above it, closer in
+  // spirit to the door chime than to any of them — someone arriving,
+  // not an item moving. The classic two-note "ding-dong" doorbell
+  // interval (a rising perfect fourth) rather than a 3-4 note melodic
+  // run, since a login happens constantly throughout a normal day and
+  // needs to read as instantly familiar rather than be sat through —
+  // recognizable in well under half a second.
+  function playLoginSound(){
+    try{
+      if(!alertAudioCtx) alertAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = alertAudioCtx;
+      const now = ctx.currentTime;
+      playTone(ctx, now, 659.3, 0.00, 0.16, "sine", 0.18);  // E5 — "ding"
+      playTone(ctx, now, 880.0, 0.09, 0.22, "sine", 0.18);  // A5 — "dong"
     }catch(e){}
   }
 
