@@ -442,29 +442,14 @@
   /* Movie detail modal specifically — scoped to #movieModal alone, not
      every modal sharing .modal-card/.modal-overlay (TV Send, Double
      Feature, Request Support, etc. all keep their existing centered-card
-     size; this only touches the one modal that opens when a title is
-     tapped). Fills the viewport instead of floating as a centered card:
-     a taller, more cinematic header, and the body content kept at a
-     readable width and centered within the now much wider container,
-     rather than stretching every line of text and every button edge to
-     edge just because the outer card grew. */
-  #movieModal.modal-overlay{padding:0;}
-  #movieModal .modal-card{width:100vw;height:100vh;max-width:100vw;max-height:100vh;border-radius:0;}
-  #movieModal .modal-header{min-height:48vh;}
-  #movieModal .modal-body{max-width:640px;margin:0 auto;padding:28px 24px 40px;}
-  #movieModal .modal-close{top:16px;right:16px;width:34px;height:34px;font-size:18px;}
-  /* The Prime Video-style fade — a gradient sitting over the backdrop
-     image, transparent through the upper two-thirds and blending into
-     the page's own background color by the bottom edge, so the header
-     image dissolves smoothly into the body content below it instead of
-     ending on a hard, visible line the way the un-faded backdrop did.
-     Only actually applies to the plain background-image backdrop (z-index
-     auto/0, below this) — the poster specifically sits ABOVE this at
-     z-index:2, not below it. A poster is portrait art meant to be seen
-     in full; fading out its bottom edge the same way a landscape
-     backdrop fades would have visually cut it off even though the
-     underlying image itself was never actually cropped. */
-  #movieModal .modal-header::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(to bottom, transparent 55%, var(--bg) 100%);pointer-events:none;}
+     size). Reverted back to a normal centered card like every other
+     modal in this app, rather than the full-viewport, edge-to-edge
+     layout this had before — a bit wider than the 400px default so the
+     backdrop image and description still have room to breathe, but
+     otherwise just the standard floating card.
+  */
+  #movieModal .modal-card{width:480px;}
+  #movieModal .modal-header{min-height:220px;}
 
   /* ---- TV page ---- */
   #tvRoot{min-height:100vh;background:var(--bg);}
@@ -542,6 +527,7 @@
 
   <div class="panel active" data-panel="browse">
     <div id="browseHero"></div>
+    <div id="seasonalCollectionRow"></div>
     <div id="moodRow" style="display:flex;gap:8px;flex-wrap:wrap;padding:0 40px 10px;position:relative;z-index:1;"></div>
     <div id="genreFilterRow" style="display:flex;gap:8px;flex-wrap:wrap;padding:0 40px 10px;position:relative;z-index:1;"></div>
     <div id="ratingFilterRow" style="display:flex;gap:8px;flex-wrap:wrap;padding:0 40px 18px;position:relative;z-index:1;"></div>
@@ -718,6 +704,7 @@
       <div style="display:flex;gap:8px;margin-bottom:16px;">
         <button class="secondary active" id="rentalsViewActiveBtn">Active rentals</button>
         <button class="secondary" id="rentalsViewHistoryBtn">History &amp; popularity</button>
+        <button class="secondary" id="rentalsViewQueueBtn">Reservation queue</button>
       </div>
       <div id="rentalsActiveView">
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;" id="renterChips"></div>
@@ -725,13 +712,23 @@
       </div>
       <div id="rentalsHistoryView" style="display:none;">
         <div class="bulk-box" style="margin-top:0;">
-          <div class="display" style="font-size:15px;margin-bottom:10px;">Most popular titles</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div class="display" style="font-size:15px;">Most popular titles</div>
+            <button class="secondary" id="exportRentalHistoryCsvBtn" style="padding:7px 12px;font-size:11px;">Export CSV</button>
+          </div>
           <div id="popularList"></div>
         </div>
         <div class="bulk-box">
           <div class="display" style="font-size:15px;margin-bottom:10px;">Who's checked out what</div>
           <div class="scan-msg" style="margin-top:0;">Every checkout, active or already returned, newest first — who rented it, when, and (once it's back) when it was returned.</div>
           <div id="checkoutLog"></div>
+        </div>
+      </div>
+      <div id="rentalsQueueView" style="display:none;">
+        <div class="bulk-box" style="margin-top:0;">
+          <div class="display" style="font-size:15px;margin-bottom:4px;">Who's waiting on what</div>
+          <div class="scan-msg" style="margin-top:0;margin-bottom:14px;">Every open reservation, catalog-wide — newest first. Each title's own queue order (who's next) is still first-come, first-served within that title, same as it's always been; this just makes the whole thing visible in one place instead of only from inside each title's own modal.</div>
+          <div id="reservationQueueList"></div>
         </div>
       </div>
     </div>
@@ -999,6 +996,10 @@
             <button class="secondary" id="saveBayWindowBtn" style="padding:9px 14px;font-size:12px;">Save</button>
           </div>
           <div style="font-size:11px;color:var(--muted);">How long after someone logs in with their PIN a bay pull still counts as theirs — long enough to walk over and grab it, short enough that the next person doesn't get blamed for it.</div>
+          <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line);">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">🎉 A hidden barcode that triggers a rainbow light show on the WLED strip above when scanned — print it, hide it somewhere, let someone find it.</div>
+            <button class="secondary" id="printEasterEggBtn" style="padding:9px 14px;font-size:12px;">Print easter egg barcode</button>
+          </div>
         </div>
 
         <div class="bulk-box">
@@ -1160,6 +1161,24 @@
         </div>
 
         <div>
+          <div style="font-size:13px;color:var(--white);margin-bottom:4px;">Reservation ready</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Fires once per reservation — right when a title someone's waiting on actually comes back, for whoever's been waiting longest on it.</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
+            <input id="reservationWebhookInput" placeholder="https://discord.com/api/webhooks/... or a Slack webhook URL" style="min-width:280px;flex:1;" />
+            <button class="secondary" id="saveReservationWebhookBtn" style="padding:9px 14px;font-size:12px;">Save</button>
+            <button class="secondary" id="testReservationWebhookBtn" style="padding:9px 14px;font-size:12px;">Send test message</button>
+          </div>
+          <div id="reservationWebhookStatus" style="font-size:12px;color:var(--muted);margin-bottom:6px;"></div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <label style="font-size:12px;color:var(--muted);">Auto-cancel a reservation after</label>
+            <input id="reservationExpiryInput" type="number" min="0" style="width:70px;" />
+            <label style="font-size:12px;color:var(--muted);">days unclaimed (0 = never)</label>
+            <button class="secondary" id="saveReservationExpiryBtn" style="padding:9px 14px;font-size:12px;">Save</button>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;margin-bottom:14px;">Keeps a queue from silently piling up when a title someone's waiting on just never comes back — checked hourly, same as the overdue check.</div>
+        </div>
+
+        <div>
           <div style="font-size:13px;color:var(--white);margin-bottom:4px;">Server issues</div>
           <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">For actual problems on the server itself — a failed database save, or a crash it had to recover from — not day-to-day rental activity.</div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
@@ -1294,6 +1313,33 @@
     Mystery:"#1F3E5C", Romance:"#7A1F4E", Adventure:"#7A4E1F",
     Crime:"#4A2020", Musical:"#7A5C1F", War:"#3E3E3E", Western:"#6B4423"
   };
+  // Auto-rotating seasonal collections — no on/off flag stored anywhere
+  // for these; whether one's active is recomputed from today's actual
+  // date every time, which is the entire point (nobody has to remember
+  // to switch Halloween off on November 1st). dateRange wraps a year
+  // boundary fine as written (start > end just means "spans New
+  // Year's") since the active-check below compares month*100+day
+  // numerically rather than assuming start always precedes end within
+  // the same calendar year. match runs against a title's genre or its
+  // own title text — genre alone doesn't cover every case (there's no
+  // "Holiday" genre in the list above, and forcing one in just for this
+  // would be an odd fit for a general classification), so a keyword
+  // check on the title covers what a clean genre match can't.
+  const SEASONAL_COLLECTIONS = [
+    { key: "halloween", label: "🎃 Halloween Picks", startMonth: 10, startDay: 1, endMonth: 10, endDay: 31,
+      match: m => m.genre === "Horror" },
+    { key: "holiday", label: "🎄 Holiday Picks", startMonth: 12, startDay: 1, endMonth: 12, endDay: 31,
+      match: m => /christmas|holiday|xmas|santa/i.test(m.title || "") },
+  ];
+  function getActiveSeasonalCollection(){
+    const now = new Date();
+    const today = (now.getMonth()+1) * 100 + now.getDate(); // e.g. Oct 15 -> 1015, comparable without a Date object per item
+    return SEASONAL_COLLECTIONS.find(c => {
+      const start = c.startMonth * 100 + c.startDay;
+      const end = c.endMonth * 100 + c.endDay;
+      return start <= end ? (today >= start && today <= end) : (today >= start || today <= end); // wraps a year boundary
+    }) || null;
+  }
   // One-tap mood presets for Browse Movies — built entirely from data
   // titles already have (genre, rating, year, when it was added), not
   // a new field like runtime that would've needed its own Add Title
@@ -1507,6 +1553,8 @@
   let checkoutWebhookUrl = "";
   let returnWebhookUrl = "";
   let overdueWebhookUrl = "";
+  let reservationWebhookUrl = "";
+  let reservationExpiryDays = 0;
   let serverIssueWebhookUrl = "";
   let bays = []; // [{number, ledIndex, titleId}]
   let pendingReturn = null; // {titleId, title, expiresAt} — set until the disc lands back in a bay
@@ -1522,6 +1570,8 @@
   let suppressNextReturnComplete = false;
   let rentalHistory = []; // [{id, movieId, title, genre, renterName, rentedOn, dueOn, renewals, returnedOn}]
   let wishlist = []; // [{id, title, note, requestedBy, requestedAt}]
+  let reservations = []; // [{id, titleId, title, poster, userName, createdAt}]
+  let ratings = []; // [{id, titleId, userName, rating: 1|-1, createdAt}]
 
   const $ = sel => document.querySelector(sel);
   const $$ = sel => Array.from(document.querySelectorAll(sel));
@@ -1541,7 +1591,7 @@
       if(resource==="titles") updateCatalogAndDetectChanges(data);
       else if(resource==="rentals") updateRentalsAndDetectReturns(data);
       else if(resource==="users") users = data;
-      else if(resource==="settings"){ maxCheckouts = data.maxCheckouts || 3; omdbApiKey = data.omdbApiKey || ""; tmdbApiKey = data.tmdbApiKey || ""; igdbClientId = data.igdbClientId || ""; igdbClientSecret = data.igdbClientSecret || ""; wledUrl = data.wledUrl || ""; esp32BaysUrl = data.esp32BaysUrl || ""; bayWindowSeconds = data.bayWindowSeconds || 90; wledOpenEffect = data.wledOpenEffect ?? 9; wledCloseEffect = data.wledCloseEffect ?? 2; wledEffectSeconds = data.wledEffectSeconds || 6; doorCloseDelaySeconds = data.doorCloseDelaySeconds || 60; maxRenewals = data.maxRenewals ?? 2; overheadLedIndexes = data.overheadLedIndexes || ""; mainKioskIp = data.mainKioskIp || ""; serviceMode = !!data.serviceMode; supportWebhookUrl = data.supportWebhookUrl || ""; checkoutWebhookUrl = data.checkoutWebhookUrl || ""; returnWebhookUrl = data.returnWebhookUrl || ""; overdueWebhookUrl = data.overdueWebhookUrl || ""; serverIssueWebhookUrl = data.serverIssueWebhookUrl || ""; }
+      else if(resource==="settings"){ maxCheckouts = data.maxCheckouts || 3; omdbApiKey = data.omdbApiKey || ""; tmdbApiKey = data.tmdbApiKey || ""; igdbClientId = data.igdbClientId || ""; igdbClientSecret = data.igdbClientSecret || ""; wledUrl = data.wledUrl || ""; esp32BaysUrl = data.esp32BaysUrl || ""; bayWindowSeconds = data.bayWindowSeconds || 90; wledOpenEffect = data.wledOpenEffect ?? 9; wledCloseEffect = data.wledCloseEffect ?? 2; wledEffectSeconds = data.wledEffectSeconds || 6; doorCloseDelaySeconds = data.doorCloseDelaySeconds || 60; maxRenewals = data.maxRenewals ?? 2; overheadLedIndexes = data.overheadLedIndexes || ""; mainKioskIp = data.mainKioskIp || ""; serviceMode = !!data.serviceMode; supportWebhookUrl = data.supportWebhookUrl || ""; checkoutWebhookUrl = data.checkoutWebhookUrl || ""; returnWebhookUrl = data.returnWebhookUrl || ""; overdueWebhookUrl = data.overdueWebhookUrl || ""; reservationWebhookUrl = data.reservationWebhookUrl || ""; reservationExpiryDays = data.reservationExpiryDays ?? 0; serverIssueWebhookUrl = data.serverIssueWebhookUrl || ""; }
       else if(resource==="tv-selection") tvSelection = data && data.movieId ? data : null;
       else if(resource==="kiosk-selection") kioskSelection = data && data.movieId ? data : null;
       else if(resource==="bays") bays = data;
@@ -1561,6 +1611,8 @@
       }
       else if(resource==="rental-history") rentalHistory = data;
       else if(resource==="wishlist") wishlist = data;
+      else if(resource==="reservations") reservations = data;
+      else if(resource==="ratings") ratings = data;
       render();
     }catch(e){ toast("Couldn't reach the local server"); }
   }
@@ -1659,6 +1711,8 @@
       checkoutWebhookUrl = (state.settings && state.settings.checkoutWebhookUrl) || "";
       returnWebhookUrl = (state.settings && state.settings.returnWebhookUrl) || "";
       overdueWebhookUrl = (state.settings && state.settings.overdueWebhookUrl) || "";
+      reservationWebhookUrl = (state.settings && state.settings.reservationWebhookUrl) || "";
+      reservationExpiryDays = (state.settings && state.settings.reservationExpiryDays) ?? 0;
       serverIssueWebhookUrl = (state.settings && state.settings.serverIssueWebhookUrl) || "";
       tvSelection = state.tvSelection && state.tvSelection.movieId ? state.tvSelection : null;
       kioskSelection = state.kioskSelection && state.kioskSelection.movieId ? state.kioskSelection : null;
@@ -1667,6 +1721,8 @@
       pendingCheckout = state.pendingCheckout && state.pendingCheckout.expiresAt > Date.now() ? state.pendingCheckout : null;
       rentalHistory = state.rentalHistory || [];
       wishlist = state.wishlist || [];
+      reservations = state.reservations || [];
+      ratings = state.ratings || [];
       apiReady = true;
       render();
       const loadOverlay = $("#initialLoadOverlay");
@@ -1723,6 +1779,7 @@
       renderActivityFeed();
       renderRentals();
       renderActivityPanel();
+      renderReservationQueuePanel();
       renderAdminList();
       renderLabelList();
       renderWishlist();
@@ -1774,6 +1831,10 @@
     if(rwInput && document.activeElement !== rwInput) rwInput.value = returnWebhookUrl;
     const owInput = $("#overdueWebhookInput");
     if(owInput && document.activeElement !== owInput) owInput.value = overdueWebhookUrl;
+    const resWInput = $("#reservationWebhookInput");
+    if(resWInput && document.activeElement !== resWInput) resWInput.value = reservationWebhookUrl;
+    const resExpInput = $("#reservationExpiryInput");
+    if(resExpInput && document.activeElement !== resExpInput) resExpInput.value = reservationExpiryDays;
     const siwInput = $("#serverissueWebhookInput");
     if(siwInput && document.activeElement !== siwInput) siwInput.value = serverIssueWebhookUrl;
   }
@@ -1807,6 +1868,7 @@
     renderConnectedClients();
     renderRentals();
     renderActivityPanel();
+    renderReservationQueuePanel();
     renderAdminList();
     renderLabelList();
     renderWishlist();
@@ -1851,6 +1913,20 @@
   // Converts a "#RRGGBB" hex color to an rgba() string at the given
   // opacity — used for the genre glow below, since a hardcoded hex at
   // full opacity would read as a neon outline rather than a soft glow.
+  // A short, human label for whichever of the three non-rentable
+  // conditions a title has, or "" for a normal one — used everywhere a
+  // status line or tooltip needs to say what's actually going on rather
+  // than lumping Damaged and Missing under the same generic
+  // "Unavailable" text Unavailable itself uses. Capitalizes the raw
+  // condition value directly for Damaged/Missing rather than a second
+  // hardcoded string, since the stored value and the displayed label
+  // are already spelled the same way.
+  function conditionLabel(m){
+    if(m.condition === "unavailable") return "Unavailable";
+    if(m.condition === "damaged" || m.condition === "missing") return m.condition[0].toUpperCase() + m.condition.slice(1);
+    return "";
+  }
+
   function hexToRgba(hex, alpha){
     const h = (hex||"#333333").replace("#","");
     const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
@@ -1867,7 +1943,7 @@
     // it's a different underlying reason — a title marked unavailable
     // can still have real stock sitting on the shelf, it's just not
     // something anyone should be able to check out right now.
-    const out = m.stock<=0 || m.condition==='unavailable';
+    const out = m.stock<=0 || ['unavailable','damaged','missing'].includes(m.condition);
     // A soft glow in the genre's own color around the resting card —
     // makes genre scannable across a whole grid at a glance without
     // reading every title's genre tag individually. Passed as a CSS
@@ -1897,7 +1973,7 @@
     return `<div class="poster-card" data-openmovie="${m.id}" style="${bg}" ${isTvMode() ? 'tabindex="0"' : ''}>
       ${isDigital
         ? `<span class="poster-dot" style="background:${STREAMING_SERVICES[m.streamingService]?.color || '#555'};" title="${m.streamingService || 'Streaming'}"></span>`
-        : `<span class="poster-dot${out?'':' in-stock'}" style="background:${out?'#737373':'#46D369'};" title="${m.condition==='unavailable' ? 'Unavailable' : (out?'Out of stock':'In stock')}"></span>`}
+        : `<span class="poster-dot${out?'':' in-stock'}" style="background:${out?'#737373':'#46D369'};" title="${conditionLabel(m) || (out?'Out of stock':'In stock')}"></span>`}
       ${tag ? `<span style="position:absolute;top:8px;left:8px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,0.55);padding:2px 7px;border-radius:6px;">${tag}</span>` : ""}
       ${m.condition==='damaged' ? `<span class="bluray-badge" style="background:linear-gradient(135deg,#E57373,#B71C1C);${tag?'bottom:56px;':''}"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="width:11px;height:11px;vertical-align:-1px;"><path d="M12 4 2 20h20L12 4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><line x1="12" y1="10" x2="12" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg> Damaged</span>` : ""}
       ${isGame && m.platform ? `<span class="bluray-badge" style="background:linear-gradient(135deg,#66BB6A,#2E7D32);">${m.platform}</span>` : ""}
@@ -2061,7 +2137,7 @@
   function heroHtml(m, mode){
     const isDigital = m.mediaType === 'digital';
     const color = (m.mediaType === 'game' ? GAME_GENRE_COLORS[m.genre] : m.mediaType === 'homevideo' ? HOMEVIDEO_GENRE_COLORS[m.genre] : GENRE_COLORS[m.genre]) || "#333";
-    const out = m.stock<=0 || m.condition==='unavailable';
+    const out = m.stock<=0 || ['unavailable','damaged','missing'].includes(m.condition);
     const blurb = m.description
       ? (m.description.length > 200 ? m.description.slice(0, 197) + "…" : m.description)
       : "";
@@ -2085,7 +2161,7 @@
       <div class="hero-content">
         <div class="hero-eyebrow">${m.genre} · ${m.year}</div>
         ${m.logo ? `<img src="${m.logo}" alt="${m.title}" class="title-logo hero-logo" />` : `<div class="hero-title">${m.title}</div>`}
-        <div class="hero-meta"><span class="rating-badge">${m.rating}</span> &nbsp;${isDigital ? `Streaming on ${m.streamingService || 'an unspecified service'}` : (m.condition==='unavailable' ? 'Unavailable' : out?'Out of stock':m.stock+' disc'+(m.stock===1?'':'s')+' available')}</div>
+        <div class="hero-meta"><span class="rating-badge">${m.rating}</span> &nbsp;${isDigital ? `Streaming on ${m.streamingService || 'an unspecified service'}` : (conditionLabel(m) || (out?'Out of stock':m.stock+' disc'+(m.stock===1?'':'s')+' available'))}</div>
         ${blurb ? `<div style="font-size:14px;color:var(--muted);line-height:1.5;margin-bottom:16px;max-width:520px;">${blurb}</div>` : ''}
         <div class="hero-actions">${actions}</div>
       </div>
@@ -2517,6 +2593,39 @@
     });
   }
 
+  // Shows the currently active seasonal collection (if any) as its own
+  // titled shelf above the filter chips, using the exact same
+  // gridHtml/wireBrowseCards pieces every other poster row in this app
+  // already uses — not a new, separately-styled component just for
+  // this. Nothing to check against a stored flag here; whether one's
+  // active and which titles match is entirely recomputed from today's
+  // date and the catalog every call.
+  let lastSeasonalSig = "";
+  function renderSeasonalCollection(movieItems){
+    const el = $("#seasonalCollectionRow");
+    if(!el) return;
+    const collection = getActiveSeasonalCollection();
+    if(!collection){
+      if(lastSeasonalSig !== ""){ el.innerHTML = ""; lastSeasonalSig = ""; }
+      return;
+    }
+    const matches = movieItems.filter(collection.match).filter(m => m.stock > 0 && m.condition !== "unavailable");
+    if(matches.length === 0){
+      if(lastSeasonalSig !== ""){ el.innerHTML = ""; lastSeasonalSig = ""; }
+      return;
+    }
+    // Same reveal/stagger-replay problem the main grid's own signature
+    // check exists to avoid, just scoped to this smaller row — without
+    // it, an unrelated SSE update anywhere in the app would rebuild
+    // this and replay its entrance animation every single time.
+    const sig = collection.key + "|" + browseSignature(matches, "");
+    if(sig === lastSeasonalSig) return;
+    lastSeasonalSig = sig;
+    el.innerHTML = gridHtml(collection.label, matches);
+    wireBrowseCards(el, openMovieModal);
+    setupScrollReveal(el);
+  }
+
   function renderBrowse(){
     const heroEl = $("#browseHero");
     const rowsEl = $("#browseRows");
@@ -2532,6 +2641,7 @@
     renderMoodRow();
     renderGenreFilterRow();
     renderRatingFilterRow();
+    renderSeasonalCollection(movieItems);
     if(moodFilter && MOOD_PRESETS[moodFilter]) movieItems = movieItems.filter(MOOD_PRESETS[moodFilter].test);
     if(genreFilter) movieItems = movieItems.filter(m => m.genre === genreFilter);
     if(ratingFilter) movieItems = movieItems.filter(m => m.rating === ratingFilter);
@@ -3202,6 +3312,92 @@
   }
 
 
+  // A CSV field needs quoting whenever it could otherwise be misread —
+  // a comma, a quote, or a newline embedded in the value itself (a
+  // title with a comma in its name, say). Escaping is just doubling any
+  // quote character already in the value, the standard CSV convention
+  // every spreadsheet app already expects.
+  function csvField(value){
+    const s = String(value ?? "");
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  }
+
+  // Shared by both the catalog-wide and per-user export buttons below —
+  // only what differs between them (which rows, what the file's called)
+  // needs to be passed in, everything about actually turning rows into
+  // a CSV file and handing it to the browser to download is identical
+  // either way.
+  // Sending the same rating that's already stored is how "tap again to
+  // clear it" is implemented — the server treats a repeat as a delete,
+  // not a resend, so this never needs to check the current state
+  // itself before deciding what to send.
+  async function rateTitle(titleId, rating){
+    if(!loggedInUser) return;
+    try{
+      await api.send("POST", "/api/ratings", { titleId, userName: loggedInUser.name, rating });
+      await refetch("ratings");
+    }catch(e){ toast(e.message || "Couldn't save that rating"); }
+  }
+
+  function downloadRentalHistoryCsv(rows, filename){
+    if(rows.length === 0){ toast("Nothing to export yet."); return; }
+    const headers = ["Title", "Renter", "Rented On", "Due On", "Returned On", "Renewals"];
+    const lines = [headers.map(csvField).join(",")];
+    rows.slice().sort((a,b) => b.returnedOn - a.returnedOn).forEach(r => {
+      lines.push([
+        r.title,
+        r.renterName,
+        r.rentedOn ? new Date(r.rentedOn).toLocaleDateString() : "",
+        r.dueOn ? new Date(r.dueOn).toLocaleDateString() : "",
+        r.returnedOn ? new Date(r.returnedOn).toLocaleDateString() : "",
+        r.renewals || 0
+      ].map(csvField).join(","));
+    });
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  let lastReservationQueueSig = "";
+  function renderReservationQueuePanel(){
+    const el = $("#reservationQueueList");
+    if(!el) return;
+    const sig = JSON.stringify(reservations);
+    if(sig === lastReservationQueueSig) return;
+    lastReservationQueueSig = sig;
+    if(reservations.length === 0){
+      el.innerHTML = `<div style="color:var(--muted);font-size:14px;">No one's waiting on anything right now.</div>`;
+      return;
+    }
+    // Newest first, catalog-wide — each title's own internal order
+    // (who's actually next in line for that specific title) is a
+    // separate concern this view doesn't need to re-derive; it's
+    // already exactly reservations.filter(...).sort(createdAt) applied
+    // per title the moment a return happens, not something this
+    // listing recomputes or displays itself.
+    const sorted = reservations.slice().sort((a,b) => b.createdAt - a.createdAt);
+    el.innerHTML = `<div class="list-group">` + sorted.map(r => `<div class="row">
+      <div>
+        <div class="display" style="font-size:15px;">${r.title}</div>
+        <div style="font-size:12px;color:var(--muted2);margin-top:2px;">${r.userName} · waiting since ${new Date(r.createdAt).toLocaleDateString()}</div>
+      </div>
+      <button class="secondary" data-cancelqueuedreservation="${r.id}" style="padding:8px 12px;font-size:12px;">Cancel</button>
+    </div>`).join("") + `</div>`;
+    el.querySelectorAll("[data-cancelqueuedreservation]").forEach(b => b.onclick = async () => {
+      try{
+        await api.send("DELETE", "/api/reservations/"+b.dataset.cancelqueuedreservation);
+        toast("Reservation canceled.");
+        await refetch("reservations");
+      }catch(e){ toast("Couldn't cancel that reservation"); }
+    });
+  }
+
   function renderActivityPanel(){
     const popEl = $("#popularList");
     const logEl = $("#checkoutLog");
@@ -3283,6 +3479,14 @@
         </div>`;
       }).join("") + `</div>`;
 
+    const myReservations = reservations.filter(r => r.userName === loggedInUser.name);
+    const reservationsHtml = myReservations.length===0 ? "" : `
+      <div class="display" style="font-size:14px;margin-top:24px;margin-bottom:8px;">Waiting on</div>
+      <div class="list-group">` + myReservations.map(r => `<div class="row">
+        <div class="display" style="font-size:15px;">${r.title}</div>
+        <button class="secondary" data-mycancelreservation="${r.id}" style="padding:9px 12px;font-size:12px;">Cancel</button>
+      </div>`).join("") + `</div>`;
+
     const myHistory = rentalHistory.filter(r => r.renterName === loggedInUser.name)
       .sort((a,b) => b.returnedOn - a.returnedOn).slice(0, 10);
     const historyHtml = myHistory.length===0 ? "" : `
@@ -3294,9 +3498,16 @@
         </div>
       </div>`).join("") + `</div>`;
 
-    el.innerHTML = activeHtml + historyHtml;
+    el.innerHTML = activeHtml + reservationsHtml + historyHtml;
     el.querySelectorAll("[data-myreturn]").forEach(b => b.onclick = () => startReturn(rentals.find(r=>r.id===b.dataset.myreturn)));
     el.querySelectorAll("[data-myrenew]").forEach(b => b.onclick = () => renewRental(b.dataset.myrenew));
+    el.querySelectorAll("[data-mycancelreservation]").forEach(b => b.onclick = async () => {
+      try{
+        await api.send("DELETE", "/api/reservations/"+b.dataset.mycancelreservation);
+        toast("Reservation canceled.");
+        await refetch("reservations");
+      }catch(e){ toast("Couldn't cancel that reservation"); }
+    });
   }
 
   function renderAdminList(){
@@ -3713,6 +3924,7 @@
           </label>
           <button class="secondary" data-saveuser="${u.id}" style="padding:8px 12px;font-size:12px;">Save</button>
           <button class="secondary" data-printbarcode="${u.id}" style="padding:8px 12px;font-size:12px;">Print login barcode</button>
+          <button class="secondary" data-exportuserhistory="${u.id}" style="padding:8px 12px;font-size:12px;" ${historyCount===0?'disabled':''} title="${historyCount===0 ? 'No history to export' : `Export ${historyCount} past rental${historyCount===1?'':'s'} for ${u.name}`}">Export CSV${historyCount>0?` (${historyCount})`:''}</button>
           <button class="secondary" data-clearhistory="${u.id}" style="padding:8px 12px;font-size:12px;" ${historyCount===0?'disabled':''} title="${historyCount===0 ? 'No history to clear' : `Permanently remove ${historyCount} past rental${historyCount===1?'':'s'} for ${u.name}`}">Clear history${historyCount>0?` (${historyCount})`:''}</button>
           <div style="width:100%;display:flex;gap:10px;flex-wrap:wrap;margin-top:2px;">
             <span style="font-size:11px;color:var(--muted);">Can't check out:</span>
@@ -3727,6 +3939,12 @@
     el.querySelectorAll("[data-printbarcode]").forEach(b => b.onclick = () => {
       const u = users.find(x => x.id === b.dataset.printbarcode);
       if(u) printUserLoginBarcode(u);
+    });
+    el.querySelectorAll("[data-exportuserhistory]").forEach(b => b.onclick = () => {
+      const u = users.find(x => x.id === b.dataset.exportuserhistory);
+      if(!u) return;
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadRentalHistoryCsv(rentalHistory.filter(r => r.renterName === u.name), `sandy-server-rental-history-${u.name.toLowerCase().replace(/\s+/g,'-')}-${stamp}.csv`);
     });
     el.querySelectorAll("[data-clearhistory]").forEach(b => b.onclick = () => {
       const u = users.find(x => x.id === b.dataset.clearhistory);
@@ -3846,7 +4064,7 @@
     const isDigital = m.mediaType === 'digital';
     const isGame = m.mediaType === 'game';
     const color = (m.mediaType === 'game' ? GAME_GENRE_COLORS[m.genre] : m.mediaType === 'homevideo' ? HOMEVIDEO_GENRE_COLORS[m.genre] : GENRE_COLORS[m.genre]) || "#333";
-    const out = m.stock<=0 || m.condition==='unavailable';
+    const out = m.stock<=0 || ['unavailable','damaged','missing'].includes(m.condition);
     const headerBg = m.backdrop
       ? `background-image:url('${m.backdrop}');`
       : (m.poster ? `background-image:url('${m.poster}');` : `background-image:linear-gradient(160deg, ${color}, #141414 85%);`);
@@ -3865,7 +4083,24 @@
         ? `<a class="primary" href="${m.streamingUrl}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:52px;box-sizing:border-box;text-decoration:none;"><svg viewBox="0 0 24 24" fill="currentColor" style="width:15px;height:15px;"><path d="M6 4l14 8-14 8V4Z"/></svg> Watch on ${m.streamingService || 'streaming'}</a>`
         : `<div style="font-size:13px;color:var(--muted);height:52px;display:flex;align-items:center;">No streaming link added yet.</div>`;
     } else if(out){
-      actionHtml = `<div style="font-size:13px;color:#E87C03;height:52px;display:flex;align-items:center;">${m.condition==='unavailable' ? 'Unavailable' : 'Out of stock'}</div>`;
+      // Reserving only actually makes sense when something real is
+      // going to come back and trigger it — an active rental for this
+      // title. A title that's merely marked unavailable (damaged, lost,
+      // pulled for some other reason) with no one currently renting it
+      // would never generate the return event a reservation waits on,
+      // so that case just shows the plain status message instead of
+      // offering a reservation that could never resolve.
+      const activeRentalForThis = rentals.some(r => r.movieId === m.id);
+      if(activeRentalForThis && loggedInUser){
+        const alreadyWaiting = reservations.find(r => r.titleId === m.id && r.userName === loggedInUser.name);
+        actionHtml = alreadyWaiting
+          ? `<button class="secondary" id="modalCancelReservationBtn" data-reservationid="${alreadyWaiting.id}" style="width:100%;height:52px;box-sizing:border-box;">You're on the list — tap to cancel</button>`
+          : `<button class="secondary" id="modalReserveBtn" style="width:100%;height:52px;box-sizing:border-box;">🔔 Notify me when it's back</button>`;
+      } else if(activeRentalForThis){
+        actionHtml = `<button class="primary" id="modalOpenLoginBtn" style="width:100%;height:52px;box-sizing:border-box;">Log in to get notified when it's back</button>`;
+      } else {
+        actionHtml = `<div style="font-size:13px;color:#E87C03;height:52px;display:flex;align-items:center;">${conditionLabel(m) || 'Out of stock'}</div>`;
+      }
     } else if(loggedInUser){
       const count = rentals.filter(r => r.renterName===loggedInUser.name).length;
       const atLimit = count >= maxCheckouts;
@@ -3896,13 +4131,20 @@
         <div style="display:flex;gap:10px;margin-top:14px;position:relative;z-index:2;">
           <button class="modal-icon-btn" id="modalSendToTvBtn" title="Continue on TV"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg></button>
           ${(!isGame && m.imdbId) ? `<a class="modal-icon-btn" href="https://www.imdb.com/title/${m.imdbId}/" target="_blank" rel="noopener" title="View on IMDb" style="text-decoration:none;font-size:11px;font-weight:700;">IMDb</a>` : ''}
+          ${loggedInUser ? (() => {
+            const myRating = ratings.find(r => r.titleId === m.id && r.userName === loggedInUser.name);
+            const upActive = myRating && myRating.rating === 1;
+            const downActive = myRating && myRating.rating === -1;
+            return `<button class="modal-icon-btn" id="modalThumbsUpBtn" title="I liked this" style="${upActive ? 'background:rgba(70,211,105,0.25);border-color:rgba(70,211,105,0.5);color:#46D369;' : ''}"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M7 11v9H4a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3Zm0 0 4.5-8a2 2 0 0 1 3.8 1l-1 5h4.7a2 2 0 0 1 1.9 2.6l-2 6a2 2 0 0 1-1.9 1.4H7" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></button>
+            <button class="modal-icon-btn" id="modalThumbsDownBtn" title="Not for me" style="${downActive ? 'background:rgba(184,58,58,0.25);border-color:rgba(184,58,58,0.5);color:#E8746C;' : ''}"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="transform:rotate(180deg);"><path d="M7 11v9H4a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3Zm0 0 4.5-8a2 2 0 0 1 3.8 1l-1 5h4.7a2 2 0 0 1 1.9 2.6l-2 6a2 2 0 0 1-1.9 1.4H7" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></button>`;
+          })() : ''}
         </div>
       </div>
       <div class="modal-body">
         ${m.recommended ? `<div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#FFD54F;background:rgba(255,152,0,0.12);border:1px solid rgba(255,152,0,0.3);border-radius:10px;padding:10px 12px;margin-bottom:16px;"><svg viewBox="0 0 24 24" fill="currentColor" style="width:15px;height:15px;flex-shrink:0;"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.5 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8L12 2Z"/></svg> Recommended pick — a staff favorite.</div>` : ""}
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);margin-bottom:${(!isDigital && !out) ? '4px' : '16px'};">
           <span class="rating-badge">${m.rating}</span>
-          <span>${isDigital ? `Streaming on ${m.streamingService || 'an unspecified service'}` : (m.condition==='unavailable' ? 'Unavailable' : out ? 'Out of stock' : m.stock+' disc'+(m.stock===1?'':'s')+' on hand')}</span>
+          <span>${isDigital ? `Streaming on ${m.streamingService || 'an unspecified service'}` : (conditionLabel(m) || (out ? 'Out of stock' : m.stock+' disc'+(m.stock===1?'':'s')+' on hand'))}</span>
         </div>
         ${(!isDigital && !out) ? (() => {
           const bay = bays.find(b => b.titleId === m.id);
@@ -3930,6 +4172,10 @@
     $("#modalCloseBtn").onclick = closeModal;
     overlay.onclick = (e) => { if(e.target===overlay) closeModal(); };
     $("#modalSendToTvBtn").onclick = () => sendToTv(m);
+    const thumbsUpBtn = $("#modalThumbsUpBtn");
+    if(thumbsUpBtn) thumbsUpBtn.onclick = () => rateTitle(m.id, 1);
+    const thumbsDownBtn = $("#modalThumbsDownBtn");
+    if(thumbsDownBtn) thumbsDownBtn.onclick = () => rateTitle(m.id, -1);
     overlay.querySelectorAll("[data-openbonus]").forEach(btn => {
       btn.onclick = () => openMovieModal(btn.dataset.openbonus);
     });
@@ -3943,6 +4189,25 @@
       $("#modalLogoutBtn").onclick = () => { pinLogout(); };
     } else if(!isDigital && !out){
       $("#modalOpenLoginBtn").onclick = openLoginGate;
+    } else if(!isDigital && out){
+      const reserveBtn = $("#modalReserveBtn");
+      if(reserveBtn) reserveBtn.onclick = async () => {
+        try{
+          await api.send("POST", "/api/reservations", { titleId: m.id, userName: loggedInUser.name });
+          toast(`You're on the list for "${m.title}" — we'll let you know when it's back.`);
+          await refetch("reservations");
+        }catch(e){ toast(e.message || "Couldn't add that reservation"); }
+      };
+      const cancelBtn = $("#modalCancelReservationBtn");
+      if(cancelBtn) cancelBtn.onclick = async () => {
+        try{
+          await api.send("DELETE", "/api/reservations/"+cancelBtn.dataset.reservationid);
+          toast("Reservation canceled.");
+          await refetch("reservations");
+        }catch(e){ toast("Couldn't cancel that reservation"); }
+      };
+      const loginBtn = $("#modalOpenLoginBtn");
+      if(loginBtn) loginBtn.onclick = openLoginGate;
     }
   }
 
@@ -3969,7 +4234,7 @@
     }
 
     const discRows = discs.map(d => {
-      const dOut = d.stock<=0 || d.condition==='unavailable';
+      const dOut = d.stock<=0 || ['unavailable','damaged','missing'].includes(d.condition);
       const action = dOut
         ? `<span style="font-size:12px;color:#E87C03;">Unavailable</span>`
         : (loggedInUser ? `<button class="teal" data-rentdisc="${d.id}">Rent</button>` : "");
@@ -4619,6 +4884,49 @@
   // already checks for, since that id is already a permanent, unique
   // token the moment the user was created, with nothing new needed to
   // generate or store for this.
+  // Same dedicated-new-window print technique as every other label in
+  // this app, styled with a rainbow gradient border instead of one of
+  // LABEL_TYPE_COLORS' flat colors — this isn't a category with many
+  // items the way movie/bay/user labels are, just one deliberately
+  // playful one-off, so it gets its own look rather than being forced
+  // into a system built for sorting a stack of many different labels.
+  async function printEasterEggBarcode(){
+    toast("Preparing the easter egg barcode…");
+    let barcodeDataUrl = null;
+    try{
+      const data = await api.get("/api/barcode?text=" + encodeURIComponent("SANDYPARTY"));
+      barcodeDataUrl = data.dataUrl;
+    }catch(e){ /* falls through to the text fallback below */ }
+
+    const printHtml = `<!DOCTYPE html>
+<html><head><title>Sandy Server — 🎉</title>
+<style>
+  body{margin:0;padding:0.2in;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;display:flex;justify-content:center;}
+  .egg-label{width:3.2in;height:1.6in;border:6px solid;border-image:linear-gradient(90deg,#FF0000,#FF7F00,#FFFF00,#00FF00,#0000FF,#9400D3) 1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:12px;box-sizing:border-box;background:#fff;color:#111;}
+  .egg-label-title{font-size:22px;}
+  .egg-label img{max-width:2.8in;max-height:0.6in;object-fit:contain;}
+</style>
+</head>
+<body>
+  <div class="egg-label">
+    <div class="egg-label-title">🎉✨🌈</div>
+    ${barcodeDataUrl ? `<img src="${barcodeDataUrl}" />` : `<div style="font-size:11px;">Couldn't generate a barcode image</div>`}
+  </div>
+</body></html>`;
+
+    const printWindow = window.open("", "_blank", "width=900,height=700");
+    if(!printWindow){
+      toast("Couldn't open the print window — your browser may be blocking pop-ups for this page.");
+      return;
+    }
+    printWindow.document.write(printHtml);
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+    };
+  }
+
   async function printUserLoginBarcode(user){
     toast(`Preparing ${user.name}'s login barcode…`);
     let barcodeDataUrl = null;
@@ -4851,7 +5159,7 @@
       const title = catalog.find(m => m.id === bay.titleId);
       const statusLine = title
         ? `<div class="bay-title">${title.title}${seriesTag(title) ? ' <span style="color:var(--muted);font-size:11px;">('+seriesTag(title)+')</span>' : ''}</div>
-           <div style="font-size:11px;color:${title.condition==='unavailable' ? '#E87C03' : title.stock>0?'var(--green)':'#E87C03'};">${title.condition==='unavailable' ? 'Unavailable' : title.stock>0?'In stock':'Checked out'}</div>`
+           <div style="font-size:11px;color:${conditionLabel(title) ? '#E87C03' : title.stock>0?'var(--green)':'#E87C03'};">${conditionLabel(title) || (title.stock>0?'In stock':'Checked out')}</div>`
         : `<div class="bay-empty">Empty — no title assigned</div>`;
       return `<div class="bay-card">
         <div class="bay-num">Bay ${bay.number}</div>
@@ -5131,7 +5439,7 @@
   }
 
   async function startRentByMovie(movie, renterName){
-    if(movie.stock<=0 || movie.condition==='unavailable') return;
+    if(movie.stock<=0 || ['unavailable','damaged','missing'].includes(movie.condition)) return;
     renterName = (renterName||"").trim();
     if(!renterName){ toast("Enter a renter name first"); return; }
     if(isRatingRestricted(movie, renterName)){
@@ -5181,7 +5489,7 @@
   // toast, with no way for a caller to know the difference between "it
   // worked" and "it didn't" without duplicating these same checks itself.
   async function rentByMovie(movie, renterName){
-    if(movie.stock<=0 || movie.condition==='unavailable') return false;
+    if(movie.stock<=0 || ['unavailable','damaged','missing'].includes(movie.condition)) return false;
     renterName = (renterName||"").trim();
     if(!renterName){ toast("Enter a renter name first"); return false; }
     if(isRatingRestricted(movie, renterName)){
@@ -6301,6 +6609,20 @@
       return;
     }
 
+    // A hidden easter egg — a barcode for a magic word nobody would
+    // stumble onto by scanning an actual disc or bay, printed and
+    // tucked away somewhere for whoever finds it. Triggers a rainbow
+    // light show server-side if WLED is configured, silently does
+    // nothing otherwise (same as scanning it with no lights hooked up
+    // at all) — either way this never shows an error, since finding
+    // this isn't a mistake someone needs told about.
+    if(code === "SANDYPARTY"){
+      api.send("POST", "/api/easter-egg").catch(()=>{});
+      recordLastScan(rawScanned, "🎉");
+      toast("🎉🌈✨");
+      return;
+    }
+
     if(code.indexOf("SANDYSERVER:")===0) code = code.slice(12);
     else if(code.indexOf("REELBOX:")===0) code = code.slice(8);
     const match = catalog.find(m => m.code === code);
@@ -6320,7 +6642,7 @@
     }
 
     if(match){
-      const out = match.stock<=0 || match.condition==='unavailable';
+      const out = match.stock<=0 || ['unavailable','damaged','missing'].includes(match.condition);
       const activeRentals = rentals.filter(r => r.movieId === match.id);
       const hasBay = bays.some(b => b.titleId === match.id);
       const returnHtml = activeRentals.length > 0 ? `<div style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px;">
@@ -6338,7 +6660,7 @@
         <div class="g">${match.genre} · ${match.year} · ${match.rating} · ${match.stock} in stock</div>
         <div style="margin-top:8px;">${imdbLinkHtml(match)}</div>
         <div style="margin-top:12px;display:flex;gap:8px;">
-          ${out ? `<span style="font-size:12px;color:#E87C03;">${match.condition==='unavailable' ? 'Unavailable' : 'Out of stock'}</span>`
+          ${out ? `<span style="font-size:12px;color:#E87C03;">${conditionLabel(match) || 'Out of stock'}</span>`
             : (loggedInUser ? `<button class="primary" id="scanRentBtn">Rent this disc</button>` : `<button class="primary" id="scanOpenLoginBtn">Log in to rent</button>`)}
         </div>
         ${returnHtml}
@@ -6610,17 +6932,25 @@
       rentByMovie(movie, renterName);
       $("#manualCheckoutRenter").value = "";
     };
-    $("#rentalsViewActiveBtn").onclick = () => {
-      $("#rentalsViewActiveBtn").classList.add("active");
-      $("#rentalsViewHistoryBtn").classList.remove("active");
-      $("#rentalsActiveView").style.display = "block";
-      $("#rentalsHistoryView").style.display = "none";
+    // Three-way tab switch — a shared helper rather than each button
+    // manually toggling the other two, since that pairwise approach
+    // stops scaling cleanly past two options (this used to be exactly
+    // that, before Reservation queue became a third view here).
+    const setRentalsView = (which) => {
+      const views = { active: "rentalsActiveView", history: "rentalsHistoryView", queue: "rentalsQueueView" };
+      const btns = { active: "rentalsViewActiveBtn", history: "rentalsViewHistoryBtn", queue: "rentalsViewQueueBtn" };
+      Object.keys(views).forEach(key => {
+        $("#"+views[key]).style.display = (key===which) ? "block" : "none";
+        $("#"+btns[key]).classList.toggle("active", key===which);
+      });
+      if(which === "queue") renderReservationQueuePanel();
     };
-    $("#rentalsViewHistoryBtn").onclick = () => {
-      $("#rentalsViewHistoryBtn").classList.add("active");
-      $("#rentalsViewActiveBtn").classList.remove("active");
-      $("#rentalsHistoryView").style.display = "block";
-      $("#rentalsActiveView").style.display = "none";
+    $("#rentalsViewActiveBtn").onclick = () => setRentalsView("active");
+    $("#rentalsViewHistoryBtn").onclick = () => setRentalsView("history");
+    $("#rentalsViewQueueBtn").onclick = () => setRentalsView("queue");
+    $("#exportRentalHistoryCsvBtn").onclick = () => {
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadRentalHistoryCsv(rentalHistory, `sandy-server-rental-history-${stamp}.csv`);
     };
     $("#hwTestCheckoutBtn").onclick = async () => {
       const bay = $("#hwTestBayInput").value;
@@ -6761,6 +7091,16 @@
     $("#testReturnWebhookBtn").onclick = () => testWebhookUrl("return", "returnWebhookStatus");
     $("#saveOverdueWebhookBtn").onclick = () => saveWebhookUrl("overdueWebhookUrl", "overdueWebhookInput", "overdueWebhookStatus", url => { overdueWebhookUrl = url; });
     $("#testOverdueWebhookBtn").onclick = () => testWebhookUrl("overdue", "overdueWebhookStatus");
+    $("#saveReservationWebhookBtn").onclick = () => saveWebhookUrl("reservationWebhookUrl", "reservationWebhookInput", "reservationWebhookStatus", url => { reservationWebhookUrl = url; });
+    $("#testReservationWebhookBtn").onclick = () => testWebhookUrl("reservation", "reservationWebhookStatus");
+    $("#saveReservationExpiryBtn").onclick = async () => {
+      const days = Math.max(0, Number($("#reservationExpiryInput").value) || 0);
+      try{
+        await api.send("PUT", "/api/settings", { reservationExpiryDays: days });
+        reservationExpiryDays = days;
+        toast(days > 0 ? `Unclaimed reservations now expire after ${days} day${days===1?'':'s'}.` : "Reservations will never auto-expire.");
+      }catch(e){ toast("Couldn't save that setting"); }
+    };
     $("#saveServerissueWebhookBtn").onclick = () => saveWebhookUrl("serverIssueWebhookUrl", "serverissueWebhookInput", "serverissueWebhookStatus", url => { serverIssueWebhookUrl = url; });
     $("#testServerissueWebhookBtn").onclick = () => testWebhookUrl("serverissue", "serverissueWebhookStatus");
     $("#systemUpdateBtn").onclick = async () => {
@@ -6942,6 +7282,7 @@
     $("#igdbClientSecretShow").onchange = (e) => { $("#igdbClientSecretInput").type = e.target.checked ? "text" : "password"; };
     $("#saveWledUrlBtn").onclick = () => setWledUrl($("#wledUrlInput").value);
     $("#testWledConnBtn").onclick = testWledConnection;
+    $("#printEasterEggBtn").onclick = printEasterEggBarcode;
     $("#saveEsp32BaysUrlBtn").onclick = () => setEsp32BaysUrl($("#esp32BaysUrlInput").value);
     $("#bayLayoutResetBtn").onclick = () => {
       if(!confirm("Reset every bay back to a plain grid layout? This discards any custom positions you've dragged them to.")) return;

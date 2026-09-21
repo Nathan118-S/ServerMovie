@@ -239,14 +239,16 @@ const WEBHOOK_EMBED_TITLES = {
   return: "📥 Returned",
   overdue: "⏰ Overdue",
   server_issue: "⚠️ Server Issue",
-  support_request: "🆘 Support Requested"
+  support_request: "🆘 Support Requested",
+  reservation_ready: "🔔 Reservation Ready"
 };
 const WEBHOOK_EMBED_COLORS = {
   checkout: 3900100,      // a cool blue
   return: 4641641,        // the same green the app itself uses for "in stock"
   overdue: 15236099,      // the same orange the app itself uses for warnings
   server_issue: 12000284, // a clear red
-  support_request: 11740702 // the app's own red accent color
+  support_request: 11740702, // the app's own red accent color
+  reservation_ready: 4641641 // the same green as return — this is good news for the person getting it
 };
 function buildWebhookPayload(event, message, extra){
   const embed = {
@@ -296,6 +298,19 @@ function alertOverdue(title, renterName, poster){
   postToWebhook(url, buildWebhookPayload("overdue", message, { movie: title, person: renterName, poster: poster || "" })).catch(()=>{});
 }
 
+// A fifth independent alert channel, same shape as the four above —
+// its own settable webhook, silently does nothing when unset, always
+// fire-and-forget. Fired once a title someone's waiting on actually
+// becomes available again (see notifyNextInQueue below), not at the
+// moment someone joins the queue — joining isn't news to anyone but
+// the person who just did it, and they already know.
+function alertReservationReady(title, renterName, poster){
+  const url = ((db.settings && db.settings.reservationWebhookUrl) || "").trim();
+  if(!url) return;
+  const message = `"${title}" is back — you're next in line`;
+  postToWebhook(url, buildWebhookPayload("reservation_ready", message, { movie: title, person: renterName, poster: poster || "" })).catch(()=>{});
+}
+
 function alertServerIssue(message){
   const url = ((db.settings && db.settings.serverIssueWebhookUrl) || "").trim();
   if(!url) return;
@@ -327,13 +342,38 @@ function checkOverdueRentals(){
 }
 setInterval(checkOverdueRentals, 3600000); // hourly — overdue is measured in days, not minutes, so this doesn't need to be more frequent than that
 
+// Reservation queue hygiene — without this, someone waiting on a title
+// that just never comes back (kept renewed indefinitely, or lost, or
+// whatever the reason) would sit in that queue forever with no way to
+// know their reservation is effectively dead. reservationExpiryDays of
+// 0 (or unset) means "never expire" — an explicit admin choice, not
+// this function's own default, since 0 as a stored setting value reads
+// clearly as "off" without needing a separate boolean alongside it.
+function expireOldReservations(){
+  const days = Number(db.settings && db.settings.reservationExpiryDays) || 0;
+  if(days <= 0) return;
+  const cutoff = Date.now() - (days * 86400000);
+  const before = db.reservations.length;
+  db.reservations = db.reservations.filter(r => r.createdAt >= cutoff);
+  if(db.reservations.length !== before){
+    saveDb();
+    broadcast("reservations");
+  }
+}
+setInterval(expireOldReservations, 3600000); // hourly, same cadence as the overdue check above — expiry is measured in days here too
+
 function updateBayLedForTitle(title){
   if(!title) return;
   const bay = db.bays.find(b => b.titleId === title.id);
   if(!bay) return;
   const idxs = parseLedIndexes(bay.ledIndex);
   if(idxs.length === 0) return;
-  pushBayLed(idxs, (title.stock > 0 && title.condition !== "unavailable") ? "00FF00" : "FF0000");
+  // Uses isCheckoutBlocked() (defined below) rather than its own
+  // Unavailable-only check — a genuine bug this line had until now: a
+  // title marked Damaged or Missing with stock still showing >0 would
+  // have lit its bay green as if it were actually rentable, even
+  // though checkout for it is correctly blocked everywhere else.
+  pushBayLed(idxs, !isCheckoutBlocked(title) ? "00FF00" : "FF0000");
 }
 
 // Bays here aren't a fixed "this slot always holds this title" home —
@@ -347,6 +387,19 @@ function updateBayLedForTitle(title){
 // path loses its bay assignment exactly the same way a bay-pull does.
 // Returns whether a bay was actually cleared, so callers only need to
 // broadcast the bays list changing when something genuinely did.
+// Whether a title can actually be checked out right now — no stock, or
+// a condition that shouldn't leave the shelf at all. Unavailable
+// already existed as a concept before this (an admin could mark
+// something unavailable), but nothing anywhere had ever actually
+// enforced it server-side — only the client hid the rent button,
+// which a direct API call could simply skip past. Damaged and Missing
+// get the exact same treatment as part of adding them, rather than
+// leaving Unavailable's pre-existing gap sitting there unfixed while
+// building the new cases that were actually asked for.
+function isCheckoutBlocked(title){
+  return title.stock <= 0 || ["unavailable", "damaged", "missing"].includes(title.condition);
+}
+
 function unassignBayForTitle(titleId){
   const bay = db.bays.find(b => b.titleId === titleId);
   if(!bay) return false;
@@ -406,7 +459,7 @@ function refreshAllBayLeds(){
       const idxs = parseLedIndexes(bay.ledIndex);
       if(bay.titleId){
         const t = db.titles.find(x => x.id === bay.titleId);
-        if(t) pushBayLed(idxs, (t.stock > 0 && t.condition !== "unavailable") ? "00FF00" : "FF0000");
+        if(t) pushBayLed(idxs, !isCheckoutBlocked(t) ? "00FF00" : "FF0000");
       } else {
         pushBayLed(idxs, "000000"); // empty bay, no title assigned — lights off
       }
@@ -488,6 +541,26 @@ function playDoorAnimation(effectId, afterFn){
   pushWledEffect(effectId);
   const seconds = (db.settings && db.settings.wledEffectSeconds) || 6;
   setTimeout(afterFn || refreshAllBayLeds, seconds * 1000);
+}
+
+// A hidden easter egg — a rainbow color-cycle built from repeated
+// pushWledSolidColor() calls rather than a WLED built-in "rainbow" or
+// "colorloop" effect by numeric id. Those ids vary by WLED build and
+// version, so hardcoding one here risked guessing wrong on someone
+// else's actual setup; solid colors pushed in sequence work
+// identically on any WLED install regardless of which effects it
+// ships with. Silently does nothing if no WLED URL is configured at
+// all, same as every other lighting call in this app already does —
+// scanning the hidden code without any lights hooked up should never
+// surface an error, since there's nothing actually wrong in that case.
+function triggerEasterEggLightShow(){
+  const url = ((db.settings && db.settings.wledUrl) || "").trim();
+  if(!url) return;
+  const colors = ["FF0000", "FF7F00", "FFFF00", "00FF00", "0000FF", "4B0082", "9400D3", "FF00FF"];
+  colors.forEach((color, i) => {
+    setTimeout(() => pushWledSolidColor(color), i * 400);
+  });
+  setTimeout(refreshAllBayLeds, colors.length * 400 + 800);
 }
 
 // Blinks a title's bay white a few times, then settles back to its steady
@@ -873,8 +946,10 @@ function loadDb(){
       rentals: [],
       rentalHistory: [],
       wishlist: [],
+      reservations: [],
+      ratings: [],
       users: [{ id: newId("u"), name: "Admin", pin: "0000", isAdmin: true }],
-      settings: { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90, wledOpenEffect: 9, wledCloseEffect: 2, wledEffectSeconds: 6, doorCloseDelaySeconds: 60, maxRenewals: 2, overheadLedIndexes: "", mainKioskIp: "", serviceMode: false, supportWebhookUrl: "", overdueWebhookUrl: "", serverIssueWebhookUrl: "", checkoutWebhookUrl: "", returnWebhookUrl: "" },
+      settings: { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90, wledOpenEffect: 9, wledCloseEffect: 2, wledEffectSeconds: 6, doorCloseDelaySeconds: 60, maxRenewals: 2, overheadLedIndexes: "", mainKioskIp: "", serviceMode: false, supportWebhookUrl: "", overdueWebhookUrl: "", serverIssueWebhookUrl: "", checkoutWebhookUrl: "", returnWebhookUrl: "", reservationWebhookUrl: "", reservationExpiryDays: 0 },
       tvSelection: null,
       kioskSelection: null,
       activeSession: null,
@@ -893,6 +968,8 @@ function loadDb(){
   parsed.rentals = parsed.rentals || [];
   parsed.rentalHistory = parsed.rentalHistory || [];
   parsed.wishlist = parsed.wishlist || [];
+  parsed.reservations = parsed.reservations || [];
+  parsed.ratings = parsed.ratings || [];
   parsed.users = parsed.users || [];
   parsed.settings = parsed.settings || { maxCheckouts: 3, omdbApiKey: "", tmdbApiKey: "", wledUrl: "", bayWindowSeconds: 90, wledOpenEffect: 9, wledCloseEffect: 2, wledEffectSeconds: 6, doorCloseDelaySeconds: 60, maxRenewals: 2 };
   if(parsed.settings.wledOpenEffect === undefined) parsed.settings.wledOpenEffect = 9;
@@ -1033,7 +1110,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // ---------- read endpoints ----------
 app.get("/api/state", (req, res) => {
-  res.json({ titles: db.titles, rentals: db.rentals, rentalHistory: db.rentalHistory, wishlist: db.wishlist, users: db.users, settings: db.settings, tvSelection: db.tvSelection, kioskSelection: db.kioskSelection, bays: db.bays, pendingReturn: db.pendingReturn, pendingCheckout: db.pendingCheckout });
+  res.json({ titles: db.titles, rentals: db.rentals, rentalHistory: db.rentalHistory, wishlist: db.wishlist, reservations: db.reservations, ratings: db.ratings, users: db.users, settings: db.settings, tvSelection: db.tvSelection, kioskSelection: db.kioskSelection, bays: db.bays, pendingReturn: db.pendingReturn, pendingCheckout: db.pendingCheckout });
 });
 app.get("/api/rental-history", (req, res) => res.json(db.rentalHistory));
 
@@ -1073,6 +1150,118 @@ app.delete("/api/wishlist/:id", (req, res) => {
   res.json({ ok: true });
 });
 
+// ---------- reservation queue ----------
+// A FIFO line per title, not a global one — "next" only ever means
+// next for that specific title. Reserving something already in stock
+// makes no sense (nothing to wait on), and a title with no stock at
+// all (out entirely, not just currently checked out) can't ever be
+// fulfilled by a return either, so both get turned away up front
+// rather than accepted into a queue that could never actually resolve.
+app.get("/api/reservations", (req, res) => res.json(db.reservations));
+
+app.post("/api/reservations", (req, res) => {
+  const { titleId, userName } = req.body;
+  const title = titleId ? db.titles.find(t => t.id === titleId) : null;
+  if(!title) return res.status(404).json({ error: "Title not found." });
+  if(!userName || !userName.trim()) return res.status(400).json({ error: "A name is required to reserve something." });
+  // Uses the same isCheckoutBlocked() the checkout endpoints themselves
+  // use, not a separate inline check — this used to have its own,
+  // which went stale the moment Damaged and Missing became blocking
+  // conditions alongside Unavailable: a damaged title with stock still
+  // showing >0 isn't actually rentable, but the old check here only
+  // ever looked at Unavailable specifically, so it would have wrongly
+  // told someone "it's already available, no need to reserve it" for a
+  // title they genuinely could not check out.
+  if(!isCheckoutBlocked(title)) return res.status(409).json({ error: `"${title.title}" is already available — no need to reserve it.` });
+  // Reserving only ever resolves via an actual return, so there has to
+  // be an active rental for this title right now for a reservation to
+  // mean anything — otherwise nothing will ever come back to trigger
+  // it (a title marked unavailable for some other reason with nobody
+  // currently renting it, for instance).
+  if(!db.rentals.some(r => r.movieId === titleId)){
+    return res.status(409).json({ error: `"${title.title}" isn't currently checked out, so there's nothing for a reservation to wait on.` });
+  }
+  const name = userName.trim();
+  if(db.reservations.some(r => r.titleId === titleId && r.userName === name)){
+    return res.status(409).json({ error: `${name} is already waiting on "${title.title}".` });
+  }
+  const reservation = { id: newId("res"), titleId, title: title.title, poster: title.poster || "", userName: name, createdAt: Date.now() };
+  db.reservations.push(reservation);
+  saveDb();
+  broadcast("reservations");
+  res.json(reservation);
+});
+
+app.delete("/api/reservations/:id", (req, res) => {
+  db.reservations = db.reservations.filter(r => r.id !== req.params.id);
+  saveDb();
+  broadcast("reservations");
+  res.json({ ok: true });
+});
+
+// Called from every path that completes a return (a title's stock just
+// went from 0 back up), right after that increment — pops whoever's
+// been waiting longest for THIS title specifically, fires the
+// reservation webhook for them, and leaves the rest of the queue (if
+// anyone else is also waiting) untouched for the next return. Silent
+// no-op when nobody's actually waiting, which is the overwhelmingly
+// common case and shouldn't need its own error handling at every call
+// site.
+// A real gap this closes: a title marked Damaged or Missing while it
+// was still actively rented, then actually returned, would previously
+// still fire the "it's back!" notification and pop the reservation —
+// even though checkout for it is still blocked for the same reason it
+// always was, unrelated to the stock that just came back. Checking
+// isCheckoutBlocked() again right here, after the stock increment
+// already happened, catches both that case and the more ordinary
+// multi-copy one (another copy still out) — either way, if it's still
+// not actually rentable, the reservation stays exactly where it was
+// for a later return that might actually resolve it, rather than
+// telling someone it's ready when they still couldn't get it.
+function notifyNextInQueue(title){
+  if(!title) return;
+  if(isCheckoutBlocked(title)) return;
+  const idx = db.reservations.findIndex(r => r.titleId === title.id);
+  if(idx === -1) return;
+  const reservation = db.reservations[idx];
+  db.reservations.splice(idx, 1);
+  alertReservationReady(title.title, reservation.userName, title.poster || "");
+  broadcast("reservations");
+}
+
+// ---------- ratings ----------
+// One rating per person per title — a plain upsert, not an
+// append-only log, since a second thumbs-up from the same person on
+// the same title should replace their earlier one rather than create
+// a duplicate that would double-count them in any aggregate. Sending
+// the same rating value that's already stored is how the client
+// implements "tap again to clear it" — this endpoint treats that as a
+// delete, not a no-op resend, so toggling off doesn't need its own
+// separate DELETE call from the client at all.
+app.get("/api/ratings", (req, res) => res.json(db.ratings));
+
+app.post("/api/ratings", (req, res) => {
+  const { titleId, userName, rating } = req.body;
+  const title = titleId ? db.titles.find(t => t.id === titleId) : null;
+  if(!title) return res.status(404).json({ error: "Title not found." });
+  if(!userName || !userName.trim()) return res.status(400).json({ error: "A name is required to rate something." });
+  if(rating !== 1 && rating !== -1) return res.status(400).json({ error: "Rating must be 1 or -1." });
+  const name = userName.trim();
+  const existingIdx = db.ratings.findIndex(r => r.titleId === titleId && r.userName === name);
+  if(existingIdx !== -1 && db.ratings[existingIdx].rating === rating){
+    db.ratings.splice(existingIdx, 1); // tapping the same rating again clears it
+    saveDb();
+    broadcast("ratings");
+    return res.json({ cleared: true });
+  }
+  const entry = { id: existingIdx !== -1 ? db.ratings[existingIdx].id : newId("rt"), titleId, userName: name, rating, createdAt: Date.now() };
+  if(existingIdx !== -1) db.ratings[existingIdx] = entry;
+  else db.ratings.push(entry);
+  saveDb();
+  broadcast("ratings");
+  res.json(entry);
+});
+
 app.get("/api/pending-checkout", (req, res) => {
   if(db.pendingCheckout && db.pendingCheckout.expiresAt > Date.now()) res.json(db.pendingCheckout);
   else res.json(null);
@@ -1082,7 +1271,7 @@ app.put("/api/pending-checkout", (req, res) => {
   const title = db.titles.find(t => t.id === titleId);
   if(!title) return res.status(404).json({ error: "title not found" });
   if(!renterName) return res.status(400).json({ error: "renterName is required" });
-  if(title.stock <= 0) return res.status(409).json({ error: `"${title.title}" shows no stock.` });
+  if(isCheckoutBlocked(title)) return res.status(409).json({ error: title.condition==="unavailable" ? `"${title.title}" is marked unavailable.` : (title.condition==="damaged" || title.condition==="missing") ? `"${title.title}" is marked ${title.condition} and can't be checked out.` : `"${title.title}" shows no stock.` });
   const renterUser = db.users.find(u => u.name === renterName);
   if(renterUser && Array.isArray(renterUser.restrictedRatings) && renterUser.restrictedRatings.includes(title.rating)){
     return res.status(403).json({ error: `${renterName}'s account can't check out ${title.rating}-rated titles.` });
@@ -1156,6 +1345,7 @@ app.post("/api/scan-return", (req, res) => {
   // actually known for certain rather than what was merely assumed
   // earlier.
   const bayCleared = unassignBayForTitle(title.id);
+  notifyNextInQueue(title);
   saveDb();
   broadcast("titles");
   broadcast("rentals");
@@ -1202,8 +1392,23 @@ app.get("/api/titles/:id/also-watched", (req, res) => {
     entry.count++;
     counts.set(r.movieId, entry);
   });
+  // Ratings sharpen the co-occurrence count above rather than replace
+  // it — a candidate title's own average rating (all raters, not just
+  // the people who overlapped with this specific title) nudges its
+  // rank up or down, and anything with more thumbs-down than thumbs-up
+  // is dropped from the list entirely rather than merely
+  // deprioritized. Being rented by the same people is only half of
+  // what "you'd probably like this too" actually means — the other
+  // half is whether the people who tried it actually liked it.
   const ranked = Array.from(counts.values())
-    .sort((a,b) => b.count - a.count)
+    .map(entry => {
+      const titleRatings = db.ratings.filter(r => r.titleId === entry.id);
+      const netRating = titleRatings.reduce((sum, r) => sum + r.rating, 0);
+      const avgRating = titleRatings.length ? netRating / titleRatings.length : 0;
+      return { ...entry, netRating, score: entry.count + (avgRating * 2) };
+    })
+    .filter(entry => entry.netRating >= 0) // more dislikes than likes — don't recommend it, no matter how often it was co-rented
+    .sort((a,b) => b.score - a.score)
     .slice(0, 8)
     .map(entry => ({ id: entry.id, title: entry.title, count: entry.count }))
     // Only keeps titles that still actually exist in the catalog — a
@@ -1758,6 +1963,7 @@ app.post("/api/bay-return", logHardwareCall("bay-return"), (req, res) => {
   title.stock += 1;
   archiveRentalToHistory(rental);
   db.rentals = db.rentals.filter(r => r.id !== rental.id);
+  notifyNextInQueue(title);
   saveDb();
   broadcast("titles");
   broadcast("rentals");
@@ -1774,6 +1980,9 @@ app.post("/api/rentals", (req, res) => {
   const renterUser = renterName ? db.users.find(u => u.name === renterName) : null;
   if(title && renterUser && Array.isArray(renterUser.restrictedRatings) && renterUser.restrictedRatings.includes(title.rating)){
     return res.status(403).json({ error: `${renterName}'s account can't check out ${title.rating}-rated titles.` });
+  }
+  if(title && isCheckoutBlocked(title)){
+    return res.status(409).json({ error: title.condition==="unavailable" ? `"${title.title}" is marked unavailable.` : (title.condition==="damaged" || title.condition==="missing") ? `"${title.title}" is marked ${title.condition} and can't be checked out.` : `"${title.title}" shows no stock.` });
   }
   const rental = { id: newId("r"), ...req.body };
   db.rentals.push(rental);
@@ -1826,6 +2035,14 @@ app.delete("/api/rentals/:id", (req, res) => {
   const rental = db.rentals.find(r => r.id === req.params.id);
   if(rental) archiveRentalToHistory(rental);
   db.rentals = db.rentals.filter(r => r.id !== req.params.id);
+  // Unlike the other two return paths, stock here was already bumped by
+  // a separate PATCH the client sends just before this DELETE (this is
+  // the "My Rentals -> Return disc" self-service path) — so the title
+  // looked up fresh from db.titles right now already reflects the
+  // return, and notifyNextInQueue can run exactly the same way as the
+  // other two paths from here.
+  const title = rental ? db.titles.find(t => t.id === rental.movieId) : null;
+  notifyNextInQueue(title);
   saveDb();
   broadcast("rentals");
   autoAssignOpenBays();
@@ -1913,6 +2130,8 @@ app.post("/api/import", (req, res) => {
     rentals: incoming.rentals || [],
     rentalHistory: incoming.rentalHistory || [],
     wishlist: incoming.wishlist || [],
+    reservations: incoming.reservations || [],
+    ratings: incoming.ratings || [],
     users: (incoming.users && incoming.users.length) ? incoming.users : db.users,
     settings: { ...db.settings, ...(incoming.settings || {}) },
     tvSelection: incoming.tvSelection || null,
@@ -1927,6 +2146,8 @@ app.post("/api/import", (req, res) => {
   broadcast("rentals");
   broadcast("rental-history");
   broadcast("wishlist");
+  broadcast("reservations");
+  broadcast("ratings");
   broadcast("users");
   broadcast("settings");
   broadcast("bays");
@@ -2021,6 +2242,11 @@ app.post("/api/welcome-lights", (req, res) => {
   res.json({ ok: true });
 });
 
+app.post("/api/easter-egg", (req, res) => {
+  triggerEasterEggLightShow();
+  res.json({ ok: true });
+});
+
 // Relayed through the server rather than posted directly from the
 // browser — keeps the actual webhook URL out of client-facing code
 // entirely (nobody browsing the kiosk needs to see where this goes),
@@ -2056,7 +2282,8 @@ const WEBHOOK_TYPES = {
   checkout: { field: "checkoutWebhookUrl", event: "checkout", sample: { movie: "Sample Movie", person: "Test User", poster: "" } },
   return: { field: "returnWebhookUrl", event: "return", sample: { movie: "Sample Movie", person: "Test User", poster: "" } },
   overdue: { field: "overdueWebhookUrl", event: "overdue", sample: { movie: "Sample Movie", person: "Test User", poster: "" } },
-  serverissue: { field: "serverIssueWebhookUrl", event: "server_issue", sample: {} }
+  serverissue: { field: "serverIssueWebhookUrl", event: "server_issue", sample: {} },
+  reservation: { field: "reservationWebhookUrl", event: "reservation_ready", sample: { movie: "Sample Movie", person: "Test User", poster: "" } }
 };
 app.post("/api/test-webhook", async (req, res) => {
   const type = WEBHOOK_TYPES[req.body && req.body.type];

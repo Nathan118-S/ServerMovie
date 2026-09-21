@@ -538,6 +538,208 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## Bug check: found and fixed three real issues in the Damaged/Missing and reservation work
+
+Went looking specifically at the most recently-added, least battle-
+tested code from the last few sessions rather than claim a full sweep
+of everything — these are all things that would have quietly produced
+wrong behavior, not just theoretical edge cases:
+
+- **Bay LEDs still showed green for Damaged/Missing titles.** The two
+  places that decide a bay's LED color (`updateBayLedForTitle` and
+  `refreshAllBayLeds`) still only checked for Unavailable specifically,
+  left over from before Damaged and Missing existed as blocking
+  conditions — a title marked Damaged with stock still showing >0
+  would light its bay green as if it were genuinely rentable, even
+  though checkout for it was already correctly blocked everywhere
+  else. Both now use `isCheckoutBlocked()`, the same single source of
+  truth the checkout endpoints themselves use, instead of their own
+  separate, stale copy of the check.
+
+- **Reserving a Damaged/Missing title could get the wrong rejection
+  message.** The reservation endpoint's "it's already available, no
+  need to reserve it" check had the same stale Unavailable-only logic,
+  predating Damaged and Missing entirely. Same fix — routed through
+  `isCheckoutBlocked()` instead of its own inline version.
+
+- **A reservation could resolve for a title that was still actually
+  unrentable.** If a title got marked Damaged or Missing while it was
+  still out, then actually came back, `notifyNextInQueue` would still
+  fire the "it's back!" notification and remove the person from the
+  queue — even though checkout for it was still blocked for the same
+  reason it always was, unrelated to the stock that just returned. Now
+  re-checks `isCheckoutBlocked()` after the stock increment before
+  deciding whether to notify; if it's still blocked, the reservation
+  stays exactly where it was for a later return that might actually
+  resolve it.
+
+Verified each fix directly rather than just reasoning through it:
+confirmed Damaged/Missing now correctly show red instead of green
+across five condition cases, and confirmed the reservation-notify fix
+correctly withholds notification for a damaged-but-returned title
+while still notifying normally for an ordinary return.
+
+## Two more: auto-rotating seasonal collections, and a hidden easter egg
+
+### Seasonal collections
+
+No on/off flag stored anywhere for these — whether one's currently
+active is recomputed from today's actual date every single render,
+which is the entire point of "no manual toggling each year." Built-in
+to start: Halloween (Oct 1–31, matched by genre) and Holiday (Dec
+1–31, matched by a keyword in the title, since there's no "Holiday"
+genre in the movie genre list and forcing one in just for this would
+have been an odd fit for a general classification most titles don't
+need). Verified the date-range logic directly against six cases,
+including a year-boundary wraparound the code path supports even
+though neither built-in collection currently needs it.
+
+Shows up as its own titled shelf on Browse Movies, above the filter
+chips, using the exact same grid and card-wiring every other poster
+row in this app already uses. Runs ahead of the main grid's own
+cache-skip check (a collection can become active or inactive purely
+from the date changing, independent of anything about the catalog
+itself changing) — caught that this meant it would replay its own
+entrance animation on every unrelated SSE update without its own
+signature guard, and added one, same reasoning as the cache-skip
+logic that already protects the main grid for the exact same reason.
+
+### Hidden easter egg
+
+A barcode for a specific magic word, meant to be printed and tucked
+away somewhere for whoever eventually finds it — scanning it triggers
+a rainbow light show on the WLED strip. Built from a sequence of
+repeated solid-color pushes rather than a guessed built-in WLED
+"rainbow" effect by its numeric id — those ids vary by WLED build and
+firmware version, and hardcoding one risked silently doing nothing
+different on someone else's actual hardware. Silently does nothing at
+all if no WLED is configured, same as every other lighting call in
+this app — finding the hidden code isn't a mistake anyone needs told
+about. A "Print easter egg barcode" button lives in the WLED settings
+section, with its own rainbow-gradient print card rather than being
+forced into the shared six-color label system built for sorting a
+stack of many items — this is one deliberately playful one-off, not a
+category.
+
+## Three more features: admin reservation queue view, auto-expiring reservations, and ratings-boosted Also Watched
+
+### Admin reservation queue view
+
+A third tab in Rentals, next to Active rentals and History & popularity —
+every open reservation catalog-wide, newest first, each with its own
+cancel button. Each title's own internal queue order (who's actually
+next for that specific title) stays exactly what it always was; this
+just makes the whole thing visible in one place instead of only from
+inside each title's own modal. The two-button tab toggle that used to
+handle Active/History became a shared three-way helper rather than
+each button manually managing the other two — that pairwise approach
+stops scaling past two options cleanly.
+
+### Auto-expiring reservations
+
+A new setting — days until an unclaimed reservation auto-cancels,
+defaulting to 0 (never), an explicit choice rather than a default that
+could surprise anyone with existing reservations vanishing on upgrade.
+Checked hourly, same cadence and same pattern as the existing overdue-
+rental check. Keeps a title's queue from silently piling up forever
+when whatever it's waiting on just never actually comes back.
+
+### Ratings feeding a smarter Also Watched
+
+Thumbs up/down per person per title, in the same icon row as Continue
+on TV and IMDb in the modal header. Sending the same rating twice
+clears it — a tap-to-toggle the server implements as a delete on
+repeat, not something the client needs to track state for itself.
+
+Also Watched's ranking used to be pure co-occurrence count (who else
+rented this also rented that). A candidate's own average rating now
+nudges its score, and anything with more dislikes than likes gets
+excluded from the list entirely rather than merely ranked lower — being
+rented by the same people is only half of "you'd probably like this
+too"; whether those people actually liked it is the other half.
+Verified this two ways directly: one simulation confirming a net-
+negative title gets excluded even with the highest raw count, a
+second specifically confirming the rating boost can flip the ranking
+order against raw count rather than just happening to agree with it.
+
+## Reverted the movie modal back to a normal centered card
+
+The full-screen, edge-to-edge layout from a few sessions back is gone —
+back to the standard floating card every other modal in this app uses,
+just a bit wider (480px) than the 400px default so a backdrop image
+and description still have room. Removed the Prime Video-style
+gradient fade along with it, since that only ever existed to smooth
+the full-screen backdrop into the page background — not needed once
+the card isn't full-screen anymore.
+
+## Three new features: a reservation queue, Damaged/Missing blocking checkout, and CSV export
+
+### Reservation queue
+
+A FIFO line per title, not a global one — "next" only ever means next
+for that specific title. Reserving is blocked, both client- and
+server-side, unless there's an actual active rental for the title
+right now — a title merely marked unavailable with nobody currently
+renting it would never generate the return event a reservation waits
+on, so that case was excluded up front rather than accepted into a
+queue that could never resolve.
+
+Gets its own dedicated webhook (Reservation ready), matching the exact
+pattern the other five webhooks already use — its own settings field,
+its own alert function, its own entry in the shared WEBHOOK_TYPES map
+so it gets the existing test-message button for free. Fires once per
+reservation, for whoever's been waiting longest on that title, the
+moment a return actually completes — wired into all three paths that
+can complete one (scanning the disc, a bay sensor/barcode, and the
+"My Rentals" self-service return), each already verified to increment
+stock before the queue check runs.
+
+New "Notify me when it's back" button in the movie modal for anyone
+logged in looking at something checked out, "You're on the list — tap
+to cancel" once they've done that, and a "Waiting on" section in My
+Rentals listing everything they're currently queued for with its own
+cancel button.
+
+### Damaged/Missing blocking checkout
+
+Investigating how to mirror Unavailable's existing blocking turned up
+a real, pre-existing gap: Unavailable had never actually been enforced
+server-side anywhere — only the client hid the rent button, which any
+direct API call could simply skip straight past. Added a shared
+`isCheckoutBlocked()` check and wired it into both of the two
+intentional checkout paths (clicking Rent, and the pending-checkout
+that completes it) plus the bay-checkout endpoint's own pending-
+checkout completion — Damaged and Missing get the exact same
+enforcement Unavailable always should have had, not a separate, newer
+standard.
+
+Deliberately left the bay-sensor *fallback* path unblocked — the case
+where a disc gets physically pulled with no pending checkout already
+set. By the time that hardware event fires the disc is already gone;
+rejecting it would just leave the database claiming something's still
+on the shelf that physically isn't, which is worse than recording the
+checkout even for a disc that shouldn't have been rentable.
+
+Every place in the UI that shows stock status — poster dots, the
+featured hero, the modal, the bay dashboard, the scan-match card — now
+shows "Damaged" or "Missing" specifically instead of lumping both
+under Unavailable's own label, through one small shared
+`conditionLabel()` helper rather than six separately-drifting copies
+of the same three-way check.
+
+### CSV export
+
+Two entry points, one shared function underneath: "Export CSV" next to
+"Most popular titles" in Rentals → History & popularity for the whole
+catalog, and a matching per-user button next to each person's existing
+"Clear history" in Household. Built entirely client-side from data
+already loaded — no new server endpoint needed for this, since
+rentalHistory was already being fetched. Proper CSV field escaping
+(quoting a value that contains a comma, a quote, or a newline, and
+doubling any quote already inside it) verified directly against the
+comma/quote/undefined/number cases that would actually come up, not
+assumed to be correct.
+
 ## Removed genuinely dead code — not a claim of optimizing "everything"
 
 "Optimize everything" is an unbounded request for a codebase this
