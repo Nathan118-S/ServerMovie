@@ -538,6 +538,79 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## Browse Movies' filters moved to a side panel
+
+Mood, Genre, and Rating used to be three separate horizontal chip rows
+stacked above the poster grid. They're a single labeled sidebar now,
+beside the grid instead of above it — each section keeps its own small
+uppercase label ("Mood" / "Genre" / "Rating") since stacking all three
+filter types together in one column needs that grouping in a way three
+visually-separated horizontal rows never did.
+
+None of the three render functions that actually build the filter
+buttons needed to change at all — they already just target their own
+container by id and don't care where that container sits in the page,
+so this was purely a container restructuring: wrap the three rows in a
+sidebar column, wrap the grid in a main column, put them side by side
+below the hero. Verified this directly before assuming it was safe —
+checked for any DOM-traversal code (sibling or parent-chain lookups)
+that might have depended on the old flat structure, and confirmed the
+hero's own scroll-fade logic queries by class regardless of nesting
+depth, so restructuring what sits below the hero didn't touch it.
+
+Collapses back to a horizontal scrolling strip above the grid below
+tablet width, rather than staying a fixed-width column that would
+crowd out the actual poster grid on a narrow screen — the gutters that
+used to live on the grid itself now live once on the shared layout
+row instead, scoped narrowly enough (only inside this one tab's own
+main column) that Games, Digital Copies, and search results — which
+share the exact same grid styling and have no sidebar — keep their
+original spacing untouched.
+
+## A second, different easter egg — tied to a checked-out title, not a hidden barcode
+
+Pick a title as the easter egg (a new checkbox in Inventory, right
+next to Featured and Recommended) and the moment anyone actually
+checks that specific title out, the rainbow light show fires and the
+kiosk display shows a full-screen confetti popup with the title's
+poster and name.
+
+Exclusive, unlike Featured or Recommended — only one title can be
+"the" easter egg at a time, so checking the box on one clears it from
+every other title server-side. Investigated how a checkout actually
+completes before wiring anything in, rather than assumed a single
+code path — there turned out to be three separate places a rental
+record actually gets created (a "Rent" click going through pending-
+checkout, a bay sensor firing with no pending checkout, and the
+direct rental-creation endpoint), the same shape of problem the
+reservation queue's return side had last session. The trigger is
+called from all three, right after each one creates its rental.
+
+Found and reused an existing function rather than building a new one:
+`broadcastToMainKiosk`, already built specifically for "alert the
+actual kiosk display, not every connected device" — the same
+mechanism the unattributed-checkout alarm already relies on. Added a
+client-side `isTvMode()` guard on top of it anyway, since that
+function only actually filters by IP once a main-kiosk address is
+configured; without one it falls back to broadcasting to everyone the
+same way it always did before that setting existed, and the whole
+point here is that this never shows up on someone's own phone just
+because they happened to be the one who rented it.
+
+Confetti is plain CSS — a shared `@keyframes` animation with per-piece
+randomness (color, horizontal position, fall duration, rotation, start
+delay) set as inline style on each generated piece, not a family of
+near-identical keyframe rules or an external library. Caught one real
+mistake before it went anywhere: used JavaScript-style `//` comments
+inside a `<style>` block on the first pass, which is invalid CSS —
+caught on the very next check and fixed to proper `/* */` comments.
+
+Verified the exclusivity logic, the trigger condition, and the
+confetti generation each directly rather than assumed correct:
+flagging one title clears any previous one, the trigger only fires for
+the actually-flagged title, and a generated batch of 120 pieces comes
+out as well-formed HTML every time.
+
 ## Bug check: found and fixed three real issues in the Damaged/Missing and reservation work
 
 Went looking specifically at the most recently-added, least battle-

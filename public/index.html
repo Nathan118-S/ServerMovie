@@ -78,6 +78,14 @@
   @keyframes modalIn{ from{opacity:0;transform:scale(0.94) translateY(8px);} to{opacity:1;transform:scale(1) translateY(0);} }
   @keyframes modalOut{ from{opacity:1;transform:scale(1) translateY(0);} to{opacity:0;transform:scale(0.96) translateY(6px);} }
   @keyframes shakeX{ 10%,90%{transform:translateX(-1px);} 20%,80%{transform:translateX(2px);} 30%,50%,70%{transform:translateX(-4px);} 40%,60%{transform:translateX(4px);} }
+  /* A single piece falls straight down while spinning — the
+     randomness (which color, how far left/right, how long, how much
+     delay before it starts) all comes from inline style set per-piece
+     in JS rather than a family of near-identical keyframe rules, so
+     one shared animation definition covers every piece regardless of
+     how many get generated. */
+  @keyframes confettiFall{ 0%{transform:translateY(-10vh) rotate(0deg);opacity:1;} 100%{transform:translateY(110vh) rotate(720deg);opacity:0.9;} }
+  .confetti-piece{position:absolute;top:0;width:10px;height:16px;pointer-events:none;}
   @keyframes breathe{ 0%,100%{opacity:1;} 50%{opacity:0.45;} }
   @keyframes tabPop{ 0%{transform:scale(0.9);} 60%{transform:scale(1.05);} 100%{transform:scale(1);} }
   @keyframes successPulse{ 0%{box-shadow:0 0 0 0 var(--glow);} 70%{box-shadow:0 0 0 14px rgba(0,0,0,0);} 100%{box-shadow:0 0 0 0 rgba(0,0,0,0);} }
@@ -208,6 +216,40 @@
     -webkit-mask-image:linear-gradient(to right, transparent 0, black 40px, black calc(100% - 40px), transparent 100%);
     mask-image:linear-gradient(to right, transparent 0, black 40px, black calc(100% - 40px), transparent 100%);}
   .row-scroller::-webkit-scrollbar{display:none;}
+  /* The filter sidebar for Browse Movies — mood/genre/rating moved off
+     the horizontal chip rows that used to sit above the grid and into
+     a vertical column beside it instead. Left/right gutters (40px,
+     matching the page's usual horizontal gutter elsewhere) live once
+     on the outer .browse-layout row itself rather than being repeated
+     on both the sidebar and the grid separately, which is why the
+     scoped overrides just below zero out .poster-grid/.row-title's own
+     baked-in left padding specifically inside .browse-main — those
+     shared classes are also used by every other tab (Games, Digital,
+     search results) that has no sidebar and still needs its original
+     40px on both sides untouched. */
+  .browse-layout{display:flex;gap:28px;align-items:flex-start;padding:0 40px;}
+  .browse-sidebar{width:200px;flex-shrink:0;position:sticky;top:16px;}
+  .browse-sidebar-section{margin-bottom:22px;}
+  .browse-sidebar-label{font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+  .browse-sidebar-row{display:flex;flex-direction:column;gap:6px;}
+  .browse-sidebar-row button{width:100%;text-align:left;}
+  .browse-main{flex:1;min-width:0;}
+  .browse-main .poster-grid, .browse-main .row-scroller{padding-left:0;padding-right:0;}
+  .browse-main .row-title{padding-left:0;}
+  @media (max-width:900px){
+    /* Below tablet width the sidebar reverts to a horizontal scrolling
+       strip stacked above the grid rather than staying a fixed-width
+       column — a 200px sidebar permanently eating into a narrow
+       viewport would leave the poster grid too cramped to actually
+       browse. */
+    .browse-layout{flex-direction:column;padding:0;gap:0;}
+    .browse-sidebar{width:100%;position:static;display:flex;gap:18px;overflow-x:auto;padding:0 40px 14px;}
+    .browse-sidebar-section{margin-bottom:0;flex-shrink:0;}
+    .browse-sidebar-row{flex-direction:row;flex-wrap:nowrap;}
+    .browse-sidebar-row button{width:auto;white-space:nowrap;}
+    .browse-main .poster-grid, .browse-main .row-scroller{padding-left:40px;padding-right:40px;}
+    .browse-main .row-title{padding-left:40px;}
+  }
   .poster-grid{display:flex;flex-wrap:wrap;gap:16px;padding:6px 40px 20px;}
   /* The glow now lives on its own pseudo-element rather than as part of
      .poster-card's own box-shadow — animating box-shadow directly on
@@ -527,11 +569,26 @@
 
   <div class="panel active" data-panel="browse">
     <div id="browseHero"></div>
-    <div id="seasonalCollectionRow"></div>
-    <div id="moodRow" style="display:flex;gap:8px;flex-wrap:wrap;padding:0 40px 10px;position:relative;z-index:1;"></div>
-    <div id="genreFilterRow" style="display:flex;gap:8px;flex-wrap:wrap;padding:0 40px 10px;position:relative;z-index:1;"></div>
-    <div id="ratingFilterRow" style="display:flex;gap:8px;flex-wrap:wrap;padding:0 40px 18px;position:relative;z-index:1;"></div>
-    <div id="browseRows"></div>
+    <div class="browse-layout">
+      <div class="browse-sidebar">
+        <div class="browse-sidebar-section">
+          <div class="browse-sidebar-label">Mood</div>
+          <div id="moodRow" class="browse-sidebar-row"></div>
+        </div>
+        <div class="browse-sidebar-section">
+          <div class="browse-sidebar-label">Genre</div>
+          <div id="genreFilterRow" class="browse-sidebar-row"></div>
+        </div>
+        <div class="browse-sidebar-section">
+          <div class="browse-sidebar-label">Rating</div>
+          <div id="ratingFilterRow" class="browse-sidebar-row"></div>
+        </div>
+      </div>
+      <div class="browse-main">
+        <div id="seasonalCollectionRow"></div>
+        <div id="browseRows"></div>
+      </div>
+    </div>
   </div>
 
   <div class="panel" data-panel="browsegames">
@@ -615,6 +672,15 @@
 <div id="doubleFeatureOverlay" class="modal-overlay">
   <div class="modal-card" style="width:460px;">
     <div class="modal-body" id="doubleFeatureBody" style="padding:26px 22px;"></div>
+  </div>
+</div>
+<div id="easterEggOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;flex-direction:column;overflow:hidden;">
+  <div id="easterEggConfetti" style="position:absolute;inset:0;pointer-events:none;"></div>
+  <div style="position:relative;text-align:center;padding:40px;">
+    <div style="font-size:64px;margin-bottom:16px;">🎉</div>
+    <div id="easterEggPosterWrap" style="margin-bottom:16px;"></div>
+    <div id="easterEggTitleText" style="font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:32px;font-weight:800;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,0.6);"></div>
+    <div style="font-size:16px;color:#fff;opacity:0.85;margin-top:8px;">You found the easter egg disc!</div>
   </div>
 </div>
 <div id="requestSupportOverlay" class="modal-overlay">
@@ -1747,6 +1813,19 @@
           if(msg.resource === "unattributed-checkout") promptUnattributedCheckout(msg.data);
           else if(msg.resource === "door-opened-no-login") showDoorLoginPrompt();
           else if(msg.resource === "door-closed-prompt-dismiss") hideDoorLoginPrompt();
+          else if(msg.resource === "easter-egg-checkout"){
+            // Guarded here too, not just by broadcastToMainKiosk server-
+            // side — that function only actually filters by IP once a
+            // main kiosk address is configured; without one it falls
+            // back to broadcasting to every connected device, same as
+            // it always did before that setting existed. isTvMode() is
+            // a per-client check instead, so the full-screen confetti
+            // moment only ever shows on a browser actually sitting in
+            // TV/kiosk mode regardless of whether that setting's been
+            // set up — never on someone's own phone just because they
+            // happened to be the one who rented it.
+            if(isTvMode()) showEasterEggPopup(msg.data);
+          }
           else refetch(msg.resource);
         }catch(err){}
       };
@@ -3608,6 +3687,9 @@
           <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;" title="Shows a small \"Recommended\" badge on this title's poster and in its detail view — a staff pick, separate from what shows in the featured hero.">
             <input type="checkbox" class="recommendedInput" data-recommended="${m.id}" style="width:auto;" ${m.recommended?'checked':''} /> Recommended
           </label>
+          <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;" title="Only one title can be the easter egg at a time — checking this one unchecks it everywhere else. The moment anyone actually checks this specific title out, a rainbow light show fires and the kiosk display shows a full-screen confetti popup.">
+            <input type="checkbox" class="easterEggInput" data-eastereggtitle="${m.id}" style="width:auto;" ${m.easterEggTitle?'checked':''} /> 🥚 Easter egg title
+          </label>
           ${(!isGame && !isDigital) ? `<label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;" title="Marks this as a bonus-features disc belonging to another movie — it's hidden from the main Browse grid and only reachable from that movie's own detail view.">
             Bonus disc for:
             <select class="bonusDiscOfInput" data-bonusdiscof="${m.id}" style="font-size:11px;padding:3px 6px;width:auto;">
@@ -3677,6 +3759,9 @@
     });
     el.querySelectorAll(".recommendedInput").forEach(cb => {
       cb.onchange = () => setRecommended(cb.dataset.recommended, cb.checked);
+    });
+    el.querySelectorAll(".easterEggInput").forEach(cb => {
+      cb.onchange = () => setEasterEggTitle(cb.dataset.eastereggtitle, cb.checked);
     });
     el.querySelectorAll(".bonusDiscOfInput").forEach(sel => {
       sel.onchange = () => setBonusDiscOf(sel.dataset.bonusdiscof, sel.value);
@@ -5842,6 +5927,56 @@
     }catch(e){}
   }
 
+  // The kiosk-only payoff for the checkout-triggered easter egg —
+  // rendered only when the SSE handler's own isTvMode() check already
+  // passed, so this never needs to re-check that itself. Confetti
+  // pieces are generated fresh each time rather than reused between
+  // triggers, since a title's poster/name changes between them and a
+  // stale leftover piece mid-fall from a previous celebration would
+  // look broken rather than just skipped.
+  function showEasterEggPopup(data){
+    const overlay = $("#easterEggOverlay");
+    const confettiEl = $("#easterEggConfetti");
+    const posterWrap = $("#easterEggPosterWrap");
+    const titleText = $("#easterEggTitleText");
+    if(!overlay || !confettiEl || !titleText) return;
+
+    titleText.textContent = data && data.title ? data.title : "🎉";
+    posterWrap.innerHTML = (data && data.poster)
+      ? `<img src="${data.poster}" style="width:140px;border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,0.5);" />`
+      : "";
+
+    const colors = ["#FF3B30","#FF9500","#FFCC00","#34C759","#007AFF","#AF52DE","#FF2D95"];
+    let piecesHtml = "";
+    for(let i = 0; i < 120; i++){
+      const left = Math.random() * 100;
+      const delay = Math.random() * 1.2;
+      const duration = 2.5 + Math.random() * 1.5;
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const rotateStart = Math.random() * 360;
+      piecesHtml += `<div class="confetti-piece" style="left:${left}%;background:${color};animation:confettiFall ${duration}s linear ${delay}s 1;transform:rotate(${rotateStart}deg);"></div>`;
+    }
+    confettiEl.innerHTML = piecesHtml;
+
+    overlay.style.display = "flex";
+    try{
+      if(!alertAudioCtx) alertAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = alertAudioCtx;
+      const now = ctx.currentTime;
+      playChord(ctx, now, [523.25, 659.3, 783.99, 1046.5], 0.00, 0.9, "triangle", 0.15); // a bright, full major chord
+    }catch(e){}
+
+    // Auto-dismisses on its own — nobody's expected to be standing at
+    // the kiosk specifically to close this, so it needs to clear
+    // itself after a few seconds rather than sit there waiting for a
+    // tap that might never come.
+    clearTimeout(showEasterEggPopup._dismissTimer);
+    showEasterEggPopup._dismissTimer = setTimeout(() => {
+      overlay.style.display = "none";
+      confettiEl.innerHTML = "";
+    }, 6000);
+  }
+
   function startAlertSound(){
     stopAlertSound();
     playAlertBeep();
@@ -6252,6 +6387,16 @@
     const m = catalog.find(x=>x.id===id);
     if(!m) return;
     try{ await api.send("PATCH", "/api/titles/"+id, { recommended }); await refetch("titles"); }
+    catch(e){ toast("Couldn't save that"); }
+  }
+
+  // Unchecking doesn't need the exclusivity dance the server does for
+  // true — clearing this one title's own flag never touches any other
+  // title, so there's nothing else here to keep in sync with.
+  async function setEasterEggTitle(id, easterEggTitle){
+    const m = catalog.find(x=>x.id===id);
+    if(!m) return;
+    try{ await api.send("PATCH", "/api/titles/"+id, { easterEggTitle }); await refetch("titles"); }
     catch(e){ toast("Couldn't save that"); }
   }
 

@@ -563,6 +563,30 @@ function triggerEasterEggLightShow(){
   setTimeout(refreshAllBayLeds, colors.length * 400 + 800);
 }
 
+// A second, different kind of easter egg from the hidden-barcode one
+// above — this one's tied to a specific title an admin picks, and
+// fires the moment that title actually gets checked out by anyone,
+// through any of the three separate places a checkout can actually
+// complete (a "Rent" click going through pending-checkout, a bay
+// sensor firing with no pending checkout, and the scan-to-confirm
+// path) — called from each of those right after the rental record
+// itself gets created, mirroring exactly how notifyNextInQueue is
+// called from every return-completion path. Reuses the same rainbow
+// light show the hidden barcode already triggers, plus a broadcast
+// the kiosk display specifically listens for to show its own
+// full-screen confetti moment — nothing about the light show itself
+// needed duplicating for this to be its own distinct trigger.
+// broadcastToMainKiosk rather than a plain broadcast, the same
+// kiosk-only routing the unattributed-checkout alert already uses —
+// the popup is supposed to be a surprise on the actual shelf display,
+// not something that also pops up full-screen on whoever's phone just
+// rented the thing.
+function triggerEasterEggIfCheckedOut(title){
+  if(!title || !title.easterEggTitle) return;
+  triggerEasterEggLightShow();
+  broadcastToMainKiosk("easter-egg-checkout", { title: title.title, poster: title.poster || "" });
+}
+
 // Blinks a title's bay white a few times, then settles back to its steady
 // in-stock/checked-out color — helps someone find the physical bay after
 // renting from the app rather than standing in front of it. Not used for
@@ -1671,6 +1695,14 @@ app.put("/api/titles/:id", (req, res) => {
 app.patch("/api/titles/:id", (req, res) => {
   const t = db.titles.find(t => t.id === req.params.id);
   if(!t) return res.status(404).json({ error: "not found" });
+  // Exclusive, unlike Featured or Recommended which can both be true on
+  // any number of titles at once — "the" easter egg title only makes
+  // sense as a single one at a time, so setting it here clears it from
+  // everywhere else first rather than leaving two titles both flagged
+  // and ambiguous about which one's actually supposed to trigger it.
+  if(req.body.easterEggTitle === true){
+    db.titles.forEach(other => { if(other.id !== t.id) other.easterEggTitle = false; });
+  }
   Object.assign(t, req.body);
   saveDb();
   broadcast("titles");
@@ -1866,6 +1898,7 @@ app.post("/api/bay-checkout", logHardwareCall("bay-checkout"), (req, res) => {
         db.pendingCheckout = null;
         const bayCleared = unassignBayForTitle(title.id);
         alertCheckout(title.title, renterName, title.poster);
+        triggerEasterEggIfCheckedOut(title);
         saveDb();
         broadcast("titles");
         broadcast("rentals");
@@ -1892,6 +1925,7 @@ app.post("/api/bay-checkout", logHardwareCall("bay-checkout"), (req, res) => {
   db.rentals.push(rental);
   unassignBayForTitle(title.id);
   alertCheckout(title.title, renterName, title.poster);
+  triggerEasterEggIfCheckedOut(title);
   saveDb();
   broadcast("titles");
   broadcast("rentals");
@@ -1988,6 +2022,7 @@ app.post("/api/rentals", (req, res) => {
   db.rentals.push(rental);
   const bayCleared = movieId ? unassignBayForTitle(movieId) : false;
   if(title) alertCheckout(title.title, renterName, title.poster);
+  if(title) triggerEasterEggIfCheckedOut(title);
   saveDb();
   broadcast("rentals");
   if(bayCleared) broadcast("bays");
