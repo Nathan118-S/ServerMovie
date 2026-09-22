@@ -538,6 +538,147 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## Margins fully consolidated onto the real scale — including catching and reversing a wrong turn
+
+Audited every margin value in the file the same way the earlier
+padding and radius passes worked — 15 distinct values in use, most of
+them off the 4/8/16/24/32/48/64 scale.
+
+Worth being honest about a genuine misstep here rather than glossing
+over it: the first instinct was to treat every commonly-repeated
+off-scale number (6px used 52 times, 14px used 31 times) as a
+deliberate "half-step" convention worth its own named token, the same
+reasoning that correctly justified keeping the 40px page gutter alone
+in an earlier pass. Started actually adding those tokens and applying
+them — then caught the flaw in that reasoning before going further: a
+number repeating often doesn't actually mean it was a deliberate
+choice the way a single, clean, round value like 40px was. It just as
+easily means the same slightly-off number got copy-pasted forward
+enough times to look consistent. Continuing down that path would have
+meant minting a growing list of near-duplicate tokens that documents
+the existing inconsistency instead of fixing it — the opposite of
+what a spacing scale is actually for. Reversed both half-step tokens
+back out and rebuilt the same ground using the real scale instead.
+
+Consolidated every off-scale value onto its nearest real step —
+rounding toward the more generous neighbor on exact ties, matching
+the brief's own "let sections breathe" principle rather than
+defaulting to the tighter option by coincidence. 6px and 2px became
+4px or 8px depending on which was actually closer; 10px, 12px, and
+14px became 8px or 16px; 18px and 20px became 16px or 24px; the last
+few low-count stragglers (28px, 22px, 3px, 17px) got the same
+treatment for completeness. Verified every single substitution with
+an exact before/after count assertion, the same discipline as every
+batch before this one.
+
+End state: margins across the entire app now use exactly four values
+— 4, 8, 16, and 24px — down from fifteen, with zero off-scale
+stragglers left anywhere.
+
+## Continued the sweep: the biggest spacing anomaly fixed, icons now fully consistent
+
+### Spacing
+
+Audited every padding value in the file against the 4/8/16/24/32/48/64
+scale. The single largest inconsistency by far: `padding:9px` appeared
+48 times — 1px off the scale's 8px, clearly drift from one accidental
+number spreading through copy-pasted admin-button styling rather than
+a deliberate choice, unlike the 40px page gutter from the previous
+pass which was already a clean, consistent, intentional value.
+Normalized all 48 to 8px, verified with an exact match-count assertion
+per variant before applying anything, then confirmed zero occurrences
+of the old value remained afterward.
+
+Looked at what was left after that fix — 10px, 6px, 12px, 7px, each
+with a handful of genuinely varied, contextual uses rather than one
+dominant accidental-drift pattern. Chose not to mechanically force
+those onto the scale too: a form input deserving slightly more
+generous padding than a tight secondary button is a legitimate,
+common distinction, and flattening every remaining small variance
+just to hit round numbers would have started working against real
+content differences rather than fixing genuine inconsistency, the
+same reasoning that kept the page gutter and the nav bar's own radius
+untouched in the two passes before this one.
+
+### Icons
+
+Audited every SVG stroke-width in the app — already overwhelmingly
+consistent (129 of 135 icons already shared the same weight), with six
+genuine outliers: two dashboard chart lines, both thumbs up/down
+icons, and two success-checkmark icons, each independently drifted to
+its own slightly different value. Normalized all six. Icon stroke-
+weight consistency across the entire app is now complete, not just
+mostly there.
+
+### Motion
+
+Checked every use of linear easing in the app before assuming any of
+them needed fixing to a physics-based curve — all four turned out to
+already be the correct, deliberate choice: a scroll-driven fade
+recalculated every frame (where a CSS easing curve layered on top of
+already-eased JS scroll math would cause visible stutter, not smoothness),
+two loading spinners (which should stay linear — ease-in-out on an
+infinite rotation reads as the spinner oddly speeding up and slowing
+down each cycle, not as improved smoothness), and the easter egg's
+confetti fall. Nothing here needed changing.
+
+## Pushed the design-system pass much further: corner-radius consistency is now genuinely complete
+
+Went back in after the foundation-only pass and did the full sweep on
+corner radii specifically, across the whole file, not just the
+handful of highest-reach shared components from before.
+
+Audited every remaining hardcoded radius value with its actual
+selector before touching anything, rather than blind find-and-replace
+— roughly 55 scattered occurrences across ten different pixel values
+at the start. Categorized each by what it actually is (a card-like
+surface, a small inline badge, a pill-shaped button, a form input) and
+brought all of them onto the token scale from the previous pass, plus
+one new one: a dedicated small-chip radius for compact badges and
+thumbnails that a full card-radius would have looked disproportionate
+on. Applied the same tokens inside inline template-string styles too,
+not just the shared stylesheet rules — CSS custom properties work
+identically either way, so a poster-fallback gradient or a modal's own
+inline-styled badge now genuinely shares the same value as the
+stylesheet's cards, not just a coincidentally-matching hardcoded
+number.
+
+What's left after all of it: two genuinely justified exceptions, not
+oversights — a browser-chrome scrollbar thumb, and a thin progress-bar
+track already sized correctly for its own height (a small radius on a
+6px-tall bar is the fully-rounded look for something that size, the
+same relationship --radius-pill already expresses for taller
+elements).
+
+Made one deliberate call worth naming rather than leaving implicit:
+kept the top navigation bar's buttons on the smaller input-scale
+radius rather than forcing them into the same full pill shape as
+primary actions and filter chips. Apple's own interfaces routinely
+draw that same distinction — subtle chrome for navigation, bold pills
+for actions people are meant to notice — so uniform pill shapes
+everywhere would have actually worked against the brief's own
+"content-first, quiet chrome" principle rather than served it.
+
+Also looked at spacing: confirmed the page's horizontal gutter (40px)
+is already applied consistently everywhere rather than scattered —
+formalized it as its own token alongside the 4/8/16/24/32/48/64 scale
+instead of disrupting something already working just to force it onto
+a number that scale doesn't include. Fixed the one clearly off-scale
+value found on a component every single modal in the app shares.
+
+Verified after every batch, not just once at the end — a syntax check
+and CSS brace-balance check after each group of changes, plus an
+assert on the expected match count before every bulk replacement so a
+script could never silently apply to the wrong number of places or
+skip one it should have caught.
+
+The much larger remaining scope from before — the full spacing/padding
+audit beyond the handful of highest-impact values checked here, and
+the deeper pass through admin-panel one-offs — is still real,
+substantial follow-up work, not something one more turn folds in
+completely. This pass went considerably further than the first one,
+though, and radius consistency specifically is done.
+
 ## Design-system foundation pass toward the Apple-style brief — not a claim of a complete redesign
 
 "Completely redesign everything" against a strict Apple-style brief is

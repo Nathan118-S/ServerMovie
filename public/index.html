@@ -47,8 +47,8 @@
        these instead of a fresh hardcoded number.
     */
     --space-1:4px; --space-2:8px; --space-3:16px; --space-4:24px;
-    --space-5:32px; --space-6:48px; --space-7:64px;
-    --radius-card:16px; --radius-input:10px; --radius-pill:999px;
+    --space-5:32px; --space-6:48px; --space-7:64px; --space-gutter:40px;
+    --radius-card:16px; --radius-input:10px; --radius-pill:999px; --radius-chip:8px;
   }
   :root[data-theme="light"]{
     --bg:#F2F2F7; --panel:#FFFFFF; --panel2:#FFFFFF; --line:rgba(60,60,67,0.13);
@@ -108,10 +108,10 @@
   .poster-card.pulse-update{animation:cardPulse 1s ease;}
 
   .topbar{position:sticky;top:0;z-index:40;background:var(--glass);backdrop-filter:blur(20px) saturate(1.8);-webkit-backdrop-filter:blur(20px) saturate(1.8);padding:14px 40px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;border-bottom:1px solid var(--line);}
-  .admin-mode-bar{position:sticky;top:0;z-index:41;background:#B3261E;color:#fff;padding:9px 40px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px;font-weight:600;}
+  .admin-mode-bar{position:sticky;top:0;z-index:41;background:#B3261E;color:#fff;padding:8px 40px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px;font-weight:600;}
   #adminConsole{opacity:0;transition:opacity 0.22s ease;}
   #adminConsole.visible{opacity:1;}
-  .admin-mode-bar button{background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.4);color:#fff;padding:6px 12px;border-radius:999px;font-size:12px;cursor:pointer;}
+  .admin-mode-bar button{background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.4);color:#fff;padding:6px 12px;border-radius:var(--radius-pill);font-size:12px;cursor:pointer;}
   .admin-mode-bar button:hover{background:rgba(255,255,255,0.28);}
   .logo{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:700;font-size:21px;letter-spacing:-0.02em;color:var(--white);cursor:pointer;flex-shrink:0;transition:opacity 0.15s ease;}
   .logo:hover{opacity:0.6;}
@@ -125,19 +125,19 @@
   .nav{padding:8px 40px;display:flex;gap:2px;flex-wrap:wrap;align-items:center;background:var(--glass);backdrop-filter:blur(20px);border-bottom:1px solid var(--line);}
   .scan-bar{padding:12px 40px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--panel);border-bottom:1px solid var(--line);}
   .scan-bar .icon-svg{color:var(--muted);}
-  .scan-bar input{flex:1;background:var(--surf2);border:1px solid var(--line);border-radius:999px;padding:10px 16px;}
+  .scan-bar input{flex:1;background:var(--surf2);border:1px solid var(--line);border-radius:var(--radius-pill);padding:10px 16px;}
   .scan-bar-under{padding:0 40px;}
   .scan-bar-under:empty{display:none;}
   #scanResult:not(:empty){padding:14px 40px 0;}
   #kioskTvBanner:not(:empty){padding-top:14px;}
-  .nav button{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;font-weight:590;letter-spacing:-0.01em;padding:7px 14px;background:transparent;color:var(--muted);border:none;border-radius:8px;cursor:pointer;transition:background 0.15s ease,color 0.15s ease,transform 0.1s ease;}
+  .nav button{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;font-weight:590;letter-spacing:-0.01em;padding:7px 14px;background:transparent;color:var(--muted);border:none;border-radius:var(--radius-input);cursor:pointer;transition:background 0.15s ease,color 0.15s ease,transform 0.1s ease;}
   .nav button:hover{color:var(--white);background:var(--surf3);}
   .nav button.active{background:var(--red);color:#fff;}
   .nav button:active{transform:scale(0.96);}
   .nav-label{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;font-weight:600;letter-spacing:0.02em;color:var(--muted2);align-self:center;margin:0 2px 0 10px;text-transform:uppercase;}
   .admin-nav-group{display:flex;gap:2px;align-items:center;flex-wrap:wrap;}
 
-  .toast{position:fixed;bottom:26px;left:50%;background:var(--glass);backdrop-filter:blur(20px) saturate(1.8);color:var(--white);padding:12px 22px;font-size:13px;border-radius:14px;border:1px solid var(--line);box-shadow:0 20px 50px var(--shadow);z-index:60;opacity:0;pointer-events:none;transform:translate(-50%,12px);transition:opacity 0.25s ease,transform 0.25s ease;}
+  .toast{position:fixed;bottom:26px;left:50%;background:var(--glass);backdrop-filter:blur(20px) saturate(1.8);color:var(--white);padding:12px 22px;font-size:13px;border-radius:var(--radius-card);border:1px solid var(--line);box-shadow:0 20px 50px var(--shadow);z-index:60;opacity:0;pointer-events:none;transform:translate(-50%,12px);transition:opacity 0.25s ease,transform 0.25s ease;}
   .toast.show{animation:successPulse 0.8s ease;}
   .toast.show{opacity:1;transform:translate(-50%,0);}
   .banner{background:var(--panel2);color:var(--white);padding:10px 40px;font-size:13px;animation:fadeIn 0.3s ease;border-bottom:1px solid var(--line);}
@@ -173,7 +173,7 @@
   button.secondary:hover{background:var(--surf5);}
   button.secondary.active{background:var(--red);color:#fff;}
   button.secondary:active{transform:scale(0.97);}
-  button.teal{background:var(--green);color:#04240F;border:none;border-radius:var(--radius-pill);padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:transform 0.1s ease,filter 0.15s ease;}
+  button.teal{background:var(--green);color:#04240F;border:none;border-radius:var(--radius-pill);padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:transform 0.1s ease,filter 0.15s ease;}
   button.teal:hover{filter:brightness(1.08);}
   button.teal:active{transform:scale(0.97);}
 
@@ -210,10 +210,10 @@
       linear-gradient(to right, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.25) 45%, transparent 75%);}
   .hero-content{position:relative;z-index:2;flex:1;min-width:280px;max-width:640px;padding:0 40px 56px;animation:fadeInUp 0.7s ease both;}
   .hero-eyebrow{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:1px;color:var(--muted);margin-bottom:8px;}
-  .hero-title{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:700;font-size:44px;line-height:1.05;color:var(--white);margin-bottom:10px;}
-  .hero-meta{font-size:14px;color:var(--muted);margin-bottom:20px;}
+  .hero-title{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:700;font-size:44px;line-height:1.05;color:var(--white);margin-bottom:var(--space-2);}
+  .hero-meta{font-size:14px;color:var(--muted);margin-bottom:var(--space-4);}
   .hero-actions{display:flex;gap:12px;}
-  .hero-btn{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;letter-spacing:0.3px;padding:13px 26px;border-radius:999px;border:none;cursor:pointer;transition:background 0.18s ease,transform 0.1s ease,box-shadow 0.18s ease;}
+  .hero-btn{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;letter-spacing:0.3px;padding:13px 26px;border-radius:var(--radius-pill);border:none;cursor:pointer;transition:background 0.18s ease,transform 0.1s ease,box-shadow 0.18s ease;}
   .hero-btn.primary{background:#fff;color:#0A0C10;box-shadow:0 8px 24px rgba(255,255,255,0.15);}
   .hero-btn.primary:hover{background:#e8ecf2;}
   .hero-btn.primary:active{transform:scale(0.97);}
@@ -223,10 +223,10 @@
   .hero-btn.secondary:active{transform:scale(0.97);}
 
   /* ---- Rows ---- */
-  .row-block{margin-bottom:28px;}
+  .row-block{margin-bottom:var(--space-5);}
   .row-block.reveal-pending{opacity:0;transform:translateY(24px);}
   .row-block.revealed{opacity:1;transform:translateY(0);transition:opacity 0.5s ease,transform 0.5s ease;}
-  .row-title{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:19px;font-weight:600;color:var(--white);padding:0 40px;margin-bottom:10px;}
+  .row-title{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:19px;font-weight:600;color:var(--white);padding:0 40px;margin-bottom:var(--space-2);}
   .row-scroller{display:flex;gap:12px;overflow-x:auto;padding:6px 40px 14px;scrollbar-width:none;
     -webkit-mask-image:linear-gradient(to right, transparent 0, black 40px, black calc(100% - 40px), transparent 100%);
     mask-image:linear-gradient(to right, transparent 0, black 40px, black calc(100% - 40px), transparent 100%);}
@@ -244,7 +244,7 @@
      40px on both sides untouched. */
   .browse-layout{display:flex;gap:28px;align-items:flex-start;padding:0 40px;}
   .browse-sidebar{width:200px;flex-shrink:0;position:sticky;top:16px;}
-  .browse-sidebar-section{margin-bottom:22px;}
+  .browse-sidebar-section{margin-bottom:var(--space-4);}
   .browse-sidebar-label{font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
   .browse-sidebar-row{display:flex;flex-direction:column;gap:6px;}
   .browse-sidebar-row button{width:100%;text-align:left;}
@@ -291,7 +291,7 @@
   .poster-card:hover{transform:scale(1.08) translateY(-6px);box-shadow:0 16px 40px rgba(0,0,0,0.6),0 0 0 2px var(--red),0 0 24px var(--glow);z-index:2;}
   .poster-title{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.15;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.7);}
   .poster-dot{position:absolute;top:8px;right:8px;width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 2px rgba(0,0,0,0.4),0 0 0 3px rgba(255,255,255,0.5);}
-  .bluray-badge{position:absolute;bottom:34px;left:8px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.4px;color:#0A0C10;background:linear-gradient(135deg,#4FC3F7,#0288D1);padding:2px 7px;border-radius:4px;}
+  .bluray-badge{position:absolute;bottom:34px;left:8px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.4px;color:#0A0C10;background:linear-gradient(135deg,#4FC3F7,#0288D1);padding:2px 7px;border-radius:var(--radius-chip);}
   /* A separate class from .bluray-badge above, not a reuse of it — that
      one's text color is hardcoded dark, which was fine for its own
      fixed light-blue gradient but unreadable against most streaming
@@ -299,37 +299,37 @@
      and saturated too). White text plus a light border reads clearly
      against virtually any brand color, which a hardcoded dark text
      color never could. */
-  .streaming-badge{position:absolute;bottom:34px;left:8px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.4px;color:#fff;padding:2px 7px;border-radius:4px;border:1px solid rgba(255,255,255,0.35);}
+  .streaming-badge{position:absolute;bottom:34px;left:8px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.4px;color:#fff;padding:2px 7px;border-radius:var(--radius-chip);border:1px solid rgba(255,255,255,0.35);}
   /* Styled like a real MPAA/ESRB rating card — black field, thin white
      border, bold condensed letters — instead of plain "Rating: PG-13"
      text next to everything else. */
-  .rating-badge{display:inline-flex;align-items:center;justify-content:center;background:#000;color:#fff;border:1.5px solid #fff;border-radius:3px;padding:1px 7px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;font-weight:800;letter-spacing:0.3px;line-height:1.5;}
+  .rating-badge{display:inline-flex;align-items:center;justify-content:center;background:#000;color:#fff;border:1.5px solid #fff;border-radius:var(--radius-chip);padding:1px 7px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;font-weight:800;letter-spacing:0.3px;line-height:1.5;}
   .poster-dot.in-stock{animation:breathe 2.4s ease-in-out infinite;}
 
-  .row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surf1);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:8px;transition:border-color 0.18s ease,background 0.18s ease;}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surf1);border:1px solid var(--line);border-radius:var(--radius-card);padding:12px 16px;margin-bottom:8px;transition:border-color 0.18s ease,background 0.18s ease;}
   .row:hover{border-color:var(--surf-border2);background:var(--surf2);}
 
-  .list-group{background:var(--panel);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px var(--shadow);}
+  .list-group{background:var(--panel);border-radius:var(--radius-card);overflow:hidden;box-shadow:0 1px 2px var(--shadow);}
   .list-group .row{background:transparent;border:none;border-bottom:1px solid var(--line);border-radius:0;margin-bottom:0;padding:13px 16px;}
   .list-group .row:hover{background:var(--surf1);}
   .list-group .row:last-child{border-bottom:none;}
 
-  .scan-box{background:var(--surf1);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:480px;}
-  #reader{width:100%;max-width:400px;border-radius:12px;overflow:hidden;background:#000;}
-  .scan-msg{font-size:13px;color:var(--muted);margin:10px 0;}
-  .manual-entry{display:flex;gap:8px;margin-top:14px;}
+  .scan-box{background:var(--surf1);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:var(--radius-card);padding:20px;max-width:480px;}
+  #reader{width:100%;max-width:400px;border-radius:var(--radius-card);overflow:hidden;background:#000;}
+  .scan-msg{font-size:13px;color:var(--muted);margin:var(--space-2) 0;}
+  .manual-entry{display:flex;gap:8px;margin-top:var(--space-3);}
   .manual-entry input{flex:1;}
 
-  .match-card{background:var(--surf2);backdrop-filter:blur(12px);color:var(--white);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:16px;animation:fadeInUp 0.3s ease both;}
+  .match-card{background:var(--surf2);backdrop-filter:blur(12px);color:var(--white);border:1px solid var(--line);border-radius:var(--radius-card);padding:16px;margin-top:16px;animation:fadeInUp 0.3s ease both;}
   #returnModeBtn.active{background:var(--green);color:#04240F;}
-  .return-mode-banner{background:var(--surf3);border:1px solid var(--green);border-radius:12px;padding:12px 14px;margin-top:12px;font-size:13px;animation:fadeInUp 0.3s ease both;}
+  .return-mode-banner{background:var(--surf3);border:1px solid var(--green);border-radius:var(--radius-card);padding:12px 14px;margin-top:var(--space-3);font-size:13px;animation:fadeInUp 0.3s ease both;}
   .match-card .t{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:20px;}
-  .match-card .g{font-size:12px;color:var(--muted);margin-top:2px;}
+  .match-card .g{font-size:12px;color:var(--muted);margin-top:var(--space-1);}
 
-  .new-form{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
+  .new-form{display:flex;flex-direction:column;gap:8px;margin-top:var(--space-3);}
 
-  .subnav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px;border-bottom:1px solid var(--line);padding-bottom:14px;}
-  .subnav-btn{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:0.4px;padding:8px 14px;background:var(--surf2);border:1px solid var(--line);color:var(--muted);border-radius:20px;cursor:pointer;transition:background 0.18s ease,color 0.18s ease,border-color 0.18s ease,transform 0.1s ease;}
+  .subnav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:var(--space-4);border-bottom:1px solid var(--line);padding-bottom:14px;}
+  .subnav-btn{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:0.4px;padding:8px 14px;background:var(--surf2);border:1px solid var(--line);color:var(--muted);border-radius:var(--radius-pill);cursor:pointer;transition:background 0.18s ease,color 0.18s ease,border-color 0.18s ease,transform 0.1s ease;}
   .subnav-btn:hover{color:var(--white);background:var(--surf4);}
   .subnav-btn.active{background:var(--red);color:#fff;border-color:transparent;}
   .subnav-btn:active{transform:scale(0.96);}
@@ -341,15 +341,15 @@
      grid backdrop for visual reference, holding one absolutely-
      positioned card per bay. Positions are stored as percentages of
      this container, so they hold up across different screen sizes. */
-  #bayLayoutCanvas{position:relative;width:100%;height:480px;border-radius:14px;background-color:var(--surf1);background-image:linear-gradient(var(--line) 1px, transparent 1px),linear-gradient(90deg, var(--line) 1px, transparent 1px);background-size:40px 40px;overflow:hidden;touch-action:none;}
-  .bay-layout-card{position:absolute;width:150px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;cursor:grab;box-shadow:0 4px 14px rgba(0,0,0,0.3);user-select:none;transform:translate(-50%,-50%);transition:box-shadow 0.15s ease;}
+  #bayLayoutCanvas{position:relative;width:100%;height:480px;border-radius:var(--radius-card);background-color:var(--surf1);background-image:linear-gradient(var(--line) 1px, transparent 1px),linear-gradient(90deg, var(--line) 1px, transparent 1px);background-size:40px 40px;overflow:hidden;touch-action:none;}
+  .bay-layout-card{position:absolute;width:150px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-card);padding:8px;cursor:grab;box-shadow:0 4px 14px rgba(0,0,0,0.3);user-select:none;transform:translate(-50%,-50%);transition:box-shadow 0.15s ease;}
   .bay-layout-card:active{cursor:grabbing;box-shadow:0 8px 24px rgba(0,0,0,0.5);z-index:10;}
   .bay-layout-card.dragging{opacity:0.9;z-index:20;}
-  .bay-layout-num{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:3px;}
+  .bay-layout-num{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:var(--space-1);}
   .bay-layout-title{font-size:12px;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;}
   .bay-layout-status{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);}
   .bay-layout-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-  .bay-card{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;}
+  .bay-card{background:var(--panel2);border:1px solid var(--line);border-radius:var(--radius-card);padding:14px;display:flex;flex-direction:column;gap:8px;}
   .bay-card .bay-num{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;}
   .bay-card .bay-title{font-size:14px;color:var(--white);min-height:20px;}
   .bay-card .bay-empty{font-size:13px;color:var(--muted2);font-style:italic;}
@@ -413,26 +413,26 @@
     .hero{min-height:48vh;}
   }
 
-  .adjbtn{background:var(--surf2);border:1px solid var(--line);color:var(--white);border-radius:10px;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;transition:background 0.18s ease,transform 0.1s ease;}
+  .adjbtn{background:var(--surf2);border:1px solid var(--line);color:var(--white);border-radius:var(--radius-pill);width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;transition:background 0.18s ease,transform 0.1s ease;}
   .adjbtn:hover{background:var(--surf4);}
   .adjbtn:active{transform:scale(0.9);}
 
-  .poster-thumb{width:44px;height:60px;object-fit:cover;border-radius:10px;background:#333;flex-shrink:0;}
-  .file-label{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:10px;padding:5px 9px;cursor:pointer;display:inline-block;transition:background 0.18s ease;}
+  .poster-thumb{width:44px;height:60px;object-fit:cover;border-radius:var(--radius-chip);background:#333;flex-shrink:0;}
+  .file-label{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:var(--radius-pill);padding:5px 9px;cursor:pointer;display:inline-block;transition:background 0.18s ease;}
   .file-label:hover{background:var(--surf3);}
   .file-label input{display:none;}
   .bulk-box{background:var(--surf1);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:var(--radius-card);padding:16px;margin-top:24px;}
-  .bulk-box textarea{width:100%;min-height:110px;background:rgba(0,0,0,0.3);border:1px solid var(--line);color:var(--white);border-radius:10px;padding:10px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:12px;resize:vertical;}
+  .bulk-box textarea{width:100%;min-height:110px;background:rgba(0,0,0,0.3);border:1px solid var(--line);color:var(--white);border-radius:var(--radius-input);padding:10px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:12px;resize:vertical;}
 
   .pin-input{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:22px;letter-spacing:10px;text-align:center;width:130px;padding:10px 0 10px 14px;}
   /* On-screen number pad for every "enter your PIN" moment — this is a
      touchscreen kiosk first and foremost, so tapping digits beats
      needing a physical keyboard just to log in or claim a checkout. */
-  .pinpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:240px;margin:14px auto 0;}
-  .pinpad-key{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:22px;font-weight:600;padding:16px 0;border-radius:12px;background:var(--surf1);border:1px solid var(--line);color:var(--white);cursor:pointer;transition:background 0.1s ease,transform 0.1s ease;}
+  .pinpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:240px;margin:var(--space-3) auto 0;}
+  .pinpad-key{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:22px;font-weight:600;padding:16px 0;border-radius:var(--radius-input);background:var(--surf1);border:1px solid var(--line);color:var(--white);cursor:pointer;transition:background 0.1s ease,transform 0.1s ease;}
   .pinpad-key:active{background:var(--surf2);transform:scale(0.94);}
   .pinpad-key.pinpad-wide{font-size:15px;color:var(--muted);}
-  .login-box{background:var(--surf3);backdrop-filter:blur(12px);color:var(--white);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;animation:fadeIn 0.3s ease both;}
+  .login-box{background:var(--surf3);backdrop-filter:blur(12px);color:var(--white);border:1px solid var(--line);border-radius:var(--radius-card);padding:14px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;animation:fadeIn 0.3s ease both;}
   .login-box .who{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;}
 
   .modal-overlay{position:fixed;inset:0;background:rgba(5,6,9,0.75);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;animation:fadeIn 0.2s ease;}
@@ -460,7 +460,7 @@
   .pending-return-overlay .spinner{width:64px;height:64px;border-radius:50%;border:5px solid var(--surf3);border-top-color:var(--green);animation:spin 1s linear infinite;margin-bottom:24px;}
   #pendingCheckoutOverlay .spinner{border-top-color:#E87C03;}
   .pending-return-overlay .t{font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:28px;font-weight:700;color:var(--white);margin-bottom:8px;}
-  .pending-return-overlay .g{font-size:15px;color:var(--muted);max-width:420px;margin-bottom:28px;}
+  .pending-return-overlay .g{font-size:15px;color:var(--muted);max-width:420px;margin-bottom:var(--space-5);}
   @keyframes spin{to{transform:rotate(360deg);}}
   /* max-height + overflow-y:auto (was a blanket overflow:hidden, which
      clips both axes with no scroll at all) — the modal previously had
@@ -480,7 +480,7 @@
   .modal-header .eyebrow{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.8);}
   .modal-header .t{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:26px;font-weight:600;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.6);}
   .title-logo{max-width:70%;max-height:80px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6));}
-  .hero-logo{max-height:130px;max-width:420px;margin-bottom:6px;}
+  .hero-logo{max-height:130px;max-width:420px;margin-bottom:var(--space-2);}
   .modal-close{position:absolute;top:10px;right:12px;z-index:3;background:rgba(0,0,0,0.4);backdrop-filter:blur(8px);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;transition:background 0.18s ease,transform 0.18s ease;}
   /* The quick-action row sitting just below the title in the header —
      a translucent "glass" look matching .modal-close right above it,
@@ -490,11 +490,11 @@
      just an icon (Continue on TV) or an icon plus short text (IMDb)
      without needing two different shapes for what's otherwise the same
      kind of button. */
-  .modal-icon-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;background:rgba(0,0,0,0.4);backdrop-filter:blur(8px);color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:20px;height:40px;padding:0 14px;cursor:pointer;transition:background 0.18s ease,transform 0.1s ease;box-sizing:border-box;}
+  .modal-icon-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;background:rgba(0,0,0,0.4);backdrop-filter:blur(8px);color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:var(--radius-pill);height:40px;padding:0 14px;cursor:pointer;transition:background 0.18s ease,transform 0.1s ease;box-sizing:border-box;}
   .modal-icon-btn:hover{background:rgba(0,0,0,0.6);}
   .modal-icon-btn:active{transform:scale(0.94);}
   .modal-close:hover{background:rgba(0,0,0,0.6);transform:rotate(90deg);}
-  .modal-body{padding:20px;}
+  .modal-body{padding:var(--space-4);}
 
   /* Movie detail modal specifically — scoped to #movieModal alone, not
      every modal sharing .modal-card/.modal-overlay (TV Send, Double
@@ -531,14 +531,14 @@
   #tvSendBox .modal-header .eyebrow{font-size:14px;}
   #tvSendBox .modal-header .t{font-size:38px;}
   #tvSendBox .modal-body{padding:30px;}
-  .tv-send-btn{width:100%;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:20px;letter-spacing:-0.01em;font-weight:590;padding:18px 0;border-radius:999px;border:none;cursor:pointer;background:var(--red);color:#fff;transition:filter 0.18s ease,transform 0.1s ease;}
+  .tv-send-btn{width:100%;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:20px;letter-spacing:-0.01em;font-weight:590;padding:18px 0;border-radius:var(--radius-pill);border:none;cursor:pointer;background:var(--red);color:#fff;transition:filter 0.18s ease,transform 0.1s ease;}
   .tv-send-btn:hover{filter:brightness(1.08);}
   .tv-send-btn:active{transform:scale(0.98);}
   .tv-send-btn.sent{background:var(--green);color:#04240F;cursor:default;}
 
-  .kiosk-tv-banner{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;animation:fadeInUp 0.3s ease both;}
+  .kiosk-tv-banner{background:var(--panel2);border:1px solid var(--line);border-radius:var(--radius-card);padding:14px 18px;margin-bottom:var(--space-3);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;animation:fadeInUp 0.3s ease both;}
   .kiosk-tv-banner .label{font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;}
-  .kiosk-tv-banner .title{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:18px;color:var(--white);margin-top:2px;}
+  .kiosk-tv-banner .title{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:18px;color:var(--white);margin-top:var(--space-1);}
 </style>
 </head>
 <body>
@@ -554,14 +554,14 @@
 
 <div class="topbar">
   <div class="logo" id="logoHome">SANDY SERVER</div>
-  <button class="secondary" id="surpriseMeBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Surprise Me</button>
-  <button class="secondary" id="doubleFeatureBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="2.5" y="6" width="10" height="13" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="11.5" y="6" width="10" height="13" rx="1.5" stroke="currentColor" stroke-width="2"/></svg> Double Feature</button>
-  <button class="secondary" id="topBarServiceModeBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;display:none;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 1 5.4-5.4l-2.7 2.7-1.5-1.5 2.7-2.7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Service mode</button>
+  <button class="secondary" id="surpriseMeBtn" style="padding:8px 16px;font-size:13px;white-space:nowrap;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Surprise Me</button>
+  <button class="secondary" id="doubleFeatureBtn" style="padding:8px 16px;font-size:13px;white-space:nowrap;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="2.5" y="6" width="10" height="13" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="11.5" y="6" width="10" height="13" rx="1.5" stroke="currentColor" stroke-width="2"/></svg> Double Feature</button>
+  <button class="secondary" id="topBarServiceModeBtn" style="padding:8px 16px;font-size:13px;white-space:nowrap;display:none;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 1 5.4-5.4l-2.7 2.7-1.5-1.5 2.7-2.7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Service mode</button>
   <button class="theme-toggle" id="themeToggleBtn" title="Switch light/dark" type="button">
     <svg class="icon-sun" viewBox="0 0 24 24" fill="none" width="18" height="18"><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="2"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="2.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="21.5"/><line x1="2.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="21.5" y2="12"/><line x1="5.1" y1="5.1" x2="6.9" y2="6.9"/><line x1="17.1" y1="17.1" x2="18.9" y2="18.9"/><line x1="5.1" y1="18.9" x2="6.9" y2="17.1"/><line x1="17.1" y1="6.9" x2="18.9" y2="5.1"/></g></svg>
     <svg class="icon-moon" viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
   </button>
-  <button class="secondary" id="requestSupportBtn" style="padding:9px 16px;font-size:13px;white-space:nowrap;margin-left:auto;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2 1.8-2 3.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.3" r="0.9" fill="currentColor"/></svg> Request Support</button>
+  <button class="secondary" id="requestSupportBtn" style="padding:8px 16px;font-size:13px;white-space:nowrap;margin-left:auto;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2 1.8-2 3.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.3" r="0.9" fill="currentColor"/></svg> Request Support</button>
   <div id="scanLoginArea"></div>
 </div>
 
@@ -632,7 +632,7 @@
 
 <div id="shelf-map-sheet" style="display:none;padding:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#000;">
   <div style="font-size:20px;font-weight:700;margin-bottom:4px;">Sandy Server — Shelf Map</div>
-  <div style="font-size:12px;color:#555;margin-bottom:20px;" id="shelfMapPrintedAt"></div>
+  <div style="font-size:12px;color:#555;margin-bottom:var(--space-4);" id="shelfMapPrintedAt"></div>
   <div id="shelfMapDiagram" style="position:relative;width:100%;height:600px;border:2px solid #000;"></div>
 </div>
 
@@ -655,30 +655,30 @@
     </div>
   </div>
   <div class="service-mode-body">
-    <div class="scan-msg" style="margin-top:0;margin-bottom:20px;">Alerts (the door-open prompt, the "who took this?" chime) reach this device now, bypassing the main kiosk, if one's set — so nothing gets missed while you're actively working the shelf. This turns off automatically the moment you exit.</div>
+    <div class="scan-msg" style="margin-top:0;margin-bottom:var(--space-4);">Alerts (the door-open prompt, the "who took this?" chime) reach this device now, bypassing the main kiosk, if one's set — so nothing gets missed while you're actively working the shelf. This turns off automatically the moment you exit.</div>
 
     <div class="bulk-box" style="margin-top:0;">
-      <div class="display" style="font-size:15px;margin-bottom:6px;">Light testing</div>
+      <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Light testing</div>
       <div class="scan-msg" style="margin-top:0;">Cycles every configured bay's LED(s) in turn, cyan, in real shelf order.</div>
-      <button class="secondary" id="serviceTestLedsBtn" style="padding:9px 14px;font-size:12px;">Test all bay LEDs</button>
+      <button class="secondary" id="serviceTestLedsBtn" style="padding:8px 14px;font-size:12px;">Test all bay LEDs</button>
     </div>
 
     <div class="bulk-box">
-      <div class="display" style="font-size:15px;margin-bottom:6px;">Last scan</div>
+      <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Last scan</div>
       <div class="scan-msg" style="margin-top:0;">The main scan result normally shows on the page underneath this overlay — invisible while Service Mode covers it. This mirrors it here instead, plus a specific disc to test freshly-printed labels against.</div>
       <div id="serviceScanBox"></div>
     </div>
 
     <div class="bulk-box">
-      <div class="display" style="font-size:15px;margin-bottom:6px;">Bulk assign</div>
+      <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Bulk assign</div>
       <div class="scan-msg" style="margin-top:0;">Scan a bay barcode, then a movie barcode, and repeat — click into the field first so a USB scanner's input lands here.</div>
-      <input id="serviceBulkAssignInput" placeholder="Scan a bay barcode to begin…" style="width:100%;font-size:15px;padding:12px 14px;margin-bottom:12px;" autocomplete="off" />
-      <div id="serviceBulkAssignStatus" style="font-size:13px;margin-bottom:14px;"></div>
+      <input id="serviceBulkAssignInput" placeholder="Scan a bay barcode to begin…" style="width:100%;font-size:15px;padding:12px 14px;margin-bottom:var(--space-3);" autocomplete="off" />
+      <div id="serviceBulkAssignStatus" style="font-size:13px;margin-bottom:var(--space-3);"></div>
       <div id="serviceBulkAssignLog"></div>
     </div>
 
     <div class="bulk-box">
-      <div class="display" style="font-size:15px;margin-bottom:6px;">Bay assignments</div>
+      <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Bay assignments</div>
       <div class="scan-msg" style="margin-top:0;">The same dropdown-based assignment view as Bays &amp; Lighting → Assignment, for hand-adjusting anything the scanner missed.</div>
       <div id="serviceBayDashboard" class="bay-grid"></div>
     </div>
@@ -701,10 +701,10 @@
 <div id="requestSupportOverlay" class="modal-overlay">
   <div class="modal-card" style="width:380px;">
     <div class="modal-body" style="padding:26px 22px;">
-      <div class="t" style="font-size:19px;margin-bottom:6px;">Request support</div>
+      <div class="t" style="font-size:19px;margin-bottom:var(--space-2);">Request support</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Sends a message to whoever manages this kiosk. Briefly say what's wrong, if you can.</div>
-      <textarea id="requestSupportNote" placeholder="What's going on? (optional)" rows="3" style="width:100%;font-family:inherit;font-size:14px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surf2);color:var(--white);resize:vertical;margin-bottom:14px;"></textarea>
-      <div id="requestSupportStatus" style="font-size:13px;margin-bottom:12px;min-height:18px;"></div>
+      <textarea id="requestSupportNote" placeholder="What's going on? (optional)" rows="3" style="width:100%;font-family:inherit;font-size:14px;padding:10px 12px;border-radius:var(--radius-input);border:1px solid var(--line);background:var(--surf2);color:var(--white);resize:vertical;margin-bottom:var(--space-3);"></textarea>
+      <div id="requestSupportStatus" style="font-size:13px;margin-bottom:var(--space-3);min-height:18px;"></div>
       <div style="display:flex;gap:10px;">
         <button class="secondary" id="requestSupportCancelBtn" style="flex:1;">Cancel</button>
         <button class="primary" id="requestSupportSendBtn" style="flex:1;">Send</button>
@@ -718,7 +718,7 @@
   </div>
 </div>
 <div id="surpriseSpinOverlay" class="pending-return-overlay">
-  <div id="surpriseSpinBox" style="width:200px;aspect-ratio:2/3;border-radius:14px;background-size:cover;background-position:center;box-shadow:0 20px 50px rgba(0,0,0,0.5);margin-bottom:18px;"></div>
+  <div id="surpriseSpinBox" style="width:200px;aspect-ratio:2/3;border-radius:var(--radius-card);background-size:cover;background-position:center;box-shadow:0 20px 50px rgba(0,0,0,0.5);margin-bottom:var(--space-3);"></div>
   <div id="surpriseSpinLabel" class="t" style="font-size:18px;"></div>
 </div>
 <div id="loginGateOverlay" class="modal-overlay"></div>
@@ -757,19 +757,19 @@
     <button data-tab="bays">Bays &amp; Lighting</button>
     <button data-tab="users">Household</button>
     <button data-tab="system">System</button>
-    <button id="enterServiceModeBtn" style="margin-left:auto;background:var(--surf3);color:var(--white);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 1 5.4-5.4l-2.7 2.7-1.5-1.5 2.7-2.7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Service mode</button>
+    <button id="enterServiceModeBtn" style="margin-left:auto;background:var(--surf3);color:var(--white);border:1px solid var(--line);border-radius:var(--radius-pill);padding:8px 14px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 1 5.4-5.4l-2.7 2.7-1.5-1.5 2.7-2.7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Service mode</button>
   </div>
   <div class="content">
   <div class="panel" data-panel="dashboard">
     <div class="panel-inner">
-      <div id="dashboardStats" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;"></div>
-      <div id="dashboardCharts" style="margin-bottom:20px;"></div>
-      <div id="dashboardAttention" style="margin-bottom:20px;"></div>
-      <div id="dashboardHealth" style="margin-bottom:20px;"></div>
-      <div id="backupReminder" style="margin-bottom:20px;"></div>
-      <div id="activityFeed" style="margin-bottom:20px;"></div>
+      <div id="dashboardStats" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:var(--space-4);"></div>
+      <div id="dashboardCharts" style="margin-bottom:var(--space-4);"></div>
+      <div id="dashboardAttention" style="margin-bottom:var(--space-4);"></div>
+      <div id="dashboardHealth" style="margin-bottom:var(--space-4);"></div>
+      <div id="backupReminder" style="margin-bottom:var(--space-4);"></div>
+      <div id="activityFeed" style="margin-bottom:var(--space-4);"></div>
       <div class="bulk-box" style="margin-top:0;max-width:520px;">
-        <div class="display" style="font-size:15px;margin-bottom:6px;">Check out a disc manually</div>
+        <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Check out a disc manually</div>
         <div class="scan-msg" style="margin-top:0;">Skips the pending/bay-confirmation flow entirely and completes right away — same idea as the instant Return button here, for when you're standing at the counter handling it directly.</div>
         <div class="new-form">
           <select id="manualCheckoutTitle"></select>
@@ -793,14 +793,14 @@
       </div>
       <div id="rentalsHistoryView" style="display:none;">
         <div class="bulk-box" style="margin-top:0;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-2);">
             <div class="display" style="font-size:15px;">Most popular titles</div>
             <button class="secondary" id="exportRentalHistoryCsvBtn" style="padding:7px 12px;font-size:11px;">Export CSV</button>
           </div>
           <div id="popularList"></div>
         </div>
         <div class="bulk-box">
-          <div class="display" style="font-size:15px;margin-bottom:10px;">Who's checked out what</div>
+          <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Who's checked out what</div>
           <div class="scan-msg" style="margin-top:0;">Every checkout, active or already returned, newest first — who rented it, when, and (once it's back) when it was returned.</div>
           <div id="checkoutLog"></div>
         </div>
@@ -808,7 +808,7 @@
       <div id="rentalsQueueView" style="display:none;">
         <div class="bulk-box" style="margin-top:0;">
           <div class="display" style="font-size:15px;margin-bottom:4px;">Who's waiting on what</div>
-          <div class="scan-msg" style="margin-top:0;margin-bottom:14px;">Every open reservation, catalog-wide — newest first. Each title's own queue order (who's next) is still first-come, first-served within that title, same as it's always been; this just makes the whole thing visible in one place instead of only from inside each title's own modal.</div>
+          <div class="scan-msg" style="margin-top:0;margin-bottom:var(--space-3);">Every open reservation, catalog-wide — newest first. Each title's own queue order (who's next) is still first-come, first-served within that title, same as it's always been; this just makes the whole thing visible in one place instead of only from inside each title's own modal.</div>
           <div id="reservationQueueList"></div>
         </div>
       </div>
@@ -829,7 +829,7 @@
 
       <div class="subpanel active" data-subpanel="inventory">
         <div class="bulk-box" style="margin-top:0;">
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:var(--space-2);">
             <input id="inventorySearchInput" placeholder="Search by title or code…" style="flex:2;min-width:200px;font-size:14px;" />
             <select id="inventoryTypeFilter" style="flex:1;min-width:130px;">
               <option value="">All types</option>
@@ -865,7 +865,7 @@
 
       <div class="subpanel" data-subpanel="addtitle">
         <div style="max-width:400px;">
-          <div class="display" style="font-size:16px;margin-bottom:10px;">Add a title</div>
+          <div class="display" style="font-size:16px;margin-bottom:var(--space-2);">Add a title</div>
           <div class="new-form">
             <select id="newMediaTypeInput">
               <option value="movie" selected>Movie / TV</option>
@@ -894,15 +894,15 @@
               <input type="file" accept="image/*" capture="environment" id="newPosterInput" />
             </label>
             <span id="newPosterStatus" style="font-size:11px;color:var(--muted);"></span>
-            <details style="margin-top:2px;">
+            <details style="margin-top:var(--space-1);">
               <summary style="font-size:12px;color:var(--muted);cursor:pointer;user-select:none;">More options (barcode, IMDb id, TV series)</summary>
-              <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px;">
+              <div style="display:flex;flex-direction:column;gap:10px;margin-top:var(--space-2);">
                 <input id="newCodeInput" placeholder="Existing barcode (optional — scan or type)" />
                 <input id="newImdbInput" placeholder="IMDb id, e.g. tt1234567 (optional)" />
                 <div id="newSeriesSection">
                   <div style="border-top:1px solid var(--line);margin:4px 0;padding-top:8px;font-size:11px;color:var(--muted);">TV series disc? (optional)</div>
                   <input id="newSeriesInput" placeholder="Series name, e.g. Breaking Bad" />
-                  <div style="display:flex;gap:8px;margin-top:10px;">
+                  <div style="display:flex;gap:8px;margin-top:var(--space-2);">
                     <input id="newSeasonInput" type="number" min="1" placeholder="Season #" style="flex:1;" />
                     <input id="newDiscInput" type="number" min="1" placeholder="Disc #" style="flex:1;" />
                   </div>
@@ -916,7 +916,7 @@
 
       <div class="subpanel" data-subpanel="addseries">
         <div class="bulk-box" style="margin-top:0;max-width:440px;">
-          <div class="display" style="font-size:15px;margin-bottom:6px;">Add a TV series (multiple discs)</div>
+          <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Add a TV series (multiple discs)</div>
           <div class="scan-msg" style="margin-top:0;">Creates several disc entries at once, all sharing the same series name/season/genre/rating — each still gets its own barcode and can be checked out independently, same as any other title.</div>
           <div class="new-form">
             <input id="seriesNameInput" placeholder="Series name, e.g. Breaking Bad" />
@@ -947,14 +947,14 @@
 
       <div class="subpanel" data-subpanel="bulk">
         <div class="bulk-box" style="margin-top:0;">
-          <div class="display" style="font-size:15px;margin-bottom:6px;">Bulk import titles</div>
+          <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Bulk import titles</div>
           <div class="scan-msg" style="margin-top:0;">One title per line: <code>Title | Year | Genre | Rating | imdbId</code> — only Title is required. Ask Claude in chat to look up the details for a list of movies you own and it'll hand you a block in this format to paste here.</div>
           <textarea id="bulkText" placeholder="Night Circuit | 2019 | Sci-Fi | PG-13 | tt1234567&#10;Second Wind | 2021 | Drama | R"></textarea>
           <div style="margin-top:8px;"><button class="primary" id="bulkImportBtn">Import lines</button></div>
         </div>
 
         <div class="bulk-box" style="margin-top:0;">
-          <div class="display" style="font-size:15px;margin-bottom:6px;">Bulk import posters &amp; banners</div>
+          <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Bulk import posters &amp; banners</div>
           <div class="scan-msg" style="margin-top:0;">Select several image files at once, named to match your titles (e.g. <code>Night Circuit.jpg</code> matches "Night Circuit") — each gets matched and attached automatically, used for both the poster card and the hero banner. This can't reach the web, so use images you already have the rights to use.</div>
           <label class="file-label"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Choose poster images
             <input type="file" accept="image/*" multiple id="bulkPosterInput" />
@@ -963,7 +963,7 @@
         </div>
 
         <div class="bulk-box" style="margin-top:0;">
-          <div class="display" style="font-size:15px;margin-bottom:6px;">Bulk import theme songs</div>
+          <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Bulk import theme songs</div>
           <div class="scan-msg" style="margin-top:0;">Select several audio clips at once, named to match a series (e.g. <code>Night Circuit.mp3</code> matches the series "Night Circuit") — matched automatically and applied to every disc in that series, so they all share the one theme. Only used where a title has a series name set; keep clips short and under 8MB each. This can't reach the web, so use clips you already have the rights to use.</div>
           <label class="file-label"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M9 18V5l11-2v13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" stroke="currentColor" stroke-width="2"/><circle cx="17.5" cy="16" r="2.5" stroke="currentColor" stroke-width="2"/></svg> Choose theme clips
             <input type="file" accept="audio/*" multiple id="bulkThemeInput" />
@@ -974,25 +974,25 @@
 
       <div class="subpanel" data-subpanel="autofill">
         <div class="bulk-box" style="margin-top:0;max-width:520px;">
-          <div class="display" style="font-size:15px;margin-bottom:6px;">Auto-fill posters, logos &amp; descriptions</div>
+          <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Auto-fill posters, logos &amp; descriptions</div>
           <div class="scan-msg" style="margin-top:0;">Looks up every title that's missing a poster, logo, or description — checking OMDb and TMDb and merging whatever each finds — and fills them in automatically: genre, rating, IMDb id, poster art, a transparent title-logo image, and a plot summary. TV series are searched as series (not movies), so their year and type actually match. Needs the Pi to have internet access at the moment you use it — everything else in this app keeps working without it.</div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
             <input type="password" id="omdbKeyInput" placeholder="Paste your OMDb API key" style="min-width:220px;flex:1;" />
             <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;">
               <input type="checkbox" id="omdbKeyShow" style="width:auto;" /> Show
             </label>
-            <button class="secondary" id="saveOmdbKeyBtn" style="padding:9px 14px;font-size:12px;">Save key</button>
+            <button class="secondary" id="saveOmdbKeyBtn" style="padding:8px 14px;font-size:12px;">Save key</button>
           </div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Don't have one yet? <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener" style="color:var(--muted);">Get a free OMDb key</a> (1,000 lookups/day).</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:var(--space-3);">Don't have one yet? <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener" style="color:var(--muted);">Get a free OMDb key</a> (1,000 lookups/day).</div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
             <input type="password" id="tmdbKeyInput" placeholder="Paste your TMDb API key" style="min-width:220px;flex:1;" />
             <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;">
               <input type="checkbox" id="tmdbKeyShow" style="width:auto;" /> Show
             </label>
-            <button class="secondary" id="saveTmdbKeyBtn" style="padding:9px 14px;font-size:12px;">Save key</button>
+            <button class="secondary" id="saveTmdbKeyBtn" style="padding:8px 14px;font-size:12px;">Save key</button>
           </div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Don't have one yet? <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener" style="color:var(--muted);">Get a free TMDb key</a> — this is also the only source of the title-logo image, and is much better than OMDb for TV series.</div>
-          <div class="display" style="font-size:14px;margin-bottom:6px;">Games (IGDB)</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:var(--space-3);">Don't have one yet? <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener" style="color:var(--muted);">Get a free TMDb key</a> — this is also the only source of the title-logo image, and is much better than OMDb for TV series.</div>
+          <div class="display" style="font-size:14px;margin-bottom:var(--space-2);">Games (IGDB)</div>
           <div class="scan-msg" style="margin-top:0;">OMDb and TMDb only cover movies and TV — games use IGDB (run by Twitch), which needs a Client ID and Client Secret rather than a single key. Fills in poster art, genre, and a description the same way the fields above do for movies.</div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
             <input type="password" id="igdbClientIdInput" placeholder="IGDB Client ID" style="min-width:220px;flex:1;" />
@@ -1005,14 +1005,14 @@
             <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;">
               <input type="checkbox" id="igdbClientSecretShow" style="width:auto;" /> Show
             </label>
-            <button class="secondary" id="saveIgdbKeysBtn" style="padding:9px 14px;font-size:12px;">Save</button>
+            <button class="secondary" id="saveIgdbKeysBtn" style="padding:8px 14px;font-size:12px;">Save</button>
           </div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Don't have these yet? Create an app at <a href="https://dev.twitch.tv/console/apps" target="_blank" rel="noopener" style="color:var(--muted);">dev.twitch.tv/console/apps</a> (free) — IGDB runs on Twitch's developer platform.</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:var(--space-3);">Don't have these yet? Create an app at <a href="https://dev.twitch.tv/console/apps" target="_blank" rel="noopener" style="color:var(--muted);">dev.twitch.tv/console/apps</a> (free) — IGDB runs on Twitch's developer platform.</div>
           <button class="primary" id="autofillBtn"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Auto-fill missing titles</button>
           <span id="autofillStatus" style="font-size:11px;color:var(--muted);margin-left:8px;"></span>
-          <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line);">
+          <div style="margin-top:var(--space-3);padding-top:14px;border-top:1px solid var(--line);">
             <div class="display" style="font-size:13px;margin-bottom:4px;">Force refresh one field on everything</div>
-            <div class="scan-msg" style="margin-top:0;margin-bottom:10px;">The button above only ever fills in what's actually missing — leaves anything already set alone. These re-check every eligible title instead and overwrite just the one field picked below, whether or not it already had a value. Nothing else about any title gets touched.</div>
+            <div class="scan-msg" style="margin-top:0;margin-bottom:var(--space-2);">The button above only ever fills in what's actually missing — leaves anything already set alone. These re-check every eligible title instead and overwrite just the one field picked below, whether or not it already had a value. Nothing else about any title gets touched.</div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
               <select id="autofillForceFieldInput" style="min-width:160px;">
                 <option value="poster">Posters</option>
@@ -1024,7 +1024,7 @@
                 <option value="logo">Title logos</option>
                 <option value="trailerKey">Trailers</option>
               </select>
-              <button class="secondary" id="autofillForceBtn" style="padding:9px 14px;font-size:12px;">Force refresh</button>
+              <button class="secondary" id="autofillForceBtn" style="padding:8px 14px;font-size:12px;">Force refresh</button>
               <span id="autofillForceStatus" style="font-size:11px;color:var(--muted);"></span>
             </div>
           </div>
@@ -1033,7 +1033,7 @@
 
       <div class="subpanel" data-subpanel="labels">
         <div class="bulk-box" style="margin-top:0;">
-          <div class="display" style="font-size:15px;margin-bottom:6px;">Print labels for your catalog</div>
+          <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Print labels for your catalog</div>
           <div class="scan-msg" style="margin-top:0;">Pick titles below, then print. Each label is a plain rectangular barcode sticker for the disc case — cut it out and stick it on. Scanning it works exactly like scanning the disc's original barcode.</div>
           <div class="label-controls">
             <button class="secondary" id="selectAllLabels">Select all</button>
@@ -1046,7 +1046,7 @@
 
       <div class="subpanel" data-subpanel="wishlist">
         <div class="bulk-box" style="margin-top:0;">
-          <div class="display" style="font-size:15px;margin-bottom:6px;">Requested titles</div>
+          <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Requested titles</div>
           <div class="scan-msg" style="margin-top:0;">What people have asked for from the "Request a Title" button in Browse — a starting list for what to physically buy or add next, not something that auto-adds anything.</div>
           <div id="wishlistList"></div>
         </div>
@@ -1064,27 +1064,27 @@
 
       <div class="subpanel active" data-subpanel="setup">
         <div class="bulk-box" style="margin-top:0;">
-          <div class="display" style="font-size:15px;margin-bottom:6px;">Bay sensors &amp; lighting (ESP32 + WLED)</div>
+          <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Bay sensors &amp; lighting (ESP32 + WLED)</div>
           <div class="scan-msg" style="margin-top:0;">Assign each title to a physical bay number so a microswitch pulling it triggers an automatic checkout, and optionally a lit LED index on a WLED strip so the bay's light reflects whether it's in stock. See README.md for the full ESPHome + WLED setup.</div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
             <input id="wledUrlInput" placeholder="WLED controller address, e.g. 192.168.1.60" style="min-width:220px;flex:1;" />
-            <button class="secondary" id="saveWledUrlBtn" style="padding:9px 14px;font-size:12px;">Save</button>
-            <button class="secondary" id="testWledConnBtn" style="padding:9px 14px;font-size:12px;">Test connection</button>
+            <button class="secondary" id="saveWledUrlBtn" style="padding:8px 14px;font-size:12px;">Save</button>
+            <button class="secondary" id="testWledConnBtn" style="padding:8px 14px;font-size:12px;">Test connection</button>
           </div>
-          <div id="wledSetupStatus" style="font-size:12px;color:var(--muted);margin-bottom:12px;"></div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+          <div id="wledSetupStatus" style="font-size:12px;color:var(--muted);margin-bottom:var(--space-3);"></div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:var(--space-3);">
             <input id="bayWindowInput" type="number" min="10" placeholder="Attribution window (seconds)" style="width:220px;" />
-            <button class="secondary" id="saveBayWindowBtn" style="padding:9px 14px;font-size:12px;">Save</button>
+            <button class="secondary" id="saveBayWindowBtn" style="padding:8px 14px;font-size:12px;">Save</button>
           </div>
           <div style="font-size:11px;color:var(--muted);">How long after someone logs in with their PIN a bay pull still counts as theirs — long enough to walk over and grab it, short enough that the next person doesn't get blamed for it.</div>
-          <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line);">
-            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">🎉 A hidden barcode that triggers a rainbow light show on the WLED strip above when scanned — print it, hide it somewhere, let someone find it.</div>
-            <button class="secondary" id="printEasterEggBtn" style="padding:9px 14px;font-size:12px;">Print easter egg barcode</button>
+          <div style="margin-top:var(--space-3);padding-top:12px;border-top:1px solid var(--line);">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:var(--space-2);">🎉 A hidden barcode that triggers a rainbow light show on the WLED strip above when scanned — print it, hide it somewhere, let someone find it.</div>
+            <button class="secondary" id="printEasterEggBtn" style="padding:8px 14px;font-size:12px;">Print easter egg barcode</button>
           </div>
         </div>
 
         <div class="bulk-box">
-          <div class="display" style="font-size:15px;margin-bottom:6px;">Door animations</div>
+          <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Door animations</div>
           <div class="scan-msg" style="margin-top:0;">If you've wired a separate door sensor (not a bay switch), the whole strip plays a welcome effect when it opens, and a leaving effect once it's stayed closed for a while. Effect IDs are whatever WLED numbers them as on your firmware — check your WLED web UI's effects list, or <code>GET http://&lt;wled-ip&gt;/json/eff</code>, rather than trusting these defaults blindly.</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
             <input id="wledOpenEffectInput" type="number" min="0" placeholder="Open effect ID" style="width:140px;" />
@@ -1098,26 +1098,26 @@
             <input id="overheadLedIndexesInput" type="text" inputmode="numeric" placeholder="Overhead/area LED indexes, e.g. 40,41,42" title="LEDs that light up the general area rather than any one bay — comma-separated if there's more than one" style="flex:1;min-width:220px;" />
           </div>
           <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">LEDs not tied to any bay — lights up bright white when the door opens (alongside the per-bay colors and the whole-strip effect above) and turns off along with everything else once the door's been closed a while. Leave blank if you don't have any wired for this.</div>
-          <button class="secondary" id="saveDoorSettingsBtn" style="padding:9px 14px;font-size:12px;">Save</button>
+          <button class="secondary" id="saveDoorSettingsBtn" style="padding:8px 14px;font-size:12px;">Save</button>
         </div>
       </div>
 
       <div class="subpanel" data-subpanel="assignment">
         <div class="bulk-box" style="margin-top:0;">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:var(--space-3);">
             <div class="display" style="font-size:15px;">Bay dashboard</div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
               <input id="newBayNumberInput" type="number" min="1" placeholder="Bay #" style="width:90px;" />
-              <button class="primary" id="addBayBtn" style="padding:9px 14px;font-size:12px;">Add bay</button>
-              <button class="secondary" id="printBayBarcodesBtn" style="padding:9px 14px;font-size:12px;">Print bay barcodes</button>
+              <button class="primary" id="addBayBtn" style="padding:8px 14px;font-size:12px;">Add bay</button>
+              <button class="secondary" id="printBayBarcodesBtn" style="padding:8px 14px;font-size:12px;">Print bay barcodes</button>
             </div>
           </div>
-          <div class="scan-msg" style="margin-top:0;margin-bottom:14px;">Stick a printed bay barcode on each shelf. Then, from Scan a disc, scan a disc that isn't assigned to a bay yet followed by a bay barcode, and it's linked automatically — no need to use the dropdowns below by hand.</div>
+          <div class="scan-msg" style="margin-top:0;margin-bottom:var(--space-3);">Stick a printed bay barcode on each shelf. Then, from Scan a disc, scan a disc that isn't assigned to a bay yet followed by a bay barcode, and it's linked automatically — no need to use the dropdowns below by hand.</div>
           <div id="bayDashboard" class="bay-grid"></div>
         </div>
 
         <div class="bulk-box">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:var(--space-2);">
             <div class="display" style="font-size:15px;">Bay layout</div>
             <div style="display:flex;gap:10px;align-items:center;">
               <span id="wledLiveStatus" style="font-size:12px;color:var(--muted);"></span>
@@ -1125,47 +1125,47 @@
               <button class="secondary" id="bayLayoutResetBtn" style="padding:7px 12px;font-size:11px;">Reset to grid</button>
             </div>
           </div>
-          <div class="scan-msg" style="margin-top:0;margin-bottom:14px;">Drag each bay to where it actually sits on the shelf, so this matches reality instead of just listing numbers in order. Shows what's really assigned there, its stock status, and a damaged/missing flag — computed the same way Sandy Server decides what color to send WLED, not a true per-LED read-back (WLED's simple API doesn't support that). The indicator above <em>is</em> a genuine live check, though — it actually asks WLED right now whether it's on and reachable.</div>
+          <div class="scan-msg" style="margin-top:0;margin-bottom:var(--space-3);">Drag each bay to where it actually sits on the shelf, so this matches reality instead of just listing numbers in order. Shows what's really assigned there, its stock status, and a damaged/missing flag — computed the same way Sandy Server decides what color to send WLED, not a true per-LED read-back (WLED's simple API doesn't support that). The indicator above <em>is</em> a genuine live check, though — it actually asks WLED right now whether it's on and reachable.</div>
           <div id="bayLayoutCanvas"></div>
         </div>
 
         <div class="bulk-box">
-          <div class="display" style="font-size:15px;margin-bottom:6px;">Bulk assign</div>
-          <div class="scan-msg" style="margin-top:0;margin-bottom:14px;">Scan a bay barcode, then scan a movie barcode — it's linked immediately and this stays ready for the next bay, so a whole shelf can be assigned in one pass without touching a dropdown. Click into the field below first so a USB scanner's input lands here.</div>
-          <input id="bulkAssignInput" placeholder="Scan a bay barcode to begin…" style="width:100%;font-size:15px;padding:12px 14px;margin-bottom:12px;" autocomplete="off" />
-          <div id="bulkAssignStatus" style="font-size:13px;margin-bottom:14px;"></div>
+          <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Bulk assign</div>
+          <div class="scan-msg" style="margin-top:0;margin-bottom:var(--space-3);">Scan a bay barcode, then scan a movie barcode — it's linked immediately and this stays ready for the next bay, so a whole shelf can be assigned in one pass without touching a dropdown. Click into the field below first so a USB scanner's input lands here.</div>
+          <input id="bulkAssignInput" placeholder="Scan a bay barcode to begin…" style="width:100%;font-size:15px;padding:12px 14px;margin-bottom:var(--space-3);" autocomplete="off" />
+          <div id="bulkAssignStatus" style="font-size:13px;margin-bottom:var(--space-3);"></div>
           <div id="bulkAssignLog"></div>
         </div>
       </div>
 
       <div class="subpanel" data-subpanel="diagnostics">
         <div class="bulk-box" style="margin-top:0;">
-          <div class="display" style="font-size:15px;margin-bottom:6px;">Restart the hardware</div>
+          <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Restart the hardware</div>
           <div class="scan-msg" style="margin-top:0;">For when a device seems stuck or unresponsive rather than genuinely broken — the same as pulling its power and plugging it back in.</div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:var(--space-2);">
             <input id="esp32BaysUrlInput" placeholder="Bay ESP32 address, e.g. 192.168.1.61" style="min-width:220px;flex:1;" />
-            <button class="secondary" id="saveEsp32BaysUrlBtn" style="padding:9px 14px;font-size:12px;">Save</button>
+            <button class="secondary" id="saveEsp32BaysUrlBtn" style="padding:8px 14px;font-size:12px;">Save</button>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-            <button class="secondary" id="restartWledBtn" style="padding:9px 14px;font-size:12px;">Restart WLED</button>
-            <button class="secondary" id="restartBaysEspBtn" style="padding:9px 14px;font-size:12px;">Restart bay ESP32</button>
+            <button class="secondary" id="restartWledBtn" style="padding:8px 14px;font-size:12px;">Restart WLED</button>
+            <button class="secondary" id="restartBaysEspBtn" style="padding:8px 14px;font-size:12px;">Restart bay ESP32</button>
           </div>
-          <div id="restartHardwareStatus" style="font-size:12px;color:var(--muted);margin-bottom:6px;"></div>
+          <div id="restartHardwareStatus" style="font-size:12px;color:var(--muted);margin-bottom:var(--space-2);"></div>
           <div style="font-size:11px;color:var(--muted);">The bay ESP32's restart button is best-effort — ESPHome's exact API for it has shifted across versions, so if it doesn't respond, open <span id="esp32BaysDashboardLink" style="color:inherit;">its own dashboard</span> directly and use the restart button shown there instead. Needs <code>esphome-bays.yaml</code>'s <code>web_server:</code> section, which didn't exist before this — re-flash if you set this up prior to that.</div>
         </div>
 
         <div class="bulk-box">
-          <div class="display" style="font-size:15px;margin-bottom:6px;">Hardware test &amp; diagnostics</div>
+          <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Hardware test &amp; diagnostics</div>
           <div class="scan-msg" style="margin-top:0;">Fire a bay/door event yourself — same effect as the real switch — to check the app side works before touching any wiring, or to narrow down whether a problem is the ESP32 or Sandy Server. The log below shows every call these four endpoints receive, from anywhere, including from your actual hardware — if your ESP32 is reaching the Pi at all, you'll see it show up here the instant you pull a switch, with the IP it came from.</div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:var(--space-3);">
             <input id="hwTestBayInput" type="number" min="1" placeholder="Bay #" style="width:90px;" />
-            <button class="secondary" id="hwTestCheckoutBtn" style="padding:9px 14px;font-size:12px;">Simulate checkout</button>
-            <button class="secondary" id="hwTestReturnBtn" style="padding:9px 14px;font-size:12px;">Simulate return</button>
-            <button class="secondary" id="hwTestDoorOpenBtn" style="padding:9px 14px;font-size:12px;">Simulate door open</button>
-            <button class="secondary" id="hwTestDoorCloseBtn" style="padding:9px 14px;font-size:12px;">Simulate door close</button>
-            <button class="secondary" id="hwTestLedsBtn" style="padding:9px 14px;font-size:12px;">Test all bay LEDs</button>
+            <button class="secondary" id="hwTestCheckoutBtn" style="padding:8px 14px;font-size:12px;">Simulate checkout</button>
+            <button class="secondary" id="hwTestReturnBtn" style="padding:8px 14px;font-size:12px;">Simulate return</button>
+            <button class="secondary" id="hwTestDoorOpenBtn" style="padding:8px 14px;font-size:12px;">Simulate door open</button>
+            <button class="secondary" id="hwTestDoorCloseBtn" style="padding:8px 14px;font-size:12px;">Simulate door close</button>
+            <button class="secondary" id="hwTestLedsBtn" style="padding:8px 14px;font-size:12px;">Test all bay LEDs</button>
           </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-2);">
             <div style="font-size:12px;color:var(--muted);">Live — updates every 2 seconds while this tab is open</div>
             <button class="secondary" id="hwLogClearBtn" style="padding:6px 12px;font-size:11px;">Clear log</button>
           </div>
@@ -1178,122 +1178,122 @@
   <div class="panel" data-panel="system">
     <div class="panel-inner">
       <div class="bulk-box" style="margin-top:0;">
-        <div class="display" style="font-size:15px;margin-bottom:6px;">TV display</div>
+        <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">TV display</div>
         <div class="scan-msg" style="margin-top:0;">Opens the big-screen browse page in a new tab — point a TV or monitor's browser at this same URL with <code>#tv</code> on the end to run it as a standalone kiosk display.</div>
         <button class="primary" id="openTvBtn" type="button"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg> Open TV display</button>
       </div>
 
       <div class="bulk-box">
-        <div class="display" style="font-size:15px;margin-bottom:6px;">Main kiosk</div>
+        <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Main kiosk</div>
         <div class="scan-msg" style="margin-top:0;">If more than one device is ever open at once (a second browser tab, someone checking things from their phone), alerts like the door-open welcome prompt and the "who took this?" chime would otherwise fire on every single one of them. Pick which device is the actual kiosk, and only that one gets them.</div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
-          <button class="secondary" id="refreshConnectedClientsBtn" style="padding:9px 14px;font-size:12px;">Refresh connected devices</button>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:var(--space-2);">
+          <button class="secondary" id="refreshConnectedClientsBtn" style="padding:8px 14px;font-size:12px;">Refresh connected devices</button>
         </div>
-        <div id="connectedClientsList" style="margin-bottom:12px;"></div>
+        <div id="connectedClientsList" style="margin-bottom:var(--space-3);"></div>
         <div style="font-size:12px;color:var(--muted);">Currently set to: <span id="mainKioskCurrentLabel" style="font-family:monospace;">not set — alerts go to every connected device</span> <button class="secondary" id="clearMainKioskBtn" style="padding:4px 10px;font-size:11px;margin-left:6px;">Clear</button></div>
       </div>
 
       <div class="bulk-box">
-        <div class="display" style="font-size:15px;margin-bottom:6px;">Support requests</div>
+        <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Support requests</div>
         <div class="scan-msg" style="margin-top:0;">The "Request Support" button in the top-right of the main screen sends a message here — a Discord or Slack incoming-webhook URL both work directly. The URL itself is never shown or sent to anyone browsing the kiosk; it only ever lives here and on the server.</div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:var(--space-2);">
           <input id="supportWebhookInput" placeholder="https://discord.com/api/webhooks/... or a Slack webhook URL" style="min-width:280px;flex:1;" />
-          <button class="secondary" id="saveSupportWebhookBtn" style="padding:9px 14px;font-size:12px;">Save</button>
-          <button class="secondary" id="testSupportWebhookBtn" style="padding:9px 14px;font-size:12px;">Send test message</button>
+          <button class="secondary" id="saveSupportWebhookBtn" style="padding:8px 14px;font-size:12px;">Save</button>
+          <button class="secondary" id="testSupportWebhookBtn" style="padding:8px 14px;font-size:12px;">Send test message</button>
         </div>
         <div id="supportWebhookStatus" style="font-size:12px;color:var(--muted);"></div>
       </div>
 
       <div class="bulk-box">
-        <div class="display" style="font-size:15px;margin-bottom:6px;">Alert webhooks</div>
+        <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Alert webhooks</div>
         <div class="scan-msg" style="margin-top:0;">Four independent channels — set any, all, or none. Each fires only for its own event, to wherever its own URL points; a Discord or Slack incoming-webhook URL both work directly for any of them.</div>
 
-        <div style="margin-top:14px;">
+        <div style="margin-top:var(--space-3);">
           <div style="font-size:13px;color:var(--white);margin-bottom:4px;">Checkouts</div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Fires every time anything is checked out — which title, and who.</div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:var(--space-2);">Fires every time anything is checked out — which title, and who.</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:var(--space-2);">
             <input id="checkoutWebhookInput" placeholder="https://discord.com/api/webhooks/... or a Slack webhook URL" style="min-width:280px;flex:1;" />
-            <button class="secondary" id="saveCheckoutWebhookBtn" style="padding:9px 14px;font-size:12px;">Save</button>
-            <button class="secondary" id="testCheckoutWebhookBtn" style="padding:9px 14px;font-size:12px;">Send test message</button>
+            <button class="secondary" id="saveCheckoutWebhookBtn" style="padding:8px 14px;font-size:12px;">Save</button>
+            <button class="secondary" id="testCheckoutWebhookBtn" style="padding:8px 14px;font-size:12px;">Send test message</button>
           </div>
-          <div id="checkoutWebhookStatus" style="font-size:12px;color:var(--muted);margin-bottom:14px;"></div>
+          <div id="checkoutWebhookStatus" style="font-size:12px;color:var(--muted);margin-bottom:var(--space-3);"></div>
         </div>
 
         <div>
           <div style="font-size:13px;color:var(--white);margin-bottom:4px;">Returns</div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Fires every time anything is returned — which title, and who.</div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:var(--space-2);">Fires every time anything is returned — which title, and who.</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:var(--space-2);">
             <input id="returnWebhookInput" placeholder="https://discord.com/api/webhooks/... or a Slack webhook URL" style="min-width:280px;flex:1;" />
-            <button class="secondary" id="saveReturnWebhookBtn" style="padding:9px 14px;font-size:12px;">Save</button>
-            <button class="secondary" id="testReturnWebhookBtn" style="padding:9px 14px;font-size:12px;">Send test message</button>
+            <button class="secondary" id="saveReturnWebhookBtn" style="padding:8px 14px;font-size:12px;">Save</button>
+            <button class="secondary" id="testReturnWebhookBtn" style="padding:8px 14px;font-size:12px;">Send test message</button>
           </div>
-          <div id="returnWebhookStatus" style="font-size:12px;color:var(--muted);margin-bottom:14px;"></div>
+          <div id="returnWebhookStatus" style="font-size:12px;color:var(--muted);margin-bottom:var(--space-3);"></div>
         </div>
 
         <div>
           <div style="font-size:13px;color:var(--white);margin-bottom:4px;">Overdue rentals</div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Checked hourly — fires once per rental the first time it's found overdue, not repeatedly for as long as it stays that way.</div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:var(--space-2);">Checked hourly — fires once per rental the first time it's found overdue, not repeatedly for as long as it stays that way.</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:var(--space-2);">
             <input id="overdueWebhookInput" placeholder="https://discord.com/api/webhooks/... or a Slack webhook URL" style="min-width:280px;flex:1;" />
-            <button class="secondary" id="saveOverdueWebhookBtn" style="padding:9px 14px;font-size:12px;">Save</button>
-            <button class="secondary" id="testOverdueWebhookBtn" style="padding:9px 14px;font-size:12px;">Send test message</button>
+            <button class="secondary" id="saveOverdueWebhookBtn" style="padding:8px 14px;font-size:12px;">Save</button>
+            <button class="secondary" id="testOverdueWebhookBtn" style="padding:8px 14px;font-size:12px;">Send test message</button>
           </div>
-          <div id="overdueWebhookStatus" style="font-size:12px;color:var(--muted);margin-bottom:14px;"></div>
+          <div id="overdueWebhookStatus" style="font-size:12px;color:var(--muted);margin-bottom:var(--space-3);"></div>
         </div>
 
         <div>
           <div style="font-size:13px;color:var(--white);margin-bottom:4px;">Reservation ready</div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Fires once per reservation — right when a title someone's waiting on actually comes back, for whoever's been waiting longest on it.</div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:var(--space-2);">Fires once per reservation — right when a title someone's waiting on actually comes back, for whoever's been waiting longest on it.</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:var(--space-2);">
             <input id="reservationWebhookInput" placeholder="https://discord.com/api/webhooks/... or a Slack webhook URL" style="min-width:280px;flex:1;" />
-            <button class="secondary" id="saveReservationWebhookBtn" style="padding:9px 14px;font-size:12px;">Save</button>
-            <button class="secondary" id="testReservationWebhookBtn" style="padding:9px 14px;font-size:12px;">Send test message</button>
+            <button class="secondary" id="saveReservationWebhookBtn" style="padding:8px 14px;font-size:12px;">Save</button>
+            <button class="secondary" id="testReservationWebhookBtn" style="padding:8px 14px;font-size:12px;">Send test message</button>
           </div>
-          <div id="reservationWebhookStatus" style="font-size:12px;color:var(--muted);margin-bottom:6px;"></div>
+          <div id="reservationWebhookStatus" style="font-size:12px;color:var(--muted);margin-bottom:var(--space-2);"></div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
             <label style="font-size:12px;color:var(--muted);">Auto-cancel a reservation after</label>
             <input id="reservationExpiryInput" type="number" min="0" style="width:70px;" />
             <label style="font-size:12px;color:var(--muted);">days unclaimed (0 = never)</label>
-            <button class="secondary" id="saveReservationExpiryBtn" style="padding:9px 14px;font-size:12px;">Save</button>
+            <button class="secondary" id="saveReservationExpiryBtn" style="padding:8px 14px;font-size:12px;">Save</button>
           </div>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px;margin-bottom:14px;">Keeps a queue from silently piling up when a title someone's waiting on just never comes back — checked hourly, same as the overdue check.</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;margin-bottom:var(--space-3);">Keeps a queue from silently piling up when a title someone's waiting on just never comes back — checked hourly, same as the overdue check.</div>
         </div>
 
         <div>
           <div style="font-size:13px;color:var(--white);margin-bottom:4px;">Server issues</div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">For actual problems on the server itself — a failed database save, or a crash it had to recover from — not day-to-day rental activity.</div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:var(--space-2);">For actual problems on the server itself — a failed database save, or a crash it had to recover from — not day-to-day rental activity.</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:var(--space-2);">
             <input id="serverissueWebhookInput" placeholder="https://discord.com/api/webhooks/... or a Slack webhook URL" style="min-width:280px;flex:1;" />
-            <button class="secondary" id="saveServerissueWebhookBtn" style="padding:9px 14px;font-size:12px;">Save</button>
-            <button class="secondary" id="testServerissueWebhookBtn" style="padding:9px 14px;font-size:12px;">Send test message</button>
+            <button class="secondary" id="saveServerissueWebhookBtn" style="padding:8px 14px;font-size:12px;">Save</button>
+            <button class="secondary" id="testServerissueWebhookBtn" style="padding:8px 14px;font-size:12px;">Send test message</button>
           </div>
           <div id="serverissueWebhookStatus" style="font-size:12px;color:var(--muted);"></div>
         </div>
       </div>
 
       <div class="bulk-box">
-        <div class="display" style="font-size:15px;margin-bottom:6px;">Server maintenance</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Currently running: <span id="currentVersionLabel" style="font-family:monospace;">…</span></div>
+        <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Server maintenance</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:var(--space-3);">Currently running: <span id="currentVersionLabel" style="font-family:monospace;">…</span></div>
         <div style="display:flex;gap:20px;flex-wrap:wrap;">
           <div style="flex:1;min-width:260px;">
             <div class="scan-msg" style="margin-top:0;">Pulls the latest code from GitHub and reinstalls dependencies if anything changed — the same update step <code>install.sh</code> does, run from here instead of SSH.</div>
             <button class="primary" id="systemUpdateBtn" type="button">Check for updates &amp; install</button>
-            <div id="systemUpdateStatus" style="font-size:12px;color:var(--muted);margin-top:10px;white-space:pre-wrap;"></div>
+            <div id="systemUpdateStatus" style="font-size:12px;color:var(--muted);margin-top:var(--space-2);white-space:pre-wrap;"></div>
           </div>
           <div style="flex:1;min-width:260px;">
             <div class="scan-msg" style="margin-top:0;">Just a restart — no update, nothing pulled from GitHub. For when the app seems stuck rather than out of date.</div>
             <button class="secondary" id="restartServerBtn" type="button">Restart now</button>
-            <div id="restartServerStatus" style="font-size:12px;color:var(--muted);margin-top:10px;white-space:pre-wrap;"></div>
+            <div id="restartServerStatus" style="font-size:12px;color:var(--muted);margin-top:var(--space-2);white-space:pre-wrap;"></div>
           </div>
         </div>
-        <div style="font-size:11px;color:var(--muted);margin-top:12px;">Either way, if set up with autostart (systemd), it comes back on its own; if not, you'll need to stop and re-run <code>npm start</code> by hand once it's done.</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:var(--space-3);">Either way, if set up with autostart (systemd), it comes back on its own; if not, you'll need to stop and re-run <code>npm start</code> by hand once it's done.</div>
       </div>
 
       <div class="bulk-box">
-        <div class="display" style="font-size:15px;margin-bottom:6px;">Export &amp; import</div>
+        <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Export &amp; import</div>
         <div class="scan-msg" style="margin-top:0;">Everything — catalog, rentals, watch history, users and PINs, bays, settings — lives in one file the server already keeps. This just gives you a copy of it to save somewhere else, and a way to bring it back.</div>
-        <button class="primary" id="exportDataBtn" style="margin-bottom:20px;">Export data</button>
-        <div class="display" style="font-size:14px;margin-bottom:6px;">Import a backup</div>
+        <button class="primary" id="exportDataBtn" style="margin-bottom:var(--space-4);">Export data</button>
+        <div class="display" style="font-size:14px;margin-bottom:var(--space-2);">Import a backup</div>
         <div class="scan-msg" style="margin-top:0;">This replaces your entire catalog, rentals, and history with whatever's in the file — there's no merging. Use it to restore a backup, not to add a few titles.</div>
         <label class="file-label">Choose a backup file
           <input type="file" accept="application/json" id="importDataInput" />
@@ -1306,7 +1306,7 @@
   <div class="panel" data-panel="users">
     <div class="panel-inner">
       <div class="bulk-box" style="margin-top:0;margin-bottom:24px;max-width:420px;">
-        <div class="display" style="font-size:15px;margin-bottom:6px;">Household settings</div>
+        <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Household settings</div>
         <div class="scan-msg" style="margin-top:0;">Applies to everyone — no one can check out more than this many discs at once.</div>
         <div style="display:flex;gap:8px;align-items:center;">
           <input id="maxCheckoutInput" type="number" min="1" style="width:80px;" />
@@ -1316,19 +1316,19 @@
       </div>
 
       <div class="bulk-box" style="margin-bottom:24px;max-width:420px;">
-        <div class="display" style="font-size:15px;margin-bottom:6px;">"Who took this?" alert chime</div>
+        <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">"Who took this?" alert chime</div>
         <div class="scan-msg" style="margin-top:0;">Plays whenever a disc leaves without anyone logged in, repeating until someone enters a PIN. Preview it here without actually pulling anything.</div>
         <button class="secondary" id="testAlertChimeBtn">▶ Play once</button>
       </div>
 
       <div class="bulk-box" style="margin-bottom:24px;max-width:420px;">
-        <div class="display" style="font-size:15px;margin-bottom:6px;">Door-open welcome chime</div>
+        <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Door-open welcome chime</div>
         <div class="scan-msg" style="margin-top:0;">Plays once when the cabinet door opens with nobody logged in — deliberately its own sound, not the alert above, since this is a welcome nudge, not something urgent.</div>
         <button class="secondary" id="testDoorChimeBtn">▶ Play once</button>
       </div>
 
       <div class="bulk-box" style="margin-bottom:24px;max-width:420px;">
-        <div class="display" style="font-size:15px;margin-bottom:6px;">Rent / checkout / return sounds</div>
+        <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Rent / checkout / return sounds</div>
         <div class="scan-msg" style="margin-top:0;">Three more distinct sounds — tapping Rent, the checkout actually completing once the disc is out of its bay, and a return completing. Preview each here.</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="secondary" id="testRentSoundBtn">▶ Rent tapped</button>
@@ -1338,12 +1338,12 @@
       </div>
       <div style="display:flex;gap:28px;flex-wrap:wrap;">
         <div style="flex:1 1 260px;max-width:300px;">
-          <div class="display" style="font-size:16px;margin-bottom:10px;">Add a user</div>
+          <div class="display" style="font-size:16px;margin-bottom:var(--space-2);">Add a user</div>
           <div class="new-form">
             <input id="newUserName" placeholder="Name" />
             <input id="newUserPin" class="pin-input" placeholder="0000" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
             <div style="display:flex;gap:8px;align-items:center;">
-              <input type="color" id="newUserColor" value="#B3261E" style="width:44px;height:36px;padding:2px;border-radius:8px;cursor:pointer;" />
+              <input type="color" id="newUserColor" value="#B3261E" style="width:44px;height:36px;padding:2px;border-radius:var(--radius-input);cursor:pointer;" />
               <input id="newUserEmoji" placeholder="Emoji (optional)" maxlength="2" style="flex:1;" />
             </div>
             <label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;">
@@ -1362,7 +1362,7 @@
           <div class="scan-msg">A 4-digit PIN just identifies who's checking out a disc — it's a friendly gate for the household, not real account security. The restriction checkboxes are a hard block, though — a checked-out title with that rating just won't complete for this person, on any checkout path.</div>
         </div>
         <div style="flex:2 1 360px;">
-          <div class="display" style="font-size:16px;margin-bottom:10px;">Users</div>
+          <div class="display" style="font-size:16px;margin-bottom:var(--space-2);">Users</div>
           <div id="usersList"></div>
         </div>
       </div>
@@ -1501,7 +1501,7 @@
   function playTrailerInline(slotId, trailerKey){
     const slot = document.getElementById(slotId);
     if(!slot) return;
-    slot.innerHTML = `<div style="position:relative;padding-top:56.25%;border-radius:10px;overflow:hidden;">
+    slot.innerHTML = `<div style="position:relative;padding-top:56.25%;border-radius:var(--radius-card);overflow:hidden;">
       <iframe src="https://www.youtube.com/embed/${trailerKey}?autoplay=1" title="Trailer" frameborder="0"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe>
@@ -2068,12 +2068,12 @@
       ${isDigital
         ? `<span class="poster-dot" style="background:${STREAMING_SERVICES[m.streamingService]?.color || '#555'};" title="${m.streamingService || 'Streaming'}"></span>`
         : `<span class="poster-dot${out?'':' in-stock'}" style="background:${out?'#737373':'#46D369'};" title="${conditionLabel(m) || (out?'Out of stock':'In stock')}"></span>`}
-      ${tag ? `<span style="position:absolute;top:8px;left:8px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,0.55);padding:2px 7px;border-radius:6px;">${tag}</span>` : ""}
+      ${tag ? `<span style="position:absolute;top:8px;left:8px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,0.55);padding:2px 7px;border-radius:var(--radius-chip);">${tag}</span>` : ""}
       ${m.condition==='damaged' ? `<span class="bluray-badge" style="background:linear-gradient(135deg,#E57373,#B71C1C);${tag?'bottom:56px;':''}"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="width:11px;height:11px;vertical-align:-1px;"><path d="M12 4 2 20h20L12 4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><line x1="12" y1="10" x2="12" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg> Damaged</span>` : ""}
       ${isGame && m.platform ? `<span class="bluray-badge" style="background:linear-gradient(135deg,#66BB6A,#2E7D32);">${m.platform}</span>` : ""}
       ${isDigital && m.streamingService ? `<span class="streaming-badge" style="background:${STREAMING_SERVICES[m.streamingService]?.color || '#555'};">${m.streamingService}</span>` : ""}
       ${!isGame && !isDigital && m.format==='Blu-ray' ? `<span class="bluray-badge">Blu-ray</span>` : ""}
-      ${m.recommended ? `<span style="position:absolute;top:8px;right:8px;margin-top:17px;display:flex;align-items:center;gap:3px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:9px;font-weight:700;color:#161000;background:linear-gradient(135deg,#FFD54F,#FF9800);padding:2px 6px;border-radius:6px;" title="Recommended"><svg viewBox="0 0 24 24" fill="currentColor" style="width:9px;height:9px;"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.5 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8L12 2Z"/></svg> Pick</span>` : ""}
+      ${m.recommended ? `<span style="position:absolute;top:8px;right:8px;margin-top:var(--space-3);display:flex;align-items:center;gap:3px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:9px;font-weight:700;color:#161000;background:linear-gradient(135deg,#FFD54F,#FF9800);padding:2px 6px;border-radius:var(--radius-chip);" title="Recommended"><svg viewBox="0 0 24 24" fill="currentColor" style="width:9px;height:9px;"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.5 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8L12 2Z"/></svg> Pick</span>` : ""}
       <span class="poster-title">${m.title}</span>
     </div>`;
   }
@@ -2094,7 +2094,7 @@
     const allBluray = discs.every(d => d.format==='Blu-ray');
     return `<div class="poster-card" data-openseries="${encodeURIComponent(seriesName)}" style="${bg}">
       <span class="poster-dot${totalStock>0?' in-stock':''}" style="background:${totalStock>0?'#46D369':'#737373'};" title="${totalStock>0?'In stock':'Out of stock'}"></span>
-      <span style="position:absolute;top:8px;left:8px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,0.55);padding:2px 7px;border-radius:6px;">${discs.length} disc${discs.length===1?'':'s'}</span>
+      <span style="position:absolute;top:8px;left:8px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,0.55);padding:2px 7px;border-radius:var(--radius-chip);">${discs.length} disc${discs.length===1?'':'s'}</span>
       ${allBluray ? `<span class="bluray-badge">Blu-ray</span>` : ""}
       <span class="poster-title">${seriesName}</span>
     </div>`;
@@ -2497,13 +2497,13 @@
     const body = $("#doubleFeatureBody");
     overlay.style.display = "flex";
     const posterHtml = (m) => `<div data-openpair="${m.id}" style="cursor:pointer;text-align:center;flex:1;">
-        <div style="width:100%;aspect-ratio:2/3;border-radius:10px;background-size:cover;background-position:center;background-image:${m.poster ? `url('${m.poster}')` : `linear-gradient(160deg, ${(isGamesTab?GAME_GENRE_COLORS:isHomeVideoTab?HOMEVIDEO_GENRE_COLORS:GENRE_COLORS)[m.genre]||'#333'}, #141414 85%)`};margin-bottom:8px;box-shadow:0 8px 20px rgba(0,0,0,0.4);"></div>
+        <div style="width:100%;aspect-ratio:2/3;border-radius:var(--radius-card);background-size:cover;background-position:center;background-image:${m.poster ? `url('${m.poster}')` : `linear-gradient(160deg, ${(isGamesTab?GAME_GENRE_COLORS:isHomeVideoTab?HOMEVIDEO_GENRE_COLORS:GENRE_COLORS)[m.genre]||'#333'}, #141414 85%)`};margin-bottom:8px;box-shadow:0 8px 20px rgba(0,0,0,0.4);"></div>
         <div style="font-size:13px;color:var(--white);">${m.title}</div>
       </div>`;
     body.innerHTML = `
       <div class="t" style="font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:19px;font-weight:700;color:var(--white);margin-bottom:4px;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="7" width="18" height="13" rx="1.5" stroke="currentColor" stroke-width="2"/><path d="M3 7l2-4h3l-2 4M9 7l2-4h3l-2 4M15 7l2-4h3l-2 4" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Double Feature</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">${pairReason} — tap either to open it.</div>
-      <div style="display:flex;gap:14px;margin-bottom:18px;">${posterHtml(first)}${posterHtml(second)}</div>
+      <div style="display:flex;gap:14px;margin-bottom:var(--space-3);">${posterHtml(first)}${posterHtml(second)}</div>
       <button class="secondary" id="doubleFeatureRerollBtn" style="width:100%;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M3 12a9 9 0 1 1 3.5 7.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M3 17v-5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Different pairing</button>
     `;
     body.querySelectorAll("[data-openpair]").forEach(el => {
@@ -2541,20 +2541,20 @@
 
     const stat = (label, value) => `<div style="flex:1;min-width:100px;text-align:center;">
       <div style="font-size:22px;font-weight:700;color:var(--white);">${value}</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px;">${label}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:var(--space-1);">${label}</div>
     </div>`;
 
     body.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:var(--space-3);">
         <span style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;background:${loggedInUser.color||'#B3261E'};font-size:${loggedInUser.avatar?'18px':'15px'};font-weight:700;color:#fff;flex-shrink:0;">${loggedInUser.avatar || loggedInUser.name.trim().charAt(0).toUpperCase()}</span>
         <div class="t" style="font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:19px;font-weight:700;color:var(--white);">${loggedInUser.name}'s activity</div>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:20px;padding:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);">
+      <div style="display:flex;gap:8px;margin-bottom:var(--space-4);padding:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);">
         ${stat("discs watched", mine.length)}
         ${stat("checked out now", active.length)}
         ${stat("favorite genre", favoriteGenre || "—")}
       </div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Recently watched</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:var(--space-2);">Recently watched</div>
       ${recent.length === 0
         ? `<div style="font-size:13px;color:var(--muted);">Nothing returned yet — check something out to get started.</div>`
         : `<div class="list-group">${recent.map(r => `<div class="row" style="padding:8px 0;">
@@ -2562,7 +2562,7 @@
             <span style="font-size:11px;color:var(--muted);flex-shrink:0;">${r.returnedOn ? new Date(r.returnedOn).toLocaleDateString() : ''}</span>
           </div>`).join("")}</div>`
       }
-      <button class="secondary" id="myActivityCloseBtn" style="width:100%;margin-top:18px;">Close</button>
+      <button class="secondary" id="myActivityCloseBtn" style="width:100%;margin-top:var(--space-3);">Close</button>
     `;
     $("#myActivityCloseBtn").onclick = closeMyActivity;
     overlay.onclick = (e) => { if(e.target===overlay) closeMyActivity(); };
@@ -2972,7 +2972,7 @@
       // shouldn't require a data change to visibly take effect.
       if(chipsEl && chipsEl.dataset.renderedFilter !== renterFilter){
         const names = ["All", ...Array.from(new Set(rentals.map(r=>r.renterName||"Unknown"))).sort()];
-        chipsEl.innerHTML = names.map(n => `<button data-renter="${n}" style="font-size:12px;padding:7px 12px;border-radius:20px;border:1px solid ${renterFilter===n?'var(--red)':'var(--line)'};background:${renterFilter===n?'var(--red)':'transparent'};color:${renterFilter===n?'#fff':'var(--muted)'};cursor:pointer;">${n}</button>`).join("");
+        chipsEl.innerHTML = names.map(n => `<button data-renter="${n}" style="font-size:12px;padding:7px 12px;border-radius:var(--radius-pill);border:1px solid ${renterFilter===n?'var(--red)':'var(--line)'};background:${renterFilter===n?'var(--red)':'transparent'};color:${renterFilter===n?'#fff':'var(--muted)'};cursor:pointer;">${n}</button>`).join("");
         chipsEl.querySelectorAll("button").forEach(b => b.onclick = () => { renterFilter = b.dataset.renter; renderRentals(); });
         chipsEl.dataset.renderedFilter = renterFilter;
       }
@@ -2981,7 +2981,7 @@
     lastRentalsSig = sig;
 
     const names = ["All", ...Array.from(new Set(rentals.map(r=>r.renterName||"Unknown"))).sort()];
-    chipsEl.innerHTML = names.map(n => `<button data-renter="${n}" style="font-size:12px;padding:7px 12px;border-radius:20px;border:1px solid ${renterFilter===n?'var(--red)':'var(--line)'};background:${renterFilter===n?'var(--red)':'transparent'};color:${renterFilter===n?'#fff':'var(--muted)'};cursor:pointer;">${n}</button>`).join("");
+    chipsEl.innerHTML = names.map(n => `<button data-renter="${n}" style="font-size:12px;padding:7px 12px;border-radius:var(--radius-pill);border:1px solid ${renterFilter===n?'var(--red)':'var(--line)'};background:${renterFilter===n?'var(--red)':'transparent'};color:${renterFilter===n?'#fff':'var(--muted)'};cursor:pointer;">${n}</button>`).join("");
     chipsEl.querySelectorAll("button").forEach(b => b.onclick = () => { renterFilter = b.dataset.renter; renderRentals(); });
     chipsEl.dataset.renderedFilter = renterFilter;
 
@@ -2993,8 +2993,8 @@
       return `<div class="row">
         <div>
           <div class="display" style="font-size:16px;">${r.title}</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px;">Rented by ${r.renterName || "Unknown"}</div>
-          <div style="font-size:12px;color:${overdue?'#E87C03':'var(--muted2)'};margin-top:2px;">
+          <div style="font-size:12px;color:var(--muted);margin-top:var(--space-1);">Rented by ${r.renterName || "Unknown"}</div>
+          <div style="font-size:12px;color:${overdue?'#E87C03':'var(--muted2)'};margin-top:var(--space-1);">
             ${overdue ? `${Math.abs(daysLeft)} day(s) overdue — $${(Math.abs(daysLeft)*LATE_FEE_PER_DAY).toFixed(2)} fee accruing` : `Due in ${daysLeft} day(s)`}
           </div>
         </div>
@@ -3045,13 +3045,13 @@
     const attentionRow = (label, items, note) => items.length===0 ? "" : `<div class="row" style="align-items:flex-start;">
         <div>
           <div style="font-size:14px;">${label} <span style="color:var(--muted);font-weight:400;">(${items.length})</span></div>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px;">${items.slice(0,6).map(m=>m.title).join(", ")}${items.length>6?`, +${items.length-6} more`:""}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:var(--space-1);">${items.slice(0,6).map(m=>m.title).join(", ")}${items.length>6?`, +${items.length-6} more`:""}</div>
           ${note ? `<div style="font-size:11px;color:var(--muted2);margin-top:4px;">${note}</div>` : ""}
         </div>
       </div>`;
     const rows = attentionRow(`<svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;"><path d="M12 4 2 20h20L12 4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><line x1="12" y1="10" x2="12" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg> Damaged`, damaged) + attentionRow(`<svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Missing`, missing);
     attentionEl.innerHTML = rows
-      ? `<div class="bulk-box" style="margin-top:0;"><div class="display" style="font-size:15px;margin-bottom:10px;">Needs attention</div><div class="list-group">${rows}</div></div>`
+      ? `<div class="bulk-box" style="margin-top:0;"><div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Needs attention</div><div class="list-group">${rows}</div></div>`
       : `<div class="bulk-box" style="margin-top:0;"><div style="font-size:14px;color:var(--muted);">Nothing needs attention right now.</div></div>`;
   }
 
@@ -3085,12 +3085,12 @@
     const uptimeLine = days > 0 ? `${days}d ${hours}h` : `${hours}h ${Math.floor((h.uptimeSeconds%3600)/60)}m`;
 
     const item = (label, value, warn) => `<div style="flex:1;min-width:150px;">
-      <div style="font-size:11px;color:var(--muted);margin-bottom:3px;">${label}</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:var(--space-1);">${label}</div>
       <div style="font-size:13px;${warn?'color:#E87C03;':''}">${value}</div>
     </div>`;
 
     el.innerHTML = `<div class="bulk-box" style="margin-top:0;">
-      <div class="display" style="font-size:15px;margin-bottom:12px;">Server health</div>
+      <div class="display" style="font-size:15px;margin-bottom:var(--space-3);">Server health</div>
       <div style="display:flex;flex-wrap:wrap;gap:16px;">
         ${item("WLED", wledLine)}
         ${item("Last hardware event", eventLine)}
@@ -3354,8 +3354,8 @@
         </defs>
         <path d="${checkoutArea}" fill="url(#chartGradRed)" class="chart-area-fade"/>
         <path d="${returnArea}" fill="url(#chartGradGreen)" class="chart-area-fade"/>
-        <path d="${checkoutLine}" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-linecap="round" class="chart-flow-line"/>
-        <path d="${returnLine}" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" class="chart-flow-line" style="animation-delay:0.15s;"/>
+        <path d="${checkoutLine}" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" class="chart-flow-line"/>
+        <path d="${returnLine}" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" class="chart-flow-line" style="animation-delay:0.15s;"/>
         ${checkoutPts.map(p => `<circle cx="${p.x}" cy="${p.y}" r="3" fill="var(--red)"/>`).join("")}
         ${returnPts.map(p => `<circle cx="${p.x}" cy="${p.y}" r="3" fill="var(--green)"/>`).join("")}
         ${dayLabels.map((label,i) => label ? `<text x="${xFor(i)}" y="${H-6}" font-size="10" fill="var(--muted)" text-anchor="middle">${label}</text>` : "").join("")}
@@ -3388,7 +3388,7 @@
       .slice(0, 8);
     if(events.length === 0){ el.innerHTML = ""; return; }
     el.innerHTML = `<div class="bulk-box" style="margin-top:0;">
-      <div class="display" style="font-size:15px;margin-bottom:10px;">Recent activity</div>
+      <div class="display" style="font-size:15px;margin-bottom:var(--space-2);">Recent activity</div>
       <div class="list-group">${events.map(e => `<div class="row" style="padding:8px 0;">
         <span style="font-size:13px;">${e.type==='checkout' ? '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px;"><path d="M12 19V5M6 11l6-6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px;"><path d="M12 5v14M6 13l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'} <b>${e.who}</b> ${e.type==='checkout' ? 'checked out' : 'returned'} ${e.title}</span>
         <span style="font-size:11px;color:var(--muted);flex-shrink:0;">${relativeTimeAgo(e.at)}</span>
@@ -3479,7 +3479,7 @@
     el.innerHTML = `<div class="list-group">` + sorted.map(r => `<div class="row">
       <div>
         <div class="display" style="font-size:15px;">${r.title}</div>
-        <div style="font-size:12px;color:var(--muted2);margin-top:2px;">${r.userName} · waiting since ${new Date(r.createdAt).toLocaleDateString()}</div>
+        <div style="font-size:12px;color:var(--muted2);margin-top:var(--space-1);">${r.userName} · waiting since ${new Date(r.createdAt).toLocaleDateString()}</div>
       </div>
       <button class="secondary" data-cancelqueuedreservation="${r.id}" style="padding:8px 12px;font-size:12px;">Cancel</button>
     </div>`).join("") + `</div>`;
@@ -3537,7 +3537,7 @@
       : `<div class="list-group">` + combined.map(r => `<div class="row">
           <div>
             <div style="font-size:14px;">${r.title}</div>
-            <div style="font-size:12px;color:var(--muted);margin-top:2px;">${r.renterName || "Unknown"} · checked out ${new Date(r.rentedOn).toLocaleDateString()}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:var(--space-1);">${r.renterName || "Unknown"} · checked out ${new Date(r.rentedOn).toLocaleDateString()}</div>
           </div>
           <span style="font-size:12px;color:${r.returnedOn?'var(--muted2)':'var(--green)'};flex-shrink:0;">${r.returnedOn ? 'Returned '+new Date(r.returnedOn).toLocaleDateString() : 'Active'}</span>
         </div>`).join("") + `</div>`;
@@ -3547,13 +3547,13 @@
     const el = $("#myRentalsList");
     if(!el) return;
     if(!loggedInUser){
-      el.innerHTML = `<div style="color:var(--muted);font-size:14px;margin-top:14px;">Log in above to see what you've got checked out.</div>`;
+      el.innerHTML = `<div style="color:var(--muted);font-size:14px;margin-top:var(--space-3);">Log in above to see what you've got checked out.</div>`;
       return;
     }
     const list = rentals.filter(r => r.renterName === loggedInUser.name);
     const activeHtml = list.length===0
-      ? `<div style="color:var(--muted);font-size:14px;margin-top:14px;">Nothing checked out right now.</div>`
-      : `<div class="list-group" style="margin-top:14px;">` + list.map(r => {
+      ? `<div style="color:var(--muted);font-size:14px;margin-top:var(--space-3);">Nothing checked out right now.</div>`
+      : `<div class="list-group" style="margin-top:var(--space-3);">` + list.map(r => {
         const daysLeft = Math.ceil((r.dueOn - Date.now()) / 86400000);
         const overdue = daysLeft < 0;
         const renewals = r.renewals || 0;
@@ -3561,13 +3561,13 @@
         return `<div class="row">
           <div>
             <div class="display" style="font-size:16px;">${r.title}</div>
-            <div style="font-size:12px;color:${overdue?'#E87C03':'var(--muted2)'};margin-top:2px;">
+            <div style="font-size:12px;color:${overdue?'#E87C03':'var(--muted2)'};margin-top:var(--space-1);">
               ${overdue ? `${Math.abs(daysLeft)} day(s) overdue — $${(Math.abs(daysLeft)*LATE_FEE_PER_DAY).toFixed(2)} fee accruing` : `Due in ${daysLeft} day(s)`}
               ${renewals>0 ? ` · renewed ${renewals}/${maxRenewals}` : ''}
             </div>
           </div>
           <div style="display:flex;gap:6px;">
-            ${canRenew ? `<button class="secondary" data-myrenew="${r.id}" style="padding:9px 12px;font-size:12px;">Renew</button>` : ''}
+            ${canRenew ? `<button class="secondary" data-myrenew="${r.id}" style="padding:8px 12px;font-size:12px;">Renew</button>` : ''}
             <button class="teal" data-myreturn="${r.id}">Return disc</button>
           </div>
         </div>`;
@@ -3578,7 +3578,7 @@
       <div class="display" style="font-size:14px;margin-top:24px;margin-bottom:8px;">Waiting on</div>
       <div class="list-group">` + myReservations.map(r => `<div class="row">
         <div class="display" style="font-size:15px;">${r.title}</div>
-        <button class="secondary" data-mycancelreservation="${r.id}" style="padding:9px 12px;font-size:12px;">Cancel</button>
+        <button class="secondary" data-mycancelreservation="${r.id}" style="padding:8px 12px;font-size:12px;">Cancel</button>
       </div>`).join("") + `</div>`;
 
     const myHistory = rentalHistory.filter(r => r.renterName === loggedInUser.name)
@@ -3588,7 +3588,7 @@
       <div class="list-group">` + myHistory.map(r => `<div class="row">
         <div>
           <div style="font-size:14px;">${r.title}</div>
-          <div style="font-size:11px;color:var(--muted2);margin-top:2px;">Returned ${new Date(r.returnedOn).toLocaleDateString()}</div>
+          <div style="font-size:11px;color:var(--muted2);margin-top:var(--space-1);">Returned ${new Date(r.returnedOn).toLocaleDateString()}</div>
         </div>
       </div>`).join("") + `</div>`;
 
@@ -3664,7 +3664,7 @@
       el.innerHTML = `<div style="color:var(--muted);font-size:14px;padding:16px 0;">Nothing matches the current search/filters.</div>`;
       return;
     }
-    const pagerHtml = `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;">
+    const pagerHtml = `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:var(--space-3);">
       <span style="font-size:12px;color:var(--muted);">${filtered.length} title${filtered.length===1?'':'s'} — page ${adminListPage+1} of ${totalPages}</span>
       <div style="display:flex;gap:6px;">
         <button class="secondary" id="adminListPrevBtn" style="padding:6px 12px;font-size:12px;" ${adminListPage<=0?'disabled':''}>‹ Prev</button>
@@ -3680,7 +3680,7 @@
       <div style="flex:1;">
         <span style="font-size:14px;">${isGame ? '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;"><rect x="2" y="8" width="20" height="10" rx="4" stroke="currentColor" stroke-width="2"/><line x1="7" y1="11" x2="7" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="5" y1="13" x2="9" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="12" r="1" fill="currentColor"/><circle cx="18" cy="15" r="1" fill="currentColor"/></svg> ' : isDigital ? '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg> ' : ''}${m.title}</span>
         <span style="font-size:12px;color:var(--muted);margin-left:8px;">${m.genre} · ${m.year} · code: ${m.code}${seriesTag(m) ? ' · '+seriesTag(m) : ''}${(!isDigital && !bays.some(b=>b.titleId===m.id)) ? ' · <svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="width:11px;height:11px;vertical-align:-1px;"><path d="M3 8l9-5 9 5-9 5-9-5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M3 8v8l9 5 9-5V8M12 13v8" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Bulk storage' : ''}</span>
-        <div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <div style="margin-top:var(--space-2);display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
           ${isGame ? `<select class="platformInput" data-platform="${m.id}" style="font-size:11px;padding:4px 8px;width:auto;">
             ${GAME_PLATFORMS.map(p => `<option value="${p}" ${m.platform===p?'selected':''}>${p}</option>`).join("")}
           </select>` : isDigital ? `<select class="streamingServiceInput" data-streamsvc="${m.id}" style="font-size:11px;padding:4px 8px;width:auto;">
@@ -3723,7 +3723,7 @@
             <input type="file" accept="audio/*" class="themeInput" data-theme="${m.id}" />
           </label>` : ''}
         </div>
-        <input class="notesInput" data-notes="${m.id}" placeholder="Private note (staff only — never shown to customers)" value="${m.notes||''}" style="font-size:11px;padding:5px 8px;width:100%;margin-top:6px;color:var(--muted);" />
+        <input class="notesInput" data-notes="${m.id}" placeholder="Private note (staff only — never shown to customers)" value="${m.notes||''}" style="font-size:11px;padding:5px 8px;width:100%;margin-top:var(--space-2);color:var(--muted);" />
       </div>
       ${isDigital
         ? `<div style="display:flex;gap:8px;align-items:center;">
@@ -3816,10 +3816,10 @@
     el.innerHTML = `<div class="list-group">` + wishlist.map(w => `<div class="row" style="align-items:flex-start;">
         <div>
           <div style="font-size:14px;">${w.title}</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px;">
+          <div style="font-size:12px;color:var(--muted);margin-top:var(--space-1);">
             ${w.requestedBy ? `Requested by ${w.requestedBy} · ` : ''}${new Date(w.requestedAt).toLocaleDateString()}
           </div>
-          ${w.note ? `<div style="font-size:12px;color:var(--muted2);margin-top:2px;">"${w.note}"</div>` : ''}
+          ${w.note ? `<div style="font-size:12px;color:var(--muted2);margin-top:var(--space-1);">"${w.note}"</div>` : ''}
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0;">
           <button class="secondary" data-usewish="${w.id}" style="padding:7px 12px;font-size:11px;">Use this title</button>
@@ -3887,7 +3887,7 @@
         el.innerHTML = `<div style="display:flex;align-items:center;gap:8px;">
           ${avatarHtml}
           <span style="font-size:13px;white-space:nowrap;">${loggedInUser.name}</span>
-          <button class="secondary" data-logout style="padding:9px 14px;font-size:13px;white-space:nowrap;">Log out</button>
+          <button class="secondary" data-logout style="padding:8px 14px;font-size:13px;white-space:nowrap;">Log out</button>
         </div>`;
       } else {
         el.innerHTML = `<div class="login-box">
@@ -3900,7 +3900,7 @@
       if(avatarBtn) avatarBtn.onclick = openMyActivity;
     } else {
       el.innerHTML = compact
-        ? `<button class="secondary" data-openlogin style="padding:9px 16px;font-size:13px;white-space:nowrap;">Log in to rent</button>`
+        ? `<button class="secondary" data-openlogin style="padding:8px 16px;font-size:13px;white-space:nowrap;">Log in to rent</button>`
         : `<button class="primary" data-openlogin style="width:100%;">Log in to rent</button>`;
       el.querySelector("[data-openlogin]").onclick = openLoginGate;
     }
@@ -3916,12 +3916,12 @@
     overlay.innerHTML = `<div class="modal-card" style="width:340px;">
       <div class="modal-body" style="padding:28px 22px;">
         <div class="t" style="margin-bottom:4px;">Who's this?</div>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">Enter your 4-digit PIN to log in</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:var(--space-3);">Enter your 4-digit PIN to log in</div>
         <div style="display:flex;gap:8px;align-items:center;justify-content:center;">
           <input id="gatePinInput" class="pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" />
           <button class="primary" id="gatePinLoginBtn">Log in</button>
         </div>
-        <div id="gatePinMsg" style="font-size:12px;color:#E87C03;margin-top:6px;text-align:center;"></div>
+        <div id="gatePinMsg" style="font-size:12px;color:#E87C03;margin-top:var(--space-2);text-align:center;"></div>
         <div id="gatePinPad"></div>
         <button class="secondary" id="gateBrowseBtn" style="width:100%;margin-top:16px;">Just browse for now</button>
       </div>
@@ -4015,10 +4015,10 @@
       const restrictOptions = ["PG-13","R","T","M","AO"];
       return `<div class="row" style="align-items:flex-start;">
         <div style="flex:1;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <input type="color" class="userColorInput" data-user="${u.id}" value="${u.color||'#B3261E'}" style="width:36px;height:36px;padding:2px;border-radius:8px;cursor:pointer;" />
+          <input type="color" class="userColorInput" data-user="${u.id}" value="${u.color||'#B3261E'}" style="width:36px;height:36px;padding:2px;border-radius:var(--radius-input);cursor:pointer;" />
           <input class="userEmojiInput" data-user="${u.id}" value="${u.avatar||''}" placeholder="🙂" maxlength="2" style="width:50px;text-align:center;" />
           <input class="userNameInput" data-user="${u.id}" value="${u.name}" style="width:130px;" />
-          <input class="userPinInput pin-input" data-user="${u.id}" value="${u.pin}" maxlength="4" inputmode="numeric" pattern="[0-9]*" style="width:80px;font-size:15px;letter-spacing:4px;padding:9px 0 9px 10px;" />
+          <input class="userPinInput pin-input" data-user="${u.id}" value="${u.pin}" maxlength="4" inputmode="numeric" pattern="[0-9]*" style="width:80px;font-size:15px;letter-spacing:4px;padding:8px 0 8px 10px;" />
           <label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;">
             <input type="checkbox" class="userAdminInput" data-user="${u.id}" style="width:auto;" ${u.isAdmin?'checked':''} /> Admin
           </label>
@@ -4026,11 +4026,11 @@
           <button class="secondary" data-printbarcode="${u.id}" style="padding:8px 12px;font-size:12px;">Print login barcode</button>
           <button class="secondary" data-exportuserhistory="${u.id}" style="padding:8px 12px;font-size:12px;" ${historyCount===0?'disabled':''} title="${historyCount===0 ? 'No history to export' : `Export ${historyCount} past rental${historyCount===1?'':'s'} for ${u.name}`}">Export CSV${historyCount>0?` (${historyCount})`:''}</button>
           <button class="secondary" data-clearhistory="${u.id}" style="padding:8px 12px;font-size:12px;" ${historyCount===0?'disabled':''} title="${historyCount===0 ? 'No history to clear' : `Permanently remove ${historyCount} past rental${historyCount===1?'':'s'} for ${u.name}`}">Clear history${historyCount>0?` (${historyCount})`:''}</button>
-          <div style="width:100%;display:flex;gap:10px;flex-wrap:wrap;margin-top:2px;">
+          <div style="width:100%;display:flex;gap:10px;flex-wrap:wrap;margin-top:var(--space-1);">
             <span style="font-size:11px;color:var(--muted);">Can't check out:</span>
             ${restrictOptions.map(r => `<label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:3px;"><input type="checkbox" class="userRestrictInput" data-user="${u.id}" value="${r}" style="width:auto;" ${restricted.has(r)?'checked':''} /> ${r}</label>`).join("")}
           </div>
-          <div style="width:100%;font-size:11px;color:var(--muted);margin-top:2px;">${activeText}</div>
+          <div style="width:100%;font-size:11px;color:var(--muted);margin-top:var(--space-1);">${activeText}</div>
         </div>
         <button class="adjbtn" style="color:#E87C03;border-color:#5A3A20;" data-removeuser="${u.id}">×</button>
       </div>`;
@@ -4123,7 +4123,7 @@
       <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Customers also watched</div>
       <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;">
         ${items.map(t => `<div data-openalso="${t.id}" style="flex-shrink:0;width:90px;cursor:pointer;">
-          <div style="width:90px;height:135px;border-radius:8px;background-size:cover;background-position:center;background-color:#222;${t.poster?`background-image:url('${t.poster}');`:''}"></div>
+          <div style="width:90px;height:135px;border-radius:var(--radius-chip);background-size:cover;background-position:center;background-color:#222;${t.poster?`background-image:url('${t.poster}');`:''}"></div>
           <div style="font-size:11px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.title}</div>
         </div>`).join("")}
       </div>
@@ -4215,7 +4215,7 @@
     // restraint rather than giving it equal visual weight to the actual
     // action.
     const accountLineHtml = (!isDigital && !out && loggedInUser)
-      ? `<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);margin-bottom:10px;">
+      ? `<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);margin-bottom:var(--space-2);">
           <span>Checking out as ${loggedInUser.name} (${rentals.filter(r => r.renterName===loggedInUser.name).length}/${maxCheckouts} discs out)</span>
           <button class="secondary" id="modalLogoutBtn" style="padding:5px 10px;font-size:11px;">Not you?</button>
         </div>`
@@ -4228,20 +4228,20 @@
         <button class="modal-close" id="modalCloseBtn">×</button>
         <div class="eyebrow">${m.genre} · ${m.year}${isDigital ? (m.streamingService ? ' · '+m.streamingService : '') : (m.mediaType==='game' ? (m.platform ? ' · '+m.platform : '') : (m.format==='Blu-ray' ? ' · Blu-ray' : ''))}${seriesTag(m) ? ' · '+seriesTag(m) : ''}</div>
         ${m.logo ? `<img src="${m.logo}" alt="${m.title}" class="title-logo" />` : `<div class="t">${m.title}</div>`}
-        <div style="display:flex;gap:10px;margin-top:14px;position:relative;z-index:2;">
+        <div style="display:flex;gap:10px;margin-top:var(--space-3);position:relative;z-index:2;">
           <button class="modal-icon-btn" id="modalSendToTvBtn" title="Continue on TV"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg></button>
           ${(!isGame && m.imdbId) ? `<a class="modal-icon-btn" href="https://www.imdb.com/title/${m.imdbId}/" target="_blank" rel="noopener" title="View on IMDb" style="text-decoration:none;font-size:11px;font-weight:700;">IMDb</a>` : ''}
           ${loggedInUser ? (() => {
             const myRating = ratings.find(r => r.titleId === m.id && r.userName === loggedInUser.name);
             const upActive = myRating && myRating.rating === 1;
             const downActive = myRating && myRating.rating === -1;
-            return `<button class="modal-icon-btn" id="modalThumbsUpBtn" title="I liked this" style="${upActive ? 'background:rgba(70,211,105,0.25);border-color:rgba(70,211,105,0.5);color:#46D369;' : ''}"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M7 11v9H4a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3Zm0 0 4.5-8a2 2 0 0 1 3.8 1l-1 5h4.7a2 2 0 0 1 1.9 2.6l-2 6a2 2 0 0 1-1.9 1.4H7" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></button>
-            <button class="modal-icon-btn" id="modalThumbsDownBtn" title="Not for me" style="${downActive ? 'background:rgba(184,58,58,0.25);border-color:rgba(184,58,58,0.5);color:#E8746C;' : ''}"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="transform:rotate(180deg);"><path d="M7 11v9H4a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3Zm0 0 4.5-8a2 2 0 0 1 3.8 1l-1 5h4.7a2 2 0 0 1 1.9 2.6l-2 6a2 2 0 0 1-1.9 1.4H7" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></button>`;
+            return `<button class="modal-icon-btn" id="modalThumbsUpBtn" title="I liked this" style="${upActive ? 'background:rgba(70,211,105,0.25);border-color:rgba(70,211,105,0.5);color:#46D369;' : ''}"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M7 11v9H4a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3Zm0 0 4.5-8a2 2 0 0 1 3.8 1l-1 5h4.7a2 2 0 0 1 1.9 2.6l-2 6a2 2 0 0 1-1.9 1.4H7" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></button>
+            <button class="modal-icon-btn" id="modalThumbsDownBtn" title="Not for me" style="${downActive ? 'background:rgba(184,58,58,0.25);border-color:rgba(184,58,58,0.5);color:#E8746C;' : ''}"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" style="transform:rotate(180deg);"><path d="M7 11v9H4a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3Zm0 0 4.5-8a2 2 0 0 1 3.8 1l-1 5h4.7a2 2 0 0 1 1.9 2.6l-2 6a2 2 0 0 1-1.9 1.4H7" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></button>`;
           })() : ''}
         </div>
       </div>
       <div class="modal-body">
-        ${m.recommended ? `<div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#FFD54F;background:rgba(255,152,0,0.12);border:1px solid rgba(255,152,0,0.3);border-radius:10px;padding:10px 12px;margin-bottom:16px;"><svg viewBox="0 0 24 24" fill="currentColor" style="width:15px;height:15px;flex-shrink:0;"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.5 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8L12 2Z"/></svg> Recommended pick — a staff favorite.</div>` : ""}
+        ${m.recommended ? `<div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#FFD54F;background:rgba(255,152,0,0.12);border:1px solid rgba(255,152,0,0.3);border-radius:var(--radius-card);padding:10px 12px;margin-bottom:16px;"><svg viewBox="0 0 24 24" fill="currentColor" style="width:15px;height:15px;flex-shrink:0;"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.5 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8L12 2Z"/></svg> Recommended pick — a staff favorite.</div>` : ""}
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);margin-bottom:${(!isDigital && !out) ? '4px' : '16px'};">
           <span class="rating-badge">${m.rating}</span>
           <span>${isDigital ? `Streaming on ${m.streamingService || 'an unspecified service'}` : (conditionLabel(m) || (out ? 'Out of stock' : m.stock+' disc'+(m.stock===1?'':'s')+' on hand'))}</span>
@@ -4255,8 +4255,8 @@
           const bonusDiscs = catalog.filter(x => x.bonusDiscOf === m.id);
           if(bonusDiscs.length === 0) return '';
           return `<div style="margin-bottom:16px;">
-            <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Bonus features</div>
-            ${bonusDiscs.map(d => `<button class="secondary" data-openbonus="${d.id}" style="width:100%;text-align:left;margin-bottom:6px;font-size:13px;display:flex;align-items:center;gap:8px;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="7" width="18" height="13" rx="1.5" stroke="currentColor" stroke-width="2"/><path d="M3 7l2-4h3l-2 4M9 7l2-4h3l-2 4M15 7l2-4h3l-2 4" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> ${d.title}</button>`).join("")}
+            <div style="font-size:12px;color:var(--muted);margin-bottom:var(--space-2);">Bonus features</div>
+            ${bonusDiscs.map(d => `<button class="secondary" data-openbonus="${d.id}" style="width:100%;text-align:left;margin-bottom:var(--space-2);font-size:13px;display:flex;align-items:center;gap:8px;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="7" width="18" height="13" rx="1.5" stroke="currentColor" stroke-width="2"/><path d="M3 7l2-4h3l-2 4M9 7l2-4h3l-2 4M15 7l2-4h3l-2 4" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> ${d.title}</button>`).join("")}
           </div>`;
         })()}
         ${(m.seriesName && m.themeSong) ? `<button class="secondary" id="themeStopBtn" style="font-size:11px;padding:6px 10px;margin-bottom:16px;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M4 9v6h4l5 4V5L8 9H4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Playing theme — tap to stop</button>` : ''}
@@ -4341,7 +4341,7 @@
       return `<div class="row" style="padding:10px 12px;">
         <div>
           <div style="font-size:14px;">${seriesTag(d) || d.title}${d.format==='Blu-ray' ? ' <span class="bluray-badge" style="position:static;display:inline-block;vertical-align:middle;">Blu-ray</span>' : ''}</div>
-          <div style="font-size:11px;color:${dOut?'#E87C03':'var(--muted)'};margin-top:2px;">${dOut?'Out of stock':d.stock+' in stock'}</div>
+          <div style="font-size:11px;color:${dOut?'#E87C03':'var(--muted)'};margin-top:var(--space-1);">${dOut?'Out of stock':d.stock+' in stock'}</div>
         </div>
         ${action}
       </div>`;
@@ -4545,7 +4545,7 @@
       </div>
       <div class="modal-body">
         <button class="tv-send-btn" id="tvSendConfirmBtn"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg> Send to Kiosk</button>
-        ${bays.some(b=>b.titleId===m.id) ? `<button class="tv-send-btn" id="tvLocateBtn" style="margin-top:10px;background:rgba(255,255,255,0.12);"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.3 7-11.5A7 7 0 0 0 5 9.5C5 14.7 12 21 12 21Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.5" stroke="currentColor" stroke-width="2"/></svg> Flash its shelf light</button>` : ''}
+        ${bays.some(b=>b.titleId===m.id) ? `<button class="tv-send-btn" id="tvLocateBtn" style="margin-top:var(--space-2);background:rgba(255,255,255,0.12);"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.3 7-11.5A7 7 0 0 0 5 9.5C5 14.7 12 21 12 21Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.5" stroke="currentColor" stroke-width="2"/></svg> Flash its shelf light</button>` : ''}
       </div>
     </div>`;
     box.style.display = "flex";
@@ -4602,8 +4602,8 @@
         <div class="title">${tvSelection.title}</div>
       </div>
       <div style="display:flex;gap:8px;">
-        <button class="secondary" id="tvBannerViewBtn" style="padding:9px 14px;font-size:12px;">View</button>
-        <button class="secondary" id="tvBannerDismissBtn" style="padding:9px 14px;font-size:12px;">Dismiss</button>
+        <button class="secondary" id="tvBannerViewBtn" style="padding:8px 14px;font-size:12px;">View</button>
+        <button class="secondary" id="tvBannerDismissBtn" style="padding:8px 14px;font-size:12px;">Dismiss</button>
       </div>
     </div>`;
     $("#tvBannerViewBtn").onclick = () => openMovieModal(tvSelection.movieId);
@@ -4629,7 +4629,7 @@
         <div class="label"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.3 7-11.5A7 7 0 0 0 5 9.5C5 14.7 12 21 12 21Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Continuing from the kiosk</div>
         <div class="title">${kioskSelection.title}</div>
       </div>
-      <button class="secondary" id="tvKioskBannerDismissBtn" style="padding:9px 14px;font-size:12px;">Dismiss</button>
+      <button class="secondary" id="tvKioskBannerDismissBtn" style="padding:8px 14px;font-size:12px;">Dismiss</button>
     </div>`;
     $("#tvKioskBannerDismissBtn").onclick = clearKioskSelection;
   }
@@ -5418,8 +5418,8 @@
             <b style="margin-left:6px;">${e.endpoint}</b>
             <span style="color:var(--muted);margin-left:6px;">from ${e.ip}</span>
           </div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px;">sent: ${bodyStr}</div>
-          <div style="font-size:11px;color:${ok?'var(--muted)':'#E87C03'};margin-top:2px;">received: ${resultStr}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:var(--space-1);">sent: ${bodyStr}</div>
+          <div style="font-size:11px;color:${ok?'var(--muted)':'#E87C03'};margin-top:var(--space-1);">received: ${resultStr}</div>
         </div>
         <span style="font-size:11px;color:var(--muted2);flex-shrink:0;">${time}</span>
       </div>`;
@@ -5763,10 +5763,10 @@
     const dueDate = new Date(Date.now() + RENTAL_DAYS*86400000).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
     el.style.display = "flex";
     el.innerHTML = `
-      <div style="margin-bottom:16px;"><svg viewBox="0 0 24 24" fill="none" style="width:56px;height:56px;"><circle cx="12" cy="12" r="10" stroke="var(--green)" stroke-width="2"/><path d="M7.5 12.5l3 3 6-6.5" stroke="var(--green)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div style="margin-bottom:16px;"><svg viewBox="0 0 24 24" fill="none" style="width:56px;height:56px;"><circle cx="12" cy="12" r="10" stroke="var(--green)" stroke-width="2"/><path d="M7.5 12.5l3 3 6-6.5" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <div class="t">You're all set!</div>
       <div class="g">"${completed.title}" is checked out${completed.renterName ? ' to '+completed.renterName : ''} — due back ${dueDate}.</div>
-      ${completed.bulkStorage ? `<div style="display:flex;align-items:center;gap:8px;background:var(--surf3);border-radius:12px;padding:12px 16px;margin:14px 0 4px;max-width:340px;font-size:13px;color:var(--white);text-align:left;"><svg viewBox="0 0 24 24" fill="none" style="width:22px;height:22px;flex-shrink:0;" stroke="#E87C03"><path d="M3 8l9-4.5L21 8v9l-9 4.5L3 17V8Z" stroke-width="2" stroke-linejoin="round"/><path d="M3 8l9 4.5L21 8M12 12.5V21" stroke-width="2" stroke-linejoin="round"/></svg><span>This one isn't in a bay — grab it from the bulk storage pile.</span></div>` : ''}
+      ${completed.bulkStorage ? `<div style="display:flex;align-items:center;gap:8px;background:var(--surf3);border-radius:var(--radius-card);padding:12px 16px;margin:var(--space-3) 0 var(--space-1);max-width:340px;font-size:13px;color:var(--white);text-align:left;"><svg viewBox="0 0 24 24" fill="none" style="width:22px;height:22px;flex-shrink:0;" stroke="#E87C03"><path d="M3 8l9-4.5L21 8v9l-9 4.5L3 17V8Z" stroke-width="2" stroke-linejoin="round"/><path d="M3 8l9 4.5L21 8M12 12.5V21" stroke-width="2" stroke-linejoin="round"/></svg><span>This one isn't in a bay — grab it from the bulk storage pile.</span></div>` : ''}
       <button class="primary" id="rentalCompleteDoneBtn">Continue browsing</button>
     `;
     playCheckoutCompleteSound();
@@ -5787,7 +5787,7 @@
     clearTimeout(returnCompleteTimer);
     el.style.display = "flex";
     el.innerHTML = `
-      <div style="margin-bottom:16px;"><svg viewBox="0 0 24 24" fill="none" style="width:56px;height:56px;"><circle cx="12" cy="12" r="10" stroke="var(--green)" stroke-width="2"/><path d="M7.5 12.5l3 3 6-6.5" stroke="var(--green)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div style="margin-bottom:16px;"><svg viewBox="0 0 24 24" fill="none" style="width:56px;height:56px;"><circle cx="12" cy="12" r="10" stroke="var(--green)" stroke-width="2"/><path d="M7.5 12.5l3 3 6-6.5" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <div class="t">Thanks for returning it!</div>
       <div class="g">"${completed.title}" is back and available to rent again.</div>
       <button class="primary" id="returnCompleteDoneBtn">Continue browsing</button>
@@ -5958,7 +5958,7 @@
 
     titleText.textContent = data && data.title ? data.title : "🎉";
     posterWrap.innerHTML = (data && data.poster)
-      ? `<img src="${data.poster}" style="width:140px;border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,0.5);" />`
+      ? `<img src="${data.poster}" style="width:140px;border-radius:var(--radius-card);box-shadow:0 12px 40px rgba(0,0,0,0.5);" />`
       : "";
 
     const colors = ["#FF3B30","#FF9500","#FFCC00","#34C759","#007AFF","#AF52DE","#FF2D95"];
@@ -6011,7 +6011,7 @@
     currentUnattributedRentalId = data.rentalId;
     el.style.display = "flex";
     el.innerHTML = `
-      <div style="margin-bottom:12px;"><svg viewBox="0 0 24 24" fill="none" style="width:44px;height:44px;color:#E87C03;"><path d="M6 10a6 6 0 0 1 12 0c0 4 1.5 5.5 2 6H4c.5-.5 2-2 2-6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M10 19a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div style="margin-bottom:var(--space-3);"><svg viewBox="0 0 24 24" fill="none" style="width:44px;height:44px;color:#E87C03;"><path d="M6 10a6 6 0 0 1 12 0c0 4 1.5 5.5 2 6H4c.5-.5 2-2 2-6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M10 19a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
       <div class="t">Who took "${data.title}"?</div>
       <div class="g">It checked out fine, but nobody was logged in — enter your PIN so it's under the right name.</div>
       <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:280px;align-items:center;">
@@ -6077,13 +6077,13 @@
     if(!el) return;
     el.style.display = "flex";
     el.innerHTML = `
-      <div style="margin-bottom:12px;"><svg viewBox="0 0 24 24" fill="none" style="width:44px;height:44px;color:var(--red);"><path d="M5 21V5a2 2 0 0 1 2-2h6l6 6v12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13 3v6h6" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="9.5" cy="14" r="1" fill="currentColor"/></svg></div>
+      <div style="margin-bottom:var(--space-3);"><svg viewBox="0 0 24 24" fill="none" style="width:44px;height:44px;color:var(--red);"><path d="M5 21V5a2 2 0 0 1 2-2h6l6 6v12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13 3v6h6" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="9.5" cy="14" r="1" fill="currentColor"/></svg></div>
       <div class="t">Welcome! Log in to check something out</div>
       <div style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:280px;align-items:center;">
-        <input id="doorLoginPinInput" class="pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" style="margin-top:6px;" />
+        <input id="doorLoginPinInput" class="pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" style="margin-top:var(--space-2);" />
         <div class="pinMsgField" style="font-size:13px;color:#E87C03;min-height:18px;"></div>
         <div id="doorLoginPinPad" style="width:100%;"></div>
-        <button class="secondary" id="doorLoginBrowseBtn" style="width:100%;margin-top:6px;">Just browsing</button>
+        <button class="secondary" id="doorLoginBrowseBtn" style="width:100%;margin-top:var(--space-2);">Just browsing</button>
       </div>
     `;
     playDoorChime(); // its own distinct sound, not the repeating alarm the unattributed-checkout alert uses — this isn't urgent, just a nudge
@@ -6463,9 +6463,9 @@
     overlay.style.display = "flex";
     body.innerHTML = `
       <div class="t" style="font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:18px;font-weight:700;color:var(--white);margin-bottom:4px;">Which one is "${m.title}"?</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Picking one replaces the poster${isGame ? ' and description' : ', backdrop, description, logo, and trailer'} with that match's real details.</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:var(--space-3);">Picking one replaces the poster${isGame ? ' and description' : ', backdrop, description, logo, and trailer'} with that match's real details.</div>
       <div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">Searching…</div>
-      <button class="secondary" id="matchPickerCloseBtn" style="width:100%;margin-top:10px;">Cancel</button>
+      <button class="secondary" id="matchPickerCloseBtn" style="width:100%;margin-top:var(--space-2);">Cancel</button>
     `;
     $("#matchPickerCloseBtn").onclick = closeMatchPicker;
     overlay.onclick = (e) => { if(e.target===overlay) closeMatchPicker(); };
@@ -6477,22 +6477,22 @@
       const { candidates } = await api.get(url);
       if(!candidates || candidates.length===0){
         body.innerHTML = `<div style="font-size:13px;color:var(--muted);padding:10px 0;">No matches found on ${source} for "${m.title}".</div>
-          <button class="secondary" id="matchPickerCloseBtn2" style="width:100%;margin-top:10px;">Close</button>`;
+          <button class="secondary" id="matchPickerCloseBtn2" style="width:100%;margin-top:var(--space-2);">Close</button>`;
         $("#matchPickerCloseBtn2").onclick = closeMatchPicker;
         return;
       }
       const rowsHtml = candidates.map((c,i) => `<div class="row" data-pick="${i}" style="cursor:pointer;gap:12px;">
-        <img src="${c.thumb||''}" style="width:42px;height:63px;object-fit:cover;border-radius:4px;background:var(--surf3);flex-shrink:0;${c.thumb?'':'visibility:hidden;'}" />
+        <img src="${c.thumb||''}" style="width:42px;height:63px;object-fit:cover;border-radius:var(--radius-chip);background:var(--surf3);flex-shrink:0;${c.thumb?'':'visibility:hidden;'}" />
         <div style="flex:1;min-width:0;">
           <div style="font-size:14px;">${c.title}${c.year?` (${c.year})`:''}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${c.overview||'No description available.'}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:var(--space-1);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${c.overview||'No description available.'}</div>
         </div>
       </div>`).join("");
       body.innerHTML = `
         <div class="t" style="font-family:'Poppins','SF Pro Rounded',ui-rounded,-apple-system,'Segoe UI Variable','Segoe UI',sans-serif;font-size:18px;font-weight:700;color:var(--white);margin-bottom:4px;">Which one is "${m.title}"?</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Picking one replaces the poster, backdrop, description, logo, and trailer with that match's real details.</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:var(--space-3);">Picking one replaces the poster, backdrop, description, logo, and trailer with that match's real details.</div>
         <div style="display:flex;flex-direction:column;gap:8px;">${rowsHtml}</div>
-        <button class="secondary" id="matchPickerCloseBtn2" style="width:100%;margin-top:14px;">Cancel</button>
+        <button class="secondary" id="matchPickerCloseBtn2" style="width:100%;margin-top:var(--space-3);">Cancel</button>
       `;
       $("#matchPickerCloseBtn2").onclick = closeMatchPicker;
       body.querySelectorAll("[data-pick]").forEach(row => {
@@ -6500,7 +6500,7 @@
       });
     }catch(e){
       body.innerHTML = `<div style="font-size:13px;color:var(--muted);padding:10px 0;">${e.message || "Couldn't search TMDb."}</div>
-        <button class="secondary" id="matchPickerCloseBtn2" style="width:100%;margin-top:10px;">Close</button>`;
+        <button class="secondary" id="matchPickerCloseBtn2" style="width:100%;margin-top:var(--space-2);">Close</button>`;
       $("#matchPickerCloseBtn2").onclick = closeMatchPicker;
     }
   }
@@ -6551,7 +6551,7 @@
         <button class="secondary" data-cond="damaged" style="width:100%;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 4 2 20h20L12 4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><line x1="12" y1="10" x2="12" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg> Damaged — scratched, won't play right</button>
         <button class="secondary" data-cond="missing" style="width:100%;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Missing — case was empty / lost</button>
       </div>
-      <div id="conditionCountdown" style="font-size:12px;color:var(--muted2);margin-top:14px;">Assuming Good in ${secondsLeft}s if nothing's picked…</div>
+      <div id="conditionCountdown" style="font-size:12px;color:var(--muted2);margin-top:var(--space-3);">Assuming Good in ${secondsLeft}s if nothing's picked…</div>
     `;
     overlay.querySelectorAll("[data-cond]").forEach(b => {
       b.onclick = () => setDiscCondition(rental, b.dataset.cond);
@@ -6726,7 +6726,7 @@
     const el = $("#serviceScanBox");
     if(!el) return;
     const scanLine = lastScanSummary
-      ? `<div style="font-size:13px;margin-bottom:4px;">Scanned: <code style="background:var(--surf3);padding:2px 6px;border-radius:4px;">${lastScanSummary.raw}</code></div>
+      ? `<div style="font-size:13px;margin-bottom:4px;">Scanned: <code style="background:var(--surf3);padding:2px 6px;border-radius:var(--radius-chip);">${lastScanSummary.raw}</code></div>
          <div style="font-size:13px;color:var(--muted);">${lastScanSummary.resultText}</div>`
       : `<div style="font-size:13px;color:var(--muted);">Nothing scanned yet this session.</div>`;
     const suggestion = catalog
@@ -6736,7 +6736,7 @@
       ? `Try it against: <b>${suggestion.title}</b> <span style="color:var(--muted);">(code: ${suggestion.code}, Bay ${bays.find(b=>b.titleId===suggestion.id).number})</span>`
       : `No title with a bay assigned yet to suggest testing against.`;
     el.innerHTML = `${scanLine}
-      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);">${suggestionLine}</div>`;
+      <div style="margin-top:var(--space-2);padding-top:10px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);">${suggestionLine}</div>`;
   }
 
   function handleScannedCode(code){
@@ -6805,21 +6805,21 @@
       const out = match.stock<=0 || ['unavailable','damaged','missing'].includes(match.condition);
       const activeRentals = rentals.filter(r => r.movieId === match.id);
       const hasBay = bays.some(b => b.titleId === match.id);
-      const returnHtml = activeRentals.length > 0 ? `<div style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px;">
+      const returnHtml = activeRentals.length > 0 ? `<div style="margin-top:var(--space-3);border-top:1px solid var(--line);padding-top:12px;">
         <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">This title is currently checked out${activeRentals.length>1?` (${activeRentals.length} copies)`:''}:</div>
-        ${activeRentals.map(r => `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;">
+        ${activeRentals.map(r => `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-2);gap:8px;">
           <span style="font-size:13px;">Rented by ${r.renterName}</span>
           <button class="teal" data-return-scan="${r.id}" style="padding:7px 12px;font-size:12px;flex-shrink:0;">Mark as returned</button>
         </div>`).join("")}
       </div>` : "";
-      const assignHtml = !hasBay ? `<div style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px;font-size:12px;color:var(--muted);">
+      const assignHtml = !hasBay ? `<div style="margin-top:var(--space-3);border-top:1px solid var(--line);padding-top:12px;font-size:12px;color:var(--muted);">
         Not assigned to a bay yet — scan a bay barcode now to link it here.
       </div>` : "";
       box.innerHTML = `<div class="match-card">
         <div class="t">${match.title}</div>
         <div class="g">${match.genre} · ${match.year} · ${match.rating} · ${match.stock} in stock</div>
         <div style="margin-top:8px;">${imdbLinkHtml(match)}</div>
-        <div style="margin-top:12px;display:flex;gap:8px;">
+        <div style="margin-top:var(--space-3);display:flex;gap:8px;">
           ${out ? `<span style="font-size:12px;color:#E87C03;">${conditionLabel(match) || 'Out of stock'}</span>`
             : (loggedInUser ? `<button class="primary" id="scanRentBtn">Rent this disc</button>` : `<button class="primary" id="scanOpenLoginBtn">Log in to rent</button>`)}
         </div>
@@ -6908,7 +6908,7 @@
       const title = catalog.find(m => m.id === bay.titleId);
       const x = (bay.x !== undefined && bay.x !== null) ? bay.x : 50;
       const y = (bay.y !== undefined && bay.y !== null) ? bay.y : 50;
-      return `<div style="position:absolute;left:${x}%;top:${y}%;transform:translate(-50%,-50%);width:110px;padding:6px;border:1.5px solid #000;border-radius:6px;text-align:center;background:#fff;">
+      return `<div style="position:absolute;left:${x}%;top:${y}%;transform:translate(-50%,-50%);width:110px;padding:6px;border:1.5px solid #000;border-radius:var(--radius-chip);text-align:center;background:#fff;">
         <div style="font-size:10px;font-weight:700;">BAY ${bay.number}</div>
         <div style="font-size:11px;line-height:1.25;">${title ? title.title : '(empty)'}</div>
       </div>`;
