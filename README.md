@@ -538,6 +538,54 @@ routes in registration order, so requests to that one endpoint are now
 fully handled before compression middleware ever sees them, while every
 other response is still compressed exactly as before.
 
+## Design-system foundation pass toward the Apple-style brief — not a claim of a complete redesign
+
+"Completely redesign everything" against a strict Apple-style brief is
+a genuinely unbounded request for an app this size — thousands of
+individual style declarations across dozens of screens built up over
+many separate sessions. Rather than make a vague claim of having
+redone all of it, this pass focused on the foundation and the most
+broadly-reused shared components, since fixing those has real,
+verifiable reach across most of the app — and left the rest as an
+honest, explicit boundary rather than something silently skipped.
+
+Audited first rather than assumed where the problems actually were:
+corner radii turned out to be scattered across ten different pixel
+values app-wide, and padding across more than a dozen — neither
+aligned to any consistent scale. Modal cards, poster tiles, and
+settings panels were each their own independently-drifted radius
+(20px / 14px / 16px) despite all three reading as the same kind of
+"card" surface.
+
+Added a formal spacing scale (4/8/16/24/32/48/64) and a radius scale
+grouped by category — one shared radius for anything that reads as a
+card, a smaller one for inputs, pills staying fully rounded — as real
+CSS custom properties, then brought the highest-reach shared
+components onto them: modal cards, poster tiles, settings panels,
+inputs, and all three button variants. Checked shadow and typography
+values already in place before touching either — shadows are already
+soft, large-blur, low-opacity (no hard drop-shadow anti-pattern to fix
+there), and the hero/modal-title size-weight relationship already
+reads as a real hierarchy, so neither needed the same kind of
+intervention the radius/spacing scales did.
+
+Worth naming directly rather than silently deciding either way: this
+app's genre-glow colors, condition badges, and barcode-label colors
+are functional information, not decoration — genre color is how
+someone tells genres apart at a glance across a whole grid, the same
+job that gets done with size/weight elsewhere. A strict
+one-accent-color reading of the brief would have meant ripping out
+real, working, explicitly-requested functionality built up across many
+sessions, so those systems were left as they are rather than
+unilaterally stripped down to fit the letter of "one accent color used
+sparingly."
+
+The much larger remaining scope — every individual one-off inline
+style across admin panels, smaller utility screens, and the rest of
+the app not covered by the shared components above — is real follow-up
+work, not something safely completable as one more step here. Happy to
+take on specific screens next if there's a priority order.
+
 ## Browse Movies' filters moved to a side panel
 
 Mood, Genre, and Rating used to be three separate horizontal chip rows
